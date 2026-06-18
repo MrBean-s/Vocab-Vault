@@ -1,0 +1,9 @@
+<h1>Languages</h1>
+
+{% for lan in languages %}
+	<a href = "{% url 'dashboard' lan.id %}" >
+		<img src="{{lan.image.file.url}}" alt="{{lan.name}}" width="300" height="150">
+	</a>
+	<p>{{lan.name}}</p>
+{% endfor %}
+

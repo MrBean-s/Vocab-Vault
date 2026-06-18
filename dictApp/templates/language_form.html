@@ -1,0 +1,20 @@
+
+<form action="{% url 'add_lang' %}" method="POST" enctype="multipart/form-data">
+	{% csrf_token %}
+	<div>
+		{% if is_edit and form.instance.image %}
+		    <img src="{{ form.instance.image.file.url }}" alt="Current image" width="100">
+		{% endif %}
+	</div>
+	<div> {{ form.name }} </div>
+	<div> {{ form.image_file }} </div>
+	<button type="submit"> Submit</button>
+</form>
+
+<hr>
+
+<div style="color: red">
+	{% for key, value in errors %}
+		{{key}} - {{value}}
+	{% endfor %}
+</div>
