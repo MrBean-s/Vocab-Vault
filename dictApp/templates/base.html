@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{% block title %}Base{% endblock %}</title>
+	{% load static %}
+	{% block styles %}
+		<link rel="stylesheet" href="{% static 'bootstrap/bootstrap.min.css' %}">
+		<link rel="stylesheet" href="{% static 'fontawesome/all.min.css' %}">
+		<link rel="stylesheet" href="{% static 'css/base.css' %}">
+		<style>	.wireframe { border: 0px solid white; } body { background: #222531 }</style>
+	{% endblock styles%}
+	{% block additionalStyles %}
+	{% endblock additionalStyles %}
+</head>
+<body>
+	{% block scripts %}
+		<script src="{% static 'bootstrap/bootstrap.bundle.min.js' %}"></script>
+		<script src="{% static 'htmx/htmx.min.js' %}"></script>
+	{% endblock scripts %}
+
+	{% if messages %}
+	  	{% for message in messages %}
+	    	<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}
+	    		alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+	      		{{ message }}
+	      		<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+	      		</button>
+	    	</div>
+	  	{% endfor %}
+	{% endif %}
+	
+	{% block innerbody %}
+		<h4> Base template </h4>
+	{% endblock innerbody %}
+
+	{% include 'modals/generic_modal.html' %}
+
+	{% block additionalModals %}
+	{% endblock additionalModals%}
+
+	<script>
+		document.getElementById('genericModal').addEventListener('hidden.bs.modal', function () {
+		    document.getElementById('genericModalTitle').textContent = '';
+		    document.getElementById('genericModalBody').innerHTML = `
+		        <div class="text-center">
+		            <div class="spinner-border" role="status"></div>
+		        </div>`;
+		    document.getElementById('genericModalButtons').textContent = '';
+		});
+	</script>
+
+	{% block additionalScripts %}
+	{% endblock additionalScripts %}
+
+	<p id="error-box" class="text-danger position-fixed top-0 start-50"></p>
+	<script>
+		document.body.addEventListener('htmx:targetError', function(evt) {
+		    document.getElementById('error-box').textContent = 'Target not found: ' + evt.detail.target;
+		});
+	</script>
+</body>
+</html>
