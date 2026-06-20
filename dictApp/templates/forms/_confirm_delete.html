@@ -1,0 +1,10 @@
+<div>
+    <p class="mb-5">Are you sure you want to delete <strong>{{ type }} "{{ name }}"</strong>?</p>
+    <form method="post" action="{{ delete_url }}">
+        {% csrf_token %}
+        <div class="mt-5 d-flex justify-content-end gap-3">
+            <button type="submit" class="btn btn-danger">Yes, delete</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+    </form>
+</div>
