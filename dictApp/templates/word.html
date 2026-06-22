@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block additionalStyles %}
+	<style>
+		.resize-none { 	resize: none; }
+		.banner-input { font-size: 2rem; padding: 0 }
+		.tag { background-color: gray; border-radius: 5px; padding: 2px 10px;  }
+		.white-shadow-simple {
+			box-shadow: 0 0px 20px rgba(255, 255, 255, 0.08),
+		              0 0px 6px rgba(255, 255, 255, 0.04);
+		}
+		input { color: gray; }
+		.d-hidden { visibility: hidden; height: 0px !important; width: 0px !important;}
+		.d-hidden-only { visibility: hidden !important; }
+	</style>
+{% endblock additionalStyles %}
+
+
+{% block innerbody %}
+<!-- custom 'get_at' filter -->
+{% load custom_filters %}
+
+{% if is_edit %}
+	{% url 'word_edit' word_id as target_url %}
+{% else %}
+	{% url 'word' as target_url %}
+{% endif %}
+
+<div class="wireframe right-side pb-4" style="width: calc(100vw - 280px); margin-left: 280px;">
+	<form action="{{target_url}}" method="post" enctype="multipart/form-data" id="word-form" class="wireframe">
+	    {% csrf_token %}
+	    <div class="d-flex justify-content-between sticky-top white-shadow-simple" style="background-color: #222531;
+	    	padding: 30px 150px 30px 120px;">
+		    <div class="wireframe d-flex gap-5 align-items-center w-75">
+		    	<div class="wireframe">
+		    		<div> {{word_form.name}}</div>	
+		    	</div>
+		    	<div>Ngram</div>
+		    	<div> Related words: <div>Brooding</div>
+		    	</div>
+		    </div>
+		    <div class="wireframe">
+		    	<div class="d-flex justify-content-end align-items-center gap-3 h-100">
+		    		<button type="button" class="btn btn-secondary" style="width: 70px;">Edit</button>
+		    		<button type="submit" class="btn btn-success" style="width: 70px;">Save</button>
+		    	</div>
+		    </div>
+		</div>
+		<div style="padding: 30px 150px">
+			<div class="position-relative mb-3">
+				<div class="position-absolute add-definition-item" style="left: -35px">
+					<i class="fa-solid fa-circle-plus fs-5"></i>
+				</div>
+				Definitions
+			</div>
+		    <div id="definitions-container">
+		        {{ def_formset.management_form }}
+		        {% for def_form in def_formset %}
+		        	{% with def_index=forloop.counter0 %}
+		            <div class="def-row" data-def-index="{{ def_index }}">
+		            	<div class="d-flex w-100">
+		            		<div class="wireframe w-55 px-5 pt-1 position-relative">
+			            	    {{ def_form.id }}
+			            	    <div class="d-hidden">
+								    {{ def_form.DELETE }}
+								</div>
+								
+			            		<a class="position-absolute remove-definition-item" style="left: -35px; top: 20px"
+			            			href="#" data-def-index="{{ def_index }}" 
+			            	    		onclick="removeDefinition(this); return false;">
+									<i class="fa-solid fa-trash fs-5"></i>
+								</a>
+
+			            	    <div class="mb-3">
+			            	    	<div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+		            	    			<label for="def_form.description.id_for_label" class="form-label">
+											{{ def_form.description.label }}
+										</label>
+										<div class="rounded" style="width: 100px; height: 30px;
+											background: gray;">
+										</div>
+
+		            	    		</div>
+		            	    		{{ def_form.description }}	
+			            	    </div>
+				
+			            	    <div class="mb-3">
+			            	    	<label for="def_form.origin.id_for_label" class="form-label">
+			            	    		{{ def_form.origin.label }}
+			            	    	</label>
+			            	    	{{ def_form.origin }}
+			            	    </div>
+
+			            	    <div class="d-flex
+			            	    	position-relative pt-1">
+			            	    	<div class="position-absolute" style="left: -35px">
+										<i class="fa-solid fa-circle-plus fs-5"></i>
+									</div>
+			            	    	<a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
+			            	    		onclick="addExample(this); return false;">
+			            	    		Examples
+			            	    	</a>
+			            		</div>
+							</div>
+
+							<div class="wireframe w-45">
+								<div class="wireframe h-85 d-flex justify-content-center">
+									<img src="{% static 'images/Image-not-found.png' %}"
+										style="width: 230px; height: 100%;" />
+								</div>
+								<div class="wireframe h-15 d-flex justify-content-center align-items-center gap-3">
+		                			{{ def_form.image_file }}
+		                		</div>
+		            		</div>
+		                </div>
+		                <div class="d-flex">
+		                	<!-- Examples for this definition -->
+			                {% with ex_fs=example_formsets|get_at:def_index %}
+			                    <div class="examples-container w-100" data-def-index="{{ def_index }}">
+			                        {{ ex_fs.management_form }}
+			                        {% for ex_form in ex_fs %}
+			                            <div class="ex-row d-flex" data-ex-index="{{ def_index|add:forloop.counter0 }}">
+			                                {{ ex_form.id }}
+			                                <div class="d-hidden">
+											    {{ ex_form.DELETE }}
+											</div>
+			                                <div class="wireframe w-55 px-5 pb-4">
+				                                <div class="d-flex justify-content-end gap-2">
+				                                	<div class="tag">Idiom</div>
+				                                	<div class="tag">Verb</div>
+				                                </div>
+				                                <div class="mt-2 d-flex align-items-center gap-3">
+													<a href="#" data-def-index="{{def_index}}"
+														data-ex-index="{{ def_index|add:forloop.counter0 }}" 
+														class="remove-example-item"
+			            	    						onclick="removeExample(this); return false;">
+			            	    						<i class="fa-solid fa-trash"></i>
+			            	    					</a>
+				                                	{{ ex_form.description }}
+				                            	</div>
+				                            	<div class="mt-2 d-flex justify-content-end">
+				                            		<div class="w-75">
+				                                		{{ ex_form.explanation }}
+				                                	</div>
+				                            	</div>
+			                                </div>
+			                                <div class="wireframe w-45 px-4 pb-4">
+			                                	<div class="d-flex justify-content-end gap-2"
+			                                		style="visibility: hidden;">
+				                                	<div class="tag">Idiom</div>
+				                                	<div class="tag">Verb</div>
+				                                </div>
+				                                <div class="mt-2 d-flex gap-3">
+				                            		<select class="form-select w-75">
+														<option value="" disabled selected hidden>Source</option>
+													</select>
+													<button class="btn btn-info w-25">Audio</button>
+				                            	</div>
+				                            	<div class="mt-2 w-100 d-flex gap-2">
+				                            		<div class="w-45 d-flex gap-2">
+				                            			<div class="d-flex" style="width: 30%">
+				                            				<div style="background: white; color: gray;">S-</div>
+				                            				<input type="text" placeholder="0" class="w-100"/>
+				                            			</div>
+				                            			<div class="d-flex" style="width: 30%">
+				                            				<div style="background: white; color: gray;">E-</div>
+				                            				<input type="text" placeholder="0" class="w-100"/>
+				                            			</div>
+				                            			<input type="text" placeholder="00:00:00" style="width: 40%"/>
+				                            		</div>
+				                            		<div class="w-55 d-flex">
+				                            			<input type="text" placeholder="Episode name" style="width: 100%"/>
+				                            		</div>
+				                            	</div>
+			                                </div>
+			                            </div>
+			                        {% endfor %}
+			                    </div>
+			                {% endwith %}
+			            </div>
+		              <!--   {% if def_formset.can_delete %}
+		                    {{ def_form.DELETE }} Remove definition
+		                {% endif %}-->
+		            </div>
+		            {% endwith %}
+		            {% if not forloop.first and not forloop.last %}<hr>{% endif %}
+		        {% endfor %}
+		    </div>
+		</div>
+
+
+		<!-- hidden example row template -->
+		<div id="example-row-template" style="display: none;">
+		    <div class="ex-row d-flex" data-ex-index="__EX_INDEX__">
+		        <!-- ID field (empty for new) -->
+		        <input type="hidden" name="def-__DEF_INDEX__-examples-__EX_INDEX__-id" value="">
+		        <div class="d-hidden">
+				    <input type="checkbox" name="def-__DEF_INDEX__-examples-__EX_INDEX__-DELETE"
+				    	id="id_def-__DEF_INDEX__-examples-__EX_INDEX__-DELETE">
+				</div>
+		        <!-- description and explanation fields -->
+		        <div class="wireframe w-55 px-5 pb-4">
+		            <!-- … static parts (tags, etc.) … -->
+		            <div class="d-flex justify-content-end gap-2">
+		                <div class="tag">Idiom</div>
+		                <div class="tag">Verb</div>
+		            </div>
+		            <div class="mt-2 d-flex align-items-center gap-3">
+		                <a href="#" data-def-index="__DEF_INDEX__"
+		                   data-ex-index="__EX_INDEX__"
+		                   class="remove-example-item"
+		                   onclick="removeExample(this); return false;">
+		                    <i class="fa-solid fa-trash"></i>
+		                </a>
+						<textarea name="def-__DEF_INDEX__-examples-__EX_INDEX__-description"
+							class="resize-none form-control"
+	                        placeholder="Write an example"
+							rows="1" cols="50"></textarea>
+		            </div>
+		            <div class="mt-2 d-flex justify-content-end">
+		                <div class="w-75">
+		                    <textarea name="def-__DEF_INDEX__-examples-__EX_INDEX__-explanation"
+								class="resize-none form-control"
+								placeholder="Explained in other words"
+								rows="1" cols="50"></textarea>
+		                </div>
+		            </div>
+		        </div>
+		        <!-- … second column (source, audio, etc.) … -->
+		        <div class="wireframe w-45 px-4 pb-4">
+                	<div class="d-flex justify-content-end gap-2"
+                		style="visibility: hidden;">
+                    	<div class="tag">Idiom</div>
+                    	<div class="tag">Verb</div>
+                    </div>
+                    <div class="mt-2 d-flex gap-3">
+                		<select class="form-select w-75">
+							<option value="" disabled selected hidden>Source</option>
+						</select>
+						<button class="btn btn-info w-25">Audio</button>
+                	</div>
+                	<div class="mt-2 w-100 d-flex gap-2">
+                		<div class="w-45 d-flex gap-2">
+                			<div class="d-flex" style="width: 30%">
+                				<div style="background: white; color: gray;">S-</div>
+                				<input type="text" placeholder="0" class="w-100"/>
+                			</div>
+                			<div class="d-flex" style="width: 30%">
+                				<div style="background: white; color: gray;">E-</div>
+                				<input type="text" placeholder="0" class="w-100"/>
+                			</div>
+                			<input type="text" placeholder="00:00:00" style="width: 40%"/>
+                		</div>
+                		<div class="w-55 d-flex">
+                			<input type="text" placeholder="Episode name" style="width: 100%"/>
+                		</div>
+                	</div>
+                </div>
+		    </div>
+		</div>
+
+	</form>
+
+</div>
+
+{% endblock innerbody %}
+	
+{% block additionalScripts %}
+
+<script>
+	// Add a new definition row
+	function addDefinition() {
+	    const container = document.getElementById('definitions-container');
+	    const totalForms = document.getElementById('id_definitions-TOTAL_FORMS');
+	    const currentCount = parseInt(totalForms.value);
+	    // Clone the last def-row as template (or use a hidden template)
+	    const firstRow = container.querySelector('.def-row:first-of-type');
+	    const newRow = firstRow.cloneNode(true);
+	    // Update indices: replace 'def-{old}' with 'def-{currentCount}'
+	    newRow.innerHTML = newRow.innerHTML.replace(/definitions-\d+/g, `definitions-${currentCount}`);
+	    newRow.innerHTML = newRow.innerHTML.replace(/examples_\d+/g, `examples_${currentCount}`);
+	    newRow.setAttribute('data-def-index', currentCount);
+		newRow.querySelectorAll('.examples-container, .add-example-item, .remove-definition-item')
+		      .forEach(el => el.setAttribute('data-def-index', currentCount));
+
+	    newRow.querySelectorAll('.ex-row').forEach(element => { 
+	    	element.innerHTML='';
+	    });
+	    // Clear values
+	    newRow.querySelectorAll('input[type=text], input[type=file]').forEach(inp => inp.value = '');
+	    // Update total forms
+	    totalForms.value = currentCount + 1;
+	    container.appendChild(newRow);
+	    newRow.prepend(document.createElement("hr"));
+	}
+
+	// Add an example row inside a specific definition
+	function addExample(element) {
+	    const defIndex = element.dataset.defIndex;
+	    const container = document.querySelector(`.examples-container[data-def-index='${defIndex}']`);
+	    const totalForms = container.querySelector('[id$="-TOTAL_FORMS"]');
+	    const currentCount = parseInt(totalForms.value);
+
+	    // Get the hidden template and clone it
+	    const template = document.getElementById('example-row-template');
+	    const newRow = template.querySelector('.ex-row').cloneNode(true);  // deep clone
+
+	    // Replace all placeholders with the correct indices
+	    newRow.innerHTML = newRow.innerHTML.replace(/__DEF_INDEX__/g, defIndex);
+	    newRow.innerHTML = newRow.innerHTML.replace(/__EX_INDEX__/g, currentCount);
+
+	    // Set the data-ex-index attribute correctly
+	    newRow.setAttribute('data-ex-index', currentCount);
+
+	    // Append to the container and update the management form
+	    container.appendChild(newRow);
+	    totalForms.value = currentCount + 1;
+	}
+
+	function removeDefinition(element) {
+		defIndex = element.dataset.defIndex;
+		const def_row = document.querySelector(`.def-row[data-def-index='${defIndex}']`);
+		def_row.classList.add('d-hidden');
+		def_row.querySelector('.d-flex.w-100').classList.add('d-hidden');
+		def_row.querySelector('hr')?.remove();
+		const deleteCheckbox = def_row.querySelector('input[id$="-DELETE"]');
+	    if (deleteCheckbox) {
+	        deleteCheckbox.checked = true;
+	    }
+	}
+
+	function removeExample(element) {
+		exIndex = element.dataset.exIndex;
+		defIndex = element.dataset.defIndex;
+		const container = document.querySelector(`.examples-container[data-def-index='${defIndex}']`);
+		const ex_row = container.querySelector(`.ex-row[data-ex-index='${exIndex}']`);
+		ex_row.classList.add('d-hidden');
+		const deleteCheckbox = ex_row.querySelector('input[id$="-DELETE"]');
+	    if (deleteCheckbox) {
+	        deleteCheckbox.checked = true;
+	    }
+	}
+
+	document.querySelectorAll('.add-definition-item').forEach(element => {
+		element.addEventListener('click', (e) => {
+			addDefinition();
+			return true;
+		});
+	});
+</script>
+{% endblock additionalScripts %}
+

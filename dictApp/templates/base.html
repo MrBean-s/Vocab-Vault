@@ -9,7 +9,13 @@
 		<link rel="stylesheet" href="{% static 'bootstrap/bootstrap.min.css' %}">
 		<link rel="stylesheet" href="{% static 'fontawesome/all.min.css' %}">
 		<link rel="stylesheet" href="{% static 'css/base.css' %}">
-		<style>	.wireframe { border: 0px solid white; } body { background: #222531 }</style>
+		<link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
+		<style>	
+			.wireframe { border: 1px solid white; } 
+			body { background: #222531; min-height: 100vh } 
+			* { color: white }
+			#sidebar { z-index: 1021 }
+		</style>
 	{% endblock styles%}
 	{% block additionalStyles %}
 	{% endblock additionalStyles %}
@@ -19,6 +25,8 @@
 		<script src="{% static 'bootstrap/bootstrap.bundle.min.js' %}"></script>
 		<script src="{% static 'htmx/htmx.min.js' %}"></script>
 	{% endblock scripts %}
+
+
 
 	{% if messages %}
 	  	{% for message in messages %}
@@ -30,6 +38,10 @@
 	    	</div>
 	  	{% endfor %}
 	{% endif %}
+
+	{% block sidebar %}
+		{% include 'partial/_sidebar.html' %}
+	{% endblock %}
 	
 	{% block innerbody %}
 		<h4> Base template </h4>

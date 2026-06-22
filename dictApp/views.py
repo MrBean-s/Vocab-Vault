@@ -1,10 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect
-from .forms import LanguageForm
+from .forms import LanguageForm, WordForm, DefinitionFormSet, ExampleFormSet
 from .models import Language, Image
 from django.contrib import messages
 from django.db.models import ProtectedError
-# Create your views here.
 
 
 def start_screen(request):
@@ -17,7 +16,7 @@ def start_screen(request):
 		"twelve_mod3": round(12 / remaining if remaining > 0 else 12)
 	})
 
-def language_form(request, lang_id = None):
+def language_form(request, lang_id=None):
 
 	instance = get_object_or_404(Language, pk=lang_id) if lang_id else None
 
@@ -34,7 +33,7 @@ def language_form(request, lang_id = None):
 		{
 			"form": form,
 			"is_edit" : instance is not None,
-			'edit_lang_id': instance.id if instance is not None else 0
+			'edit_lang_id': instance.id if instance else 0
 		})
 
 def languages(request):
@@ -73,7 +72,29 @@ def generic_confirm_delete(request):
     })
 
 def dashboard(request, lang_id):
+	
 	return HttpResponse("<h1>Hello, World!</h1>", content_type="text/html")
 
+def word(request, word_id=None):
+	word = get_object_or_404(Word, pk=word_id) if word_id else None
 
+	if request.method == 'GET':
+		word_form = WordForm(instance=word)
+		def_formset = DefinitionFormSet(instance=word)
+		example_formsets = []
+
+		for i, def_form in enumerate(def_formset):
+			prefix = f'def-{i}-examples'
+			def_instance = def_form.instance if def_form.instance.pk else None
+			ex_fs = ExampleFormSet(prefix=prefix, instance=def_instance)
+			example_formsets.append(ex_fs)
+
+	return render(request, 'word.html', {
+		"word_id": word_id,
+		"word_form": word_form,
+		"def_formset": def_formset,
+		"example_formsets": example_formsets,
+		"is_edit": word is not None
+	})
+		
 

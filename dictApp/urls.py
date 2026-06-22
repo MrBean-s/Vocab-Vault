@@ -10,4 +10,6 @@ urlpatterns = [
 	path("lang/<int:lang_id>/delete/", views.delete_language, name="lang_delete"),
 	path("languages", views.languages, name="languages"),
 	path("generic/confirm-delete/", views.generic_confirm_delete, name="generic_confirm_delete"),
+	path("word/", views.word, name="word"),
+	path("word/<int:word_id>", views.word, name="word_edit")
 ]
