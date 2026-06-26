@@ -18,7 +18,7 @@ class Word(models.Model):
 
 class Definition(models.Model):
 	description = models.TextField()
-	origin = models.TextField(default = '')
+	origin = models.TextField(default = '', null=True, blank=True)
 
 	word = models.ForeignKey(Word, related_name="definitions", on_delete=models.CASCADE, null=False)
 	image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
@@ -39,7 +39,7 @@ class Definition(models.Model):
 
 class Example(models.Model):
 	description = models.TextField()
-	explanation = models.TextField()
+	explanation = models.TextField(null=True, blank=True)
 	custom_audio = models.FileField(upload_to = 'audio/', null=True, blank=True)
 	created = models.DateTimeField(auto_now_add=True)
 	part_of_speech = models.ForeignKey('PartOfSpeech', on_delete=models.PROTECT, null=True,

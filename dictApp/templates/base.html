@@ -10,11 +10,53 @@
 		<link rel="stylesheet" href="{% static 'fontawesome/all.min.css' %}">
 		<link rel="stylesheet" href="{% static 'css/base.css' %}">
 		<link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
+		<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
 		<style>	
-			.wireframe { border: 1px solid white; } 
-			body { background: #222531; min-height: 100vh } 
+			.wireframe { border: 0px solid white; } 
+			body { background: #131723; min-height: 100vh } 
 			* { color: white }
 			#sidebar { z-index: 1021 }
+			.btn-primary { background-color: #3155d0 !important }
+			
+			.btn-secondary { background-color: #68809d !important; border: 0 !important }
+			.btn-info { background-color: #3b92d0 !important; border: 0 !important }
+			.btn-important { background-color: #edc448 !important; border: 0 !important; color: black; font-weight: 700}
+			.btn-outline-primary { border-color: #3155d0 !important;}
+			.btn-outline-primary:hover { background-color: #3155d0 !important;}
+			.btn-outline-important { border-color: #edc448 !important;}
+			.btn-outline-important:hover { background-color: #edc448 !important;}
+
+			.blue-bg { background-color: #161b2a !important }
+			.blue-bg-light { background-color: #1d263c !important}
+			.blue-line {
+				border-bottom: 1px solid #0466fe;
+			}
+			.card { background-color: #161b2a;}
+			.green-bg { background-color: #76b500; color: white }
+			.green { color: #76b500 }
+			.orange-bg { background-color: #e1653f; color: white }
+			.orange { color: #e1653f }
+			.yellow-bg { background-color: #edc448; }
+			.yellow { color: #edc448; }
+			
+			[class*=" add-"] i, [class^="add-"] i { color: #76b500; }
+			[class*=" remove-"] i, [class^="remove-"] i { color: #d4423f; }
+			textarea, input { background-color: #1d263c !important; border: 0 !important; color: white !important}
+			::placeholder { color: #68809d !important }
+
+			/* 
+			404664 – noticeably lighter, good for highlights
+			#373d57 – soft, airy
+			#2e344a – mid‑tone brightness
+			#252b3d – visible lightening
+			#1c2230 – subtle lift
+			#131723
+			#0f131d – just a whisper darker
+			#0c0f17 – deeper, like a shadow
+			#080b11 – very dark, subtle
+			#05070b – almost black, hints of blue
+			#020305 – nearly pure black
+			 */
 		</style>
 	{% endblock styles%}
 	{% block additionalStyles %}
@@ -41,6 +83,7 @@
 
 	{% block sidebar %}
 		{% include 'partial/_sidebar.html' %}
+		<script src="{% static 'js/sidebar.js' %}"></script>
 	{% endblock %}
 	
 	{% block innerbody %}

@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect
-from .forms import LanguageForm, WordForm, DefinitionFormSet, ExampleFormSet
+from .forms import *
 from .models import Language, Image
 from django.contrib import messages
 from django.db.models import ProtectedError
@@ -75,26 +75,82 @@ def dashboard(request, lang_id):
 	
 	return HttpResponse("<h1>Hello, World!</h1>", content_type="text/html")
 
-def word(request, word_id=None):
+def word(request, lang_id, word_id=None):
+	language = get_object_or_404(Language, pk=lang_id)
 	word = get_object_or_404(Word, pk=word_id) if word_id else None
 
-	if request.method == 'GET':
-		word_form = WordForm(instance=word)
-		def_formset = DefinitionFormSet(instance=word)
-		example_formsets = []
+	if request.method == 'POST':
+		print(request.POST)
+		word_form = WordForm(request.POST, instance=word)
+		def_formset = DefinitionFormSet(request.POST, instance=word, prefix='definitions')
 
+		# Build example formsets from POST data (same as you'd do in GET, but using POST)
+		example_formsets = []
+		total_defs = int(request.POST.get('definitions-TOTAL_FORMS', 0))
+		for i in range(total_defs):
+			prefix = f'def-{i}-examples'
+			# We need an instance only if this is an existing definition (has an ID)
+			def_id = request.POST.get(f'definitions-{i}-id')
+			def_instance = Definition.objects.get(pk=def_id) if def_id else None
+			ex_fs = ExampleFormSet(request.POST, prefix=prefix, instance=def_instance)
+			example_formsets.append(ex_fs)
+
+        # Now validate everything
+		if (word_form.is_valid() and def_formset.is_valid() and
+			all(ex_fs.is_valid() for ex_fs in example_formsets)):
+
+            # Save the Word
+			word = word_form.save(commit=False)
+			word.language = language
+			word.save()
+
+			# Iterate over all forms (including deleted ones) and keep the original index
+			for idx, def_form in enumerate(def_formset.forms):
+			    # Skip forms marked for deletion
+			    if def_form.cleaned_data.get('DELETE', False):
+			        continue
+			    definition = def_form.save(commit=False)
+			    definition.word = word
+			    definition.save()
+
+			    # Use the original index to pick the correct example formset
+			    ex_fs = example_formsets[idx]
+			    examples = ex_fs.save(commit=False)
+			    for ex in examples:
+			        ex.definition = definition
+			        ex.save()
+			    for obj in ex_fs.deleted_objects:
+			        obj.delete()
+
+			# Handle deleted definitions (those with DELETE=True, already skipped above)
+			for idx, def_form in enumerate(def_formset.forms):
+			    if def_form.cleaned_data.get('DELETE', False) and def_form.instance.pk:
+			        def_form.instance.delete()
+
+			return redirect(request.path)
+        # If any form is invalid, fall through to render the form with errors
+        # (word_form, def_formset, and example_formsets are already bound)
+
+	else:
+		word_form = WordForm(instance=word)
+		def_formset = DefinitionFormSet(instance=word, prefix='definitions')
+		example_formsets = []
 		for i, def_form in enumerate(def_formset):
 			prefix = f'def-{i}-examples'
 			def_instance = def_form.instance if def_form.instance.pk else None
 			ex_fs = ExampleFormSet(prefix=prefix, instance=def_instance)
+			print(f"--- def_index {i} ---")
+			for f in ex_fs.forms:
+			    print(f"  prefix={f.prefix}, instance={f.instance}")
 			example_formsets.append(ex_fs)
 
 	return render(request, 'word.html', {
-		"word_id": word_id,
-		"word_form": word_form,
-		"def_formset": def_formset,
-		"example_formsets": example_formsets,
-		"is_edit": word is not None
+		'word_form': word_form,
+		'def_formset': def_formset,
+		'example_formsets': example_formsets,
+		'is_edit': word is not None,
+		'word_id': word_id,
+		'lang_id': lang_id,
 	})
 		
 

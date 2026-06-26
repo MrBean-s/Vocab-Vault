@@ -1,19 +1,24 @@
 {% extends 'base.html' %}
 
 {% load static %}
+{% load widget_tweaks %}
 
 {% block additionalStyles %}
 	<style>
+		
 		.resize-none { 	resize: none; }
-		.banner-input { font-size: 2rem; padding: 0 }
-		.tag { background-color: gray; border-radius: 5px; padding: 2px 10px;  }
-		.white-shadow-simple {
-			box-shadow: 0 0px 20px rgba(255, 255, 255, 0.08),
-		              0 0px 6px rgba(255, 255, 255, 0.04);
-		}
+		
+		.tag { background-color: #3b92d0; border-radius: 5px; padding: 2px 10px;  }
+		.def-row { background-color: #161b2a }
 		input { color: gray; }
-		.d-hidden { visibility: hidden; height: 0px !important; width: 0px !important;}
+		.d-hidden { visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
+    		left: -9999px !important; top: -9999px !important;}
 		.d-hidden-only { visibility: hidden !important; }
+		.banner-input { font-size: 2rem; padding: 0; padding-left: 15px; color: white; 
+			border: 0px solid #0466fe !important;
+		}
+		.banner-input::placeholder { color: white !important }
+		.img-input { width: 320px; border-radius: 0 0 10px 10px; }
 	</style>
 {% endblock additionalStyles %}
 
@@ -31,8 +36,8 @@
 <div class="wireframe right-side pb-4" style="width: calc(100vw - 280px); margin-left: 280px;">
 	<form action="{{target_url}}" method="post" enctype="multipart/form-data" id="word-form" class="wireframe">
 	    {% csrf_token %}
-	    <div class="d-flex justify-content-between sticky-top white-shadow-simple" style="background-color: #222531;
-	    	padding: 30px 150px 30px 120px;">
+	    <div class="d-flex justify-content-between sticky-top blue-line" style="background-color: #0f1420;
+	    	padding: 30px 150px 30px 150px; height: 100px;">
 		    <div class="wireframe d-flex gap-5 align-items-center w-75">
 		    	<div class="wireframe">
 		    		<div> {{word_form.name}}</div>	
@@ -43,47 +48,63 @@
 		    </div>
 		    <div class="wireframe">
 		    	<div class="d-flex justify-content-end align-items-center gap-3 h-100">
-		    		<button type="button" class="btn btn-secondary" style="width: 70px;">Edit</button>
-		    		<button type="submit" class="btn btn-success" style="width: 70px;">Save</button>
+		    		<!-- <button type="button" class="btn btn-secondary" style="width: 70px;">Edit</button> -->
+		    		<button type="submit" class="btn btn-important" style="width: 100px;">Save</button>
 		    	</div>
 		    </div>
 		</div>
 		<div style="padding: 30px 150px">
 			<div class="position-relative mb-3">
-				<div class="position-absolute add-definition-item" style="left: -35px">
+				<a class="position-absolute add-definition-item" style="left: -35px"
+					onclick="addDefinition(); return false;">
 					<i class="fa-solid fa-circle-plus fs-5"></i>
-				</div>
+				</a>
 				Definitions
 			</div>
 		    <div id="definitions-container">
 		        {{ def_formset.management_form }}
 		        {% for def_form in def_formset %}
+		        {% if def_form.errors %}
+				<div class="alert alert-danger">
+				    <strong>Please fix the definition form errors.</strong>
+				</div>
+				{% endif %}
 		        	{% with def_index=forloop.counter0 %}
-		            <div class="def-row" data-def-index="{{ def_index }}">
+		            <div class="def-row pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%}"
+		            	data-def-index="{{ def_index }}"
+		            	data-is-prototype="{% if forloop.last %}true{% else %}false{%endif%}">
 		            	<div class="d-flex w-100">
 		            		<div class="wireframe w-55 px-5 pt-1 position-relative">
 			            	    {{ def_form.id }}
-			            	    <div class="d-hidden">
-								    {{ def_form.DELETE }}
-								</div>
+			            	    <input type="checkbox" name="{{ def_form.DELETE.html_name }}"
+				                   id="{{ def_form.DELETE.id_for_label }}"
+				                   {% if forloop.last %}checked{% endif %} class="d-hidden def-to-delete">
 								
-			            		<a class="position-absolute remove-definition-item" style="left: -35px; top: 20px"
-			            			href="#" data-def-index="{{ def_index }}" 
-			            	    		onclick="removeDefinition(this); return false;">
-									<i class="fa-solid fa-trash fs-5"></i>
-								</a>
-
 			            	    <div class="mb-3">
-			            	    	<div class="d-flex justify-content-between align-items-center mt-3 mb-2">
-		            	    			<label for="def_form.description.id_for_label" class="form-label">
+			            	    	<div class="d-flex justify-content-between align-items-center mt-3 mb-2 
+			            	    		position-relative">
+		            	    			<label for="def_form.description.id_for_label" class="form-label m-0">
 											{{ def_form.description.label }}
 										</label>
-										<div class="rounded" style="width: 100px; height: 30px;
-											background: gray;">
+										<div class="tag" style="width: 100px; height: 30px;">
 										</div>
+										
+										<a class="position-absolute
+											remove-definition-item"
+											style="left: -35px;"
+					            			href="#" data-def-index="{{ def_index }}" 
+					            	    	onclick="removeDefinition(this); return false;">
+
+											<i class="fa-solid fa-trash"></i>
+										</a>
 
 		            	    		</div>
-		            	    		{{ def_form.description }}	
+		            	    		{% if forloop.last %}
+									    {{ def_form.description }}
+									{% else %}
+									    {% render_field def_form.description required="required" %}
+									{% endif %}
+									{{ def_form.description.errors }}
 			            	    </div>
 				
 			            	    <div class="mb-3">
@@ -91,28 +112,36 @@
 			            	    		{{ def_form.origin.label }}
 			            	    	</label>
 			            	    	{{ def_form.origin }}
+			            	    	{{ def_form.origin.errors }}
 			            	    </div>
 
 			            	    <div class="d-flex
 			            	    	position-relative pt-1">
 			            	    	<div class="position-absolute" style="left: -35px">
-										<i class="fa-solid fa-circle-plus fs-5"></i>
+			            	    		<a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
+			            	    		onclick="addExample(this, 'true'); return false;">
+											<i class="fa-solid fa-circle-plus fs-5"></i>
+										</a>
 									</div>
-			            	    	<a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
-			            	    		onclick="addExample(this); return false;">
-			            	    		Examples
-			            	    	</a>
+			            	    	Examples
 			            		</div>
 							</div>
 
-							<div class="wireframe w-45">
-								<div class="wireframe h-85 d-flex justify-content-center">
-									<img src="{% static 'images/Image-not-found.png' %}"
-										style="width: 230px; height: 100%;" />
+							<div class="wireframe w-45 d-flex justify-content-center align-items-center">
+								<div class="wireframe">
+<!-- 									<img src="{% static 'images/Image-not-found.png' %}"
+										style="width: 320px; height: 180px;" /> -->
+									<!-- some kind of if not img -->
+									<div style="width: 320px; height: 180px; background: #212838;
+										border-radius: 10px 10px 0 0" class="d-flex justify-content-center
+										align-items-center">
+										<i class="fa-regular fa-image" style="font-size: 80px;"></i>
+									</div>
+									<div class="wireframe h-15 d-flex justify-content-center align-items-center gap-3">
+			                			{{ def_form.image_file }}
+			                			{{ def_form.image_file.errors }}
+			                		</div>
 								</div>
-								<div class="wireframe h-15 d-flex justify-content-center align-items-center gap-3">
-		                			{{ def_form.image_file }}
-		                		</div>
 		            		</div>
 		                </div>
 		                <div class="d-flex">
@@ -121,148 +150,63 @@
 			                    <div class="examples-container w-100" data-def-index="{{ def_index }}">
 			                        {{ ex_fs.management_form }}
 			                        {% for ex_form in ex_fs %}
-			                            <div class="ex-row d-flex" data-ex-index="{{ def_index|add:forloop.counter0 }}">
+			                        	{% if ex_form.errors %}
+										<div class="alert alert-danger">
+										    <strong>Please fix the example form errors.</strong>
+										</div>
+										{% endif %}
+			                            <div class="ex-row d-flex{%if forloop.last%} d-hidden prototype-row{%endif%}"
+			                            	data-ex-index="{{ forloop.counter0 }}"
+			                            	data-is-prototype="{%if forloop.last%}true{%else%}false{%endif%}">
 			                                {{ ex_form.id }}
-			                                <div class="d-hidden">
-											    {{ ex_form.DELETE }}
-											</div>
-			                                <div class="wireframe w-55 px-5 pb-4">
-				                                <div class="d-flex justify-content-end gap-2">
-				                                	<div class="tag">Idiom</div>
-				                                	<div class="tag">Verb</div>
-				                                </div>
-				                                <div class="mt-2 d-flex align-items-center gap-3">
-													<a href="#" data-def-index="{{def_index}}"
-														data-ex-index="{{ def_index|add:forloop.counter0 }}" 
-														class="remove-example-item"
-			            	    						onclick="removeExample(this); return false;">
-			            	    						<i class="fa-solid fa-trash"></i>
-			            	    					</a>
-				                                	{{ ex_form.description }}
-				                            	</div>
-				                            	<div class="mt-2 d-flex justify-content-end">
-				                            		<div class="w-75">
-				                                		{{ ex_form.explanation }}
-				                                	</div>
-				                            	</div>
-			                                </div>
-			                                <div class="wireframe w-45 px-4 pb-4">
-			                                	<div class="d-flex justify-content-end gap-2"
-			                                		style="visibility: hidden;">
-				                                	<div class="tag">Idiom</div>
-				                                	<div class="tag">Verb</div>
-				                                </div>
-				                                <div class="mt-2 d-flex gap-3">
-				                            		<select class="form-select w-75">
-														<option value="" disabled selected hidden>Source</option>
-													</select>
-													<button class="btn btn-info w-25">Audio</button>
-				                            	</div>
-				                            	<div class="mt-2 w-100 d-flex gap-2">
-				                            		<div class="w-45 d-flex gap-2">
-				                            			<div class="d-flex" style="width: 30%">
-				                            				<div style="background: white; color: gray;">S-</div>
-				                            				<input type="text" placeholder="0" class="w-100"/>
-				                            			</div>
-				                            			<div class="d-flex" style="width: 30%">
-				                            				<div style="background: white; color: gray;">E-</div>
-				                            				<input type="text" placeholder="0" class="w-100"/>
-				                            			</div>
-				                            			<input type="text" placeholder="00:00:00" style="width: 40%"/>
-				                            		</div>
-				                            		<div class="w-55 d-flex">
-				                            			<input type="text" placeholder="Episode name" style="width: 100%"/>
-				                            		</div>
-				                            	</div>
+
+									            <input type="checkbox" name="{{ ex_form.DELETE.html_name }}"
+									                   id="{{ ex_form.DELETE.id_for_label }}"
+									                   {% if forloop.last %}checked{% endif %} class="d-hidden">
+
+			                                <div class="wireframe w-100 pb-4 d-flex">
+			                                	<div class="w-55 px-5">
+					                                <div class="d-flex justify-content-end gap-2">
+					                                	<div class="tag">Idiom</div>
+					                                	<div class="tag">Verb</div>
+					                                </div>
+					                                <div class="d-flex align-items-center gap-3 pt-2">
+														<a href="#" data-def-index="{{def_index}}"
+															data-ex-index="{{ forloop.counter0 }}" 
+															class="remove-example-item"
+				            	    						onclick="removeExample(this); return false;">
+				            	    						<i class="fa-solid fa-trash"></i>
+				            	    					</a>
+					                                	{% if forloop.last %}
+														    {{ ex_form.description }}
+														{% else %}
+														    {% render_field ex_form.description required="required" %}
+														{% endif %}
+					                                	{{ ex_form.description.errors }}
+					                            	</div>
+					                            </div>
+					                            <div class="w-45 pe-5">
+					                            	<div class="d-flex justify-content-end gap-2" style="visibility: hidden;">
+					                                	<div class="tag">Idiom</div>
+					                                	<div class="tag">Verb</div>
+					                                </div>
+					                                <div class="pt-2 w-100">
+					                                	{{ ex_form.explanation }}
+					                                	{{ ex_form.explanation.errors }}
+					                                </div>
+					                            </div>
 			                                </div>
 			                            </div>
 			                        {% endfor %}
 			                    </div>
 			                {% endwith %}
 			            </div>
-		              <!--   {% if def_formset.can_delete %}
-		                    {{ def_form.DELETE }} Remove definition
-		                {% endif %}-->
 		            </div>
 		            {% endwith %}
-		            {% if not forloop.first and not forloop.last %}<hr>{% endif %}
 		        {% endfor %}
 		    </div>
 		</div>
-
-
-		<!-- hidden example row template -->
-		<div id="example-row-template" style="display: none;">
-		    <div class="ex-row d-flex" data-ex-index="__EX_INDEX__">
-		        <!-- ID field (empty for new) -->
-		        <input type="hidden" name="def-__DEF_INDEX__-examples-__EX_INDEX__-id" value="">
-		        <div class="d-hidden">
-				    <input type="checkbox" name="def-__DEF_INDEX__-examples-__EX_INDEX__-DELETE"
-				    	id="id_def-__DEF_INDEX__-examples-__EX_INDEX__-DELETE">
-				</div>
-		        <!-- description and explanation fields -->
-		        <div class="wireframe w-55 px-5 pb-4">
-		            <!-- … static parts (tags, etc.) … -->
-		            <div class="d-flex justify-content-end gap-2">
-		                <div class="tag">Idiom</div>
-		                <div class="tag">Verb</div>
-		            </div>
-		            <div class="mt-2 d-flex align-items-center gap-3">
-		                <a href="#" data-def-index="__DEF_INDEX__"
-		                   data-ex-index="__EX_INDEX__"
-		                   class="remove-example-item"
-		                   onclick="removeExample(this); return false;">
-		                    <i class="fa-solid fa-trash"></i>
-		                </a>
-						<textarea name="def-__DEF_INDEX__-examples-__EX_INDEX__-description"
-							class="resize-none form-control"
-	                        placeholder="Write an example"
-							rows="1" cols="50"></textarea>
-		            </div>
-		            <div class="mt-2 d-flex justify-content-end">
-		                <div class="w-75">
-		                    <textarea name="def-__DEF_INDEX__-examples-__EX_INDEX__-explanation"
-								class="resize-none form-control"
-								placeholder="Explained in other words"
-								rows="1" cols="50"></textarea>
-		                </div>
-		            </div>
-		        </div>
-		        <!-- … second column (source, audio, etc.) … -->
-		        <div class="wireframe w-45 px-4 pb-4">
-                	<div class="d-flex justify-content-end gap-2"
-                		style="visibility: hidden;">
-                    	<div class="tag">Idiom</div>
-                    	<div class="tag">Verb</div>
-                    </div>
-                    <div class="mt-2 d-flex gap-3">
-                		<select class="form-select w-75">
-							<option value="" disabled selected hidden>Source</option>
-						</select>
-						<button class="btn btn-info w-25">Audio</button>
-                	</div>
-                	<div class="mt-2 w-100 d-flex gap-2">
-                		<div class="w-45 d-flex gap-2">
-                			<div class="d-flex" style="width: 30%">
-                				<div style="background: white; color: gray;">S-</div>
-                				<input type="text" placeholder="0" class="w-100"/>
-                			</div>
-                			<div class="d-flex" style="width: 30%">
-                				<div style="background: white; color: gray;">E-</div>
-                				<input type="text" placeholder="0" class="w-100"/>
-                			</div>
-                			<input type="text" placeholder="00:00:00" style="width: 40%"/>
-                		</div>
-                		<div class="w-55 d-flex">
-                			<input type="text" placeholder="Episode name" style="width: 100%"/>
-                		</div>
-                	</div>
-                </div>
-		    </div>
-		</div>
-
 	</form>
-
 </div>
 
 {% endblock innerbody %}
@@ -270,84 +214,123 @@
 {% block additionalScripts %}
 
 <script>
-	// Add a new definition row
 	function addDefinition() {
 	    const container = document.getElementById('definitions-container');
 	    const totalForms = document.getElementById('id_definitions-TOTAL_FORMS');
 	    const currentCount = parseInt(totalForms.value);
-	    // Clone the last def-row as template (or use a hidden template)
-	    const firstRow = container.querySelector('.def-row:first-of-type');
-	    const newRow = firstRow.cloneNode(true);
-	    // Update indices: replace 'def-{old}' with 'def-{currentCount}'
-	    newRow.innerHTML = newRow.innerHTML.replace(/definitions-\d+/g, `definitions-${currentCount}`);
-	    newRow.innerHTML = newRow.innerHTML.replace(/examples_\d+/g, `examples_${currentCount}`);
-	    newRow.setAttribute('data-def-index', currentCount);
-		newRow.querySelectorAll('.examples-container, .add-example-item, .remove-definition-item')
-		      .forEach(el => el.setAttribute('data-def-index', currentCount));
+	    const rowPrototype = container.querySelector('.def-row[data-is-prototype="true"]');
+	    const newRow = rowPrototype.cloneNode(true);
+	    newRow.setAttribute('data-is-prototype', 'false');
+	    newRow.classList.remove('d-hidden');
 
-	    newRow.querySelectorAll('.ex-row').forEach(element => { 
-	    	element.innerHTML='';
-	    });
-	    // Clear values
-	    newRow.querySelectorAll('input[type=text], input[type=file]').forEach(inp => inp.value = '');
-	    // Update total forms
-	    totalForms.value = currentCount + 1;
+	    const exContainer = newRow.querySelector('.examples-container');
+        
+        const totalEx = exContainer.querySelector('[id$="-TOTAL_FORMS"]');
+        if (totalEx) totalEx.value = 1;
+	    
+	    newRow.innerHTML = newRow.innerHTML.replace(/definitions-\d+/g, `definitions-${currentCount}`);
+	    newRow.innerHTML = newRow.innerHTML.replace(/def-\d+-examples-\d+/g, `def-${currentCount}-examples-0`);
+	    newRow.innerHTML = newRow.innerHTML.replace(/def-\d+-examples/g, `def-${currentCount}-examples`);
+
+	    const deleteInput = newRow.querySelector('.def-to-delete');
+		checkDeleteInput({ instance: deleteInput, checked: false });
+	    deleteInput.classList.remove('def-to-delete');
+
+		newRow.setAttribute('data-def-index', currentCount);
+	    newRow.querySelectorAll('.examples-container, .add-example-item, .remove-definition-item, .remove-example-item')
+	          .forEach(el => el.setAttribute('data-def-index', currentCount));
+
+	   	setManualRequired(newRow, true);
+
 	    container.appendChild(newRow);
-	    newRow.prepend(document.createElement("hr"));
+	    totalForms.value = currentCount + 1;
 	}
 
-	// Add an example row inside a specific definition
 	function addExample(element) {
 	    const defIndex = element.dataset.defIndex;
 	    const container = document.querySelector(`.examples-container[data-def-index='${defIndex}']`);
-	    const totalForms = container.querySelector('[id$="-TOTAL_FORMS"]');
-	    const currentCount = parseInt(totalForms.value);
+	    const totalExForms = container.querySelector('[id$="-TOTAL_FORMS"]');
 
-	    // Get the hidden template and clone it
-	    const template = document.getElementById('example-row-template');
-	    const newRow = template.querySelector('.ex-row').cloneNode(true);  // deep clone
+	    const currentExCount = parseInt(totalExForms.value);
+	    
+	    const exPrototype = container.querySelector('.ex-row[data-is-prototype="true"]');
+	    const newExRow = exPrototype.cloneNode(true);
 
-	    // Replace all placeholders with the correct indices
-	    newRow.innerHTML = newRow.innerHTML.replace(/__DEF_INDEX__/g, defIndex);
-	    newRow.innerHTML = newRow.innerHTML.replace(/__EX_INDEX__/g, currentCount);
+	    newExRow.classList.remove('d-hidden', 'prototype-row');
+	    newExRow.setAttribute('data-is-prototype', "false");
 
-	    // Set the data-ex-index attribute correctly
-	    newRow.setAttribute('data-ex-index', currentCount);
+	    const lastIndex = currentExCount;
+	    const oldPrefixRegex = new RegExp(`def-${defIndex}-examples-\\d+`, 'g');
+    	const newPrefix = `def-${defIndex}-examples-${lastIndex}`;
 
-	    // Append to the container and update the management form
-	    container.appendChild(newRow);
-	    totalForms.value = currentCount + 1;
+    	newExRow.innerHTML = newExRow.innerHTML.replaceAll(oldPrefixRegex, newPrefix);
+
+		checkDeleteInput({ parent: newExRow, checked: false });
+
+	    newExRow.setAttribute('data-ex-index', lastIndex);
+	    newExRow.querySelectorAll('[data-ex-index]').forEach(el => {
+	        el.setAttribute('data-ex-index', lastIndex);
+	    });
+
+	    setManualRequired(newExRow, true);
+
+	    container.appendChild(newExRow);
+	    totalExForms.value = currentExCount + 1;
 	}
 
 	function removeDefinition(element) {
-		defIndex = element.dataset.defIndex;
-		const def_row = document.querySelector(`.def-row[data-def-index='${defIndex}']`);
-		def_row.classList.add('d-hidden');
-		def_row.querySelector('.d-flex.w-100').classList.add('d-hidden');
-		def_row.querySelector('hr')?.remove();
-		const deleteCheckbox = def_row.querySelector('input[id$="-DELETE"]');
-	    if (deleteCheckbox) {
-	        deleteCheckbox.checked = true;
-	    }
+	    const defIndex = element.dataset.defIndex;
+	    const defRow = document.querySelector(`.def-row[data-def-index='${defIndex}']`);
+	    defRow.classList.add('d-hidden');
+	    setManualRequired(defRow, false);
+
+		checkDeleteInput({ parent: defRow, checked: true });
 	}
 
 	function removeExample(element) {
-		exIndex = element.dataset.exIndex;
-		defIndex = element.dataset.defIndex;
-		const container = document.querySelector(`.examples-container[data-def-index='${defIndex}']`);
-		const ex_row = container.querySelector(`.ex-row[data-ex-index='${exIndex}']`);
-		ex_row.classList.add('d-hidden');
-		const deleteCheckbox = ex_row.querySelector('input[id$="-DELETE"]');
-	    if (deleteCheckbox) {
-	        deleteCheckbox.checked = true;
-	    }
+	    const exIndex = element.dataset.exIndex;
+	    const defIndex = element.dataset.defIndex;
+	    console.log(exIndex, defIndex);
+	    const container = document.querySelector(`.examples-container[data-def-index='${defIndex}']`);
+	    const exRow = container.querySelector(`.ex-row[data-ex-index='${exIndex}']`);
+	    exRow.classList.add('d-hidden');
+	    setManualRequired(exRow, false);
+
+	    checkDeleteInput({ parent: exRow, checked: true });
 	}
 
-	document.querySelectorAll('.add-definition-item').forEach(element => {
-		element.addEventListener('click', (e) => {
-			addDefinition();
-			return true;
-		});
+	function checkDeleteInput({ checked, parent = null, instance = null }) {
+	    let deleteCheckbox = instance;
+
+	    if (!deleteCheckbox && parent) {
+	        deleteCheckbox = parent.querySelector('input[id$="-DELETE"]');
+	    }
+
+	    if (!deleteCheckbox) {
+	        console.warn('No delete checkbox found');
+	        return;
+	    }
+
+	    console.log(`checking value ${checked} instance ${deleteCheckbox}`);
+	    deleteCheckbox.checked = checked;
+	}
+
+	function setManualRequired(parent, requiredBool) {
+	    const elements = parent.querySelectorAll('[manual-required]');
+	    elements.forEach(el => {
+	        if (requiredBool) {
+	            const row = el.closest('.def-row, .ex-row');
+	            if (row && row.dataset.isPrototype === 'false') {
+	                el.setAttribute('required', 'required');
+	            }
+	        } else {
+	            el.removeAttribute('required');
+	        }
+	    });
+	}
+	document.addEventListener('DOMContentLoaded', function() {
+	    // Reset all forms to their default values on page load
+	    document.querySelectorAll('form').forEach(form => form.reset());
 	});
 </script>
 {% endblock additionalScripts %}

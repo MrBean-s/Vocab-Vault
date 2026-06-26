@@ -1,54 +1,113 @@
+{% load static %}
 <div id="sidebar" class="position-fixed h-100 bg-light top-0 start-0 d-flex flex-column flex-shrink-0
-	p-3 text-white bg-dark" style="width: 280px;">
-    <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-      <svg class="bi me-2" width="40" height="32"><use xlink:href="#bootstrap"></use></svg>
-      <span class="fs-4">Sidebar</span>
-    </a>
-    <hr>
-    <ul class="nav nav-pills flex-column mb-auto">
-      <li class="nav-item">
-        <a href="#" class="nav-link active" aria-current="page">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#home"></use></svg>
-          Home
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link text-white">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#speedometer2"></use></svg>
-          Dashboard
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link text-white">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#table"></use></svg>
-          Orders
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link text-white">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#grid"></use></svg>
-          Products
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link text-white">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#people-circle"></use></svg>
-          Customers
-        </a>
-      </li>
-    </ul>
-    <hr>
-    <div class="dropdown">
-      <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-        <img src="https://github.com/mdo.png" alt="" width="32" height="32" class="rounded-circle me-2">
-        <strong>mdo</strong>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-        <li><a class="dropdown-item" href="#">New project...</a></li>
-        <li><a class="dropdown-item" href="#">Settings</a></li>
-        <li><a class="dropdown-item" href="#">Profile</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="#">Sign out</a></li>
-      </ul>
+	 text-white" style="width: 280px; padding: 30px;">
+    <div style="height:  100px;">
+
+      <div class="d-flex gap-3" style="padding-left: 18px;">
+        <!-- <a href="https://www.flaticon.com/free-icons/book" title="book icons">Book icons created by Smashicons - Flaticon</a> -->
+         <div class="d-flex align-items-center">
+           <img src="{% static 'images/book.png' %}" style="width: 35px; height: 35px;" />
+         </div>
+        <div class="d-flex align-items-center">
+          <h5 class="m-0">Vocab Vault</h5>
+        </div>
+      </div>
     </div>
+    <div style="height: 30px;"></div>
+    <div style="padding: 5px;" class="d-flex gap-3">
+      <div class="w-100">
+        <div class="nav-item">
+          <div class="w-30">
+            <div class="nav-pill nav-pill-top">
+              <div class="sidebar-active sidebar-item">
+                <i class="fa-solid fa-plus nav-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="w-70 nav-label label-active">
+            Add word
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="w-30">
+            <div class="nav-pill">
+              <div class="sidebar-item">
+                <i class="fa-solid fa-magnifying-glass nav-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="w-70 nav-label">
+            Search
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="w-30">
+            <div class="nav-pill">
+              <div class="sidebar-item">
+                <i class="fa-solid fa-list nav-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="w-70 nav-label">
+            All words
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="w-30">
+            <div class="nav-pill nav-pill-bottom">
+              <div class="sidebar-item">
+                <i class="fa-solid fa-umbrella-beach nav-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="w-70 nav-label">
+            Pending List
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 5px;" class="d-flex gap-3 mb-auto mt-5">
+      <div class="w-100">
+        <div class="nav-item">
+          <div class="w-30">
+            <div class="nav-pill nav-pill-top">
+              <div class="sidebar-item">
+                <i class="fa-solid fa-house"></i>
+              </div>
+            </div>
+          </div>
+          <div class="w-70 nav-label">
+            Dashboard
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="w-30">
+            <div class="nav-pill nav-pill-bottom">
+              <div class="sidebar-item">
+                <i class="fa-solid fa-clapperboard"></i>
+              </div>
+            </div>
+          </div>
+          <div class="w-70 nav-label">
+            My sources
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <a class="d-flex gap-2 text-decoration-none"  href="{% url 'start_screen' %}">
+      <div class="w-30 d-flex align-items-center justify-content-center">
+        <div class="nav-pill nav-circle">
+          <div class="sidebar-item">
+            <i class="fa-solid fa-arrow-right-from-bracket nav-icon"></i>
+          </div>
+        </div>
+      </div>
+      <div class="w-70 nav-label">
+        <div class="nav-pill-label"><div>Leave</div></div>
+      </div>
+    </a>
+    
   </div>
