@@ -218,25 +218,25 @@
 	    const container = document.getElementById('definitions-container');
 	    const totalForms = document.getElementById('id_definitions-TOTAL_FORMS');
 	    const currentCount = parseInt(totalForms.value);
-	    const rowPrototype = container.querySelector('.def-row[data-is-prototype="true"]');
-	    const newRow = rowPrototype.cloneNode(true);
-	    newRow.setAttribute('data-is-prototype', 'false');
-	    newRow.classList.remove('d-hidden');
+	    const newRow = container.querySelector('.def-row[data-is-prototype="true"]').cloneNode(true);
+	    
+	    newRow.dataset.isPrototype = 'false';
+    	newRow.classList.remove('d-hidden');
 
 	    const exContainer = newRow.querySelector('.examples-container');
         
-        const totalEx = exContainer.querySelector('[id$="-TOTAL_FORMS"]');
-        if (totalEx) totalEx.value = 1;
+        exContainer.querySelector('[id$="-TOTAL_FORMS"]').value = 1;
 	    
-	    newRow.innerHTML = newRow.innerHTML.replace(/definitions-\d+/g, `definitions-${currentCount}`);
-	    newRow.innerHTML = newRow.innerHTML.replace(/def-\d+-examples-\d+/g, `def-${currentCount}-examples-0`);
-	    newRow.innerHTML = newRow.innerHTML.replace(/def-\d+-examples/g, `def-${currentCount}-examples`);
+	    newRow.innerHTML = newRow.innerHTML
+	        .replace(/definitions-\d+/g, `definitions-${currentCount}`)
+	        .replace(/def-\d+-examples-\d+/g, `def-${currentCount}-examples-0`)
+	        .replace(/def-\d+-examples/g, `def-${currentCount}-examples`);
 
 	    const deleteInput = newRow.querySelector('.def-to-delete');
 		checkDeleteInput({ instance: deleteInput, checked: false });
 	    deleteInput.classList.remove('def-to-delete');
 
-		newRow.setAttribute('data-def-index', currentCount);
+		newRow.dataset.defIndex = currentCount;
 	    newRow.querySelectorAll('.examples-container, .add-example-item, .remove-definition-item, .remove-example-item')
 	          .forEach(el => el.setAttribute('data-def-index', currentCount));
 
@@ -249,85 +249,56 @@
 	function addExample(element) {
 	    const defIndex = element.dataset.defIndex;
 	    const container = document.querySelector(`.examples-container[data-def-index='${defIndex}']`);
-	    const totalExForms = container.querySelector('[id$="-TOTAL_FORMS"]');
-
-	    const currentExCount = parseInt(totalExForms.value);
-	    
-	    const exPrototype = container.querySelector('.ex-row[data-is-prototype="true"]');
-	    const newExRow = exPrototype.cloneNode(true);
+	    const currentExCount = parseInt(container.querySelector('[id$="-TOTAL_FORMS"]').value);
+	    const newExRow = container.querySelector('.ex-row[data-is-prototype="true"]').cloneNode(true);
 
 	    newExRow.classList.remove('d-hidden', 'prototype-row');
-	    newExRow.setAttribute('data-is-prototype', "false");
+	    newExRow.dataset.isPrototype = 'false';
 
-	    const lastIndex = currentExCount;
 	    const oldPrefixRegex = new RegExp(`def-${defIndex}-examples-\\d+`, 'g');
-    	const newPrefix = `def-${defIndex}-examples-${lastIndex}`;
+	    newExRow.innerHTML = newExRow.innerHTML.replace(oldPrefixRegex, `def-${defIndex}-examples-${currentExCount}`);
 
-    	newExRow.innerHTML = newExRow.innerHTML.replaceAll(oldPrefixRegex, newPrefix);
+	    checkDeleteInput({ parent: newExRow, checked: false });
 
-		checkDeleteInput({ parent: newExRow, checked: false });
-
-	    newExRow.setAttribute('data-ex-index', lastIndex);
-	    newExRow.querySelectorAll('[data-ex-index]').forEach(el => {
-	        el.setAttribute('data-ex-index', lastIndex);
-	    });
+	    newExRow.dataset.exIndex = currentExCount;
+	    newExRow.querySelectorAll('[data-ex-index]').forEach(el => el.dataset.exIndex = currentExCount);
 
 	    setManualRequired(newExRow, true);
 
 	    container.appendChild(newExRow);
-	    totalExForms.value = currentExCount + 1;
+	    container.querySelector('[id$="-TOTAL_FORMS"]').value = currentExCount + 1;
 	}
 
 	function removeDefinition(element) {
-	    const defIndex = element.dataset.defIndex;
-	    const defRow = document.querySelector(`.def-row[data-def-index='${defIndex}']`);
+	    const defRow = document.querySelector(`.def-row[data-def-index='${element.dataset.defIndex}']`);
 	    defRow.classList.add('d-hidden');
 	    setManualRequired(defRow, false);
-
-		checkDeleteInput({ parent: defRow, checked: true });
+	    checkDeleteInput({ parent: defRow, checked: true });
 	}
 
 	function removeExample(element) {
-	    const exIndex = element.dataset.exIndex;
-	    const defIndex = element.dataset.defIndex;
-	    console.log(exIndex, defIndex);
+	    const {defIndex, exIndex} = element.dataset;
 	    const container = document.querySelector(`.examples-container[data-def-index='${defIndex}']`);
 	    const exRow = container.querySelector(`.ex-row[data-ex-index='${exIndex}']`);
 	    exRow.classList.add('d-hidden');
 	    setManualRequired(exRow, false);
-
 	    checkDeleteInput({ parent: exRow, checked: true });
 	}
 
 	function checkDeleteInput({ checked, parent = null, instance = null }) {
-	    let deleteCheckbox = instance;
-
-	    if (!deleteCheckbox && parent) {
-	        deleteCheckbox = parent.querySelector('input[id$="-DELETE"]');
-	    }
-
-	    if (!deleteCheckbox) {
-	        console.warn('No delete checkbox found');
-	        return;
-	    }
-
-	    console.log(`checking value ${checked} instance ${deleteCheckbox}`);
-	    deleteCheckbox.checked = checked;
+	    const checkbox = instance || (parent && parent.querySelector('input[id$="-DELETE"]'));
+	    if (checkbox) checkbox.checked = checked;
 	}
 
 	function setManualRequired(parent, requiredBool) {
-	    const elements = parent.querySelectorAll('[manual-required]');
-	    elements.forEach(el => {
-	        if (requiredBool) {
-	            const row = el.closest('.def-row, .ex-row');
-	            if (row && row.dataset.isPrototype === 'false') {
-	                el.setAttribute('required', 'required');
-	            }
-	        } else {
-	            el.removeAttribute('required');
-	        }
+	    parent.querySelectorAll('[manual-required]').forEach(el => {
+	        const row = el.closest('.def-row, .ex-row');
+	        const isReal = row && row.dataset.isPrototype === 'false';
+	        if (requiredBool && isReal) el.setAttribute('required', 'required');
+	        else el.removeAttribute('required');
 	    });
 	}
+	
 	document.addEventListener('DOMContentLoaded', function() {
 	    // Reset all forms to their default values on page load
 	    document.querySelectorAll('form').forEach(form => form.reset());
