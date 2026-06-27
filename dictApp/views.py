@@ -148,7 +148,7 @@ def word(request, lang_id, word_id=None):
 		'word_form': word_form,
 		'def_formset': def_formset,
 		'example_formsets': example_formsets,
-		'is_edit': word is not None,
+		'has_word': word is not None,
 		'word_id': word_id,
 		'lang_id': lang_id,
 	})

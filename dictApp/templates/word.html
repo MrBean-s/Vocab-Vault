@@ -8,17 +8,58 @@
 		
 		.resize-none { 	resize: none; }
 		
-		.tag { background-color: #3b92d0; border-radius: 5px; padding: 2px 10px;  }
+		.tag { background-color: var(--color-bg-info); border-radius: 5px; padding: 2px 10px;  }
+
 		.def-row { background-color: #161b2a }
-		input { color: gray; }
 		.d-hidden { visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
     		left: -9999px !important; top: -9999px !important;}
 		.d-hidden-only { visibility: hidden !important; }
-		.banner-input { font-size: 2rem; padding: 0; padding-left: 15px; color: white; 
-			border: 0px solid #0466fe !important;
-		}
-		.banner-input::placeholder { color: white !important }
+		.banner-input { font-size: 2rem; padding: 0; padding-left: 15px;}
+		.banner-input::placeholder { color: var(--color-text-primary) !important }
 		.img-input { width: 320px; border-radius: 0 0 10px 10px; }
+		.view-mode .underline-important {text-decoration: underline; text-decoration-color: var(--color-important); 
+			text-underline-offset: 10px; color: var(--color-text-primary)}
+		.form-control-plaintext { caret-color: transparent; }
+		textarea[readonly]::placeholder,
+		input[readonly]::placeholder {
+		    color: transparent !important;
+		}
+		.view-mode input[readonly],
+		.view-mode textarea[readonly] { background: transparent; border: none; caret-color: transparent; resize: none; }
+
+		.view-mode .edit-mode-show {
+			visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
+    		left: -9999px !important; top: -9999px !important;
+		}
+
+		.edit-mode .view-mode-show {
+			visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
+    		left: -9999px !important; top: -9999px !important;
+		}
+		.view-mode .field-important { font-weight: 700; }
+		.view-mode .field-title-accent { font-size: 1.2rem; font-weight: 700; color: var(--color-text-primary);}
+		.view-mode .field-title { font-size: 1.2rem; font-weight: 700; color: var(--color-title);}
+		.view-mode .field-description { font-size: 1.2rem; color: var(--color-text-secondary) }
+		.view-mode .field-muted { font-size: 1.2rem; font-weight: 700; color: var(--color-text-muted) }
+		.view-mode .field-quote {
+			font-style: italic;
+			font-size: 1.2rem;
+			border-bottom: 1px solid var(--color-bg-input) !important;
+			color: var(--color-text-secondary)
+		}
+
+		.view-mode .field-explanation { color: var(--color-text-secondary); border-bottom: 1px solid var(--color-bg-input) !important; }
+		.icon-muted { color: var(--color-btn-muted); }
+
+		.view-mode .tag-muted { background-color: var(--color-bg-input); }
+		.explanation-arrow { position: absolute; bottom: 10px; left: -21px;}
+		.explanation-arrow i { color: var(--color-success); }
+		.view-mode .w-75-e-100 { width: 75% !important; }
+		.edit-mode .w-75-e-100 { width: 100% !important; }
+		.image-placeholder { display: flex; justify-content: center; align-items: center; width: 320px; height: 180px; background: #212838; border-radius: 10px 10px 0 0; }
+		.view-mode .image-placeholder { border-radius: 10px; }
+		.def-row { border: 1px solid var(--color-bg-input);}
+
 	</style>
 {% endblock additionalStyles %}
 
@@ -27,23 +68,24 @@
 <!-- custom 'get_at' filter -->
 {% load custom_filters %}
 
-{% if is_edit %}
+{% if has_word %}
 	{% url 'word_edit' word_id as target_url %}
 {% else %}
 	{% url 'word' as target_url %}
 {% endif %}
 
 <div class="wireframe right-side pb-4" style="width: calc(100vw - 280px); margin-left: 280px;">
-	<form action="{{target_url}}" method="post" enctype="multipart/form-data" id="word-form" class="wireframe">
+	<form action="{{target_url}}" method="post" enctype="multipart/form-data" id="word-form"
+		class="{% if has_word %}view-mode{% else %}edit-mode{% endif %}">
 	    {% csrf_token %}
 	    <div class="d-flex justify-content-between sticky-top blue-line" style="background-color: #0f1420;
 	    	padding: 30px 150px 30px 150px; height: 100px;">
 		    <div class="wireframe d-flex gap-5 align-items-center w-75">
 		    	<div class="wireframe">
-		    		<div> {{word_form.name}}</div>	
+		    		{{word_form.name}}
 		    	</div>
-		    	<div>Ngram</div>
-		    	<div> Related words: <div>Brooding</div>
+		    	<div style="text-decoration: underline;">Ngram</div>
+		    	<div> Related words: <div style="text-decoration: underline;">Brooding</div>
 		    	</div>
 		    </div>
 		    <div class="wireframe">
@@ -54,7 +96,7 @@
 		    </div>
 		</div>
 		<div style="padding: 30px 150px">
-			<div class="position-relative mb-3">
+			<div class="position-relative mb-3 edit-mode-show">
 				<a class="position-absolute add-definition-item" style="left: -35px"
 					onclick="addDefinition(); return false;">
 					<i class="fa-solid fa-circle-plus fs-5"></i>
@@ -70,9 +112,12 @@
 				</div>
 				{% endif %}
 		        	{% with def_index=forloop.counter0 %}
-		            <div class="def-row pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%}"
+		            <div class="def-row pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%} position-relative"
 		            	data-def-index="{{ def_index }}"
 		            	data-is-prototype="{% if forloop.last %}true{% else %}false{%endif%}">
+						<div class="position-absolute">
+
+						</div>
 		            	<div class="d-flex w-100">
 		            		<div class="wireframe w-55 px-5 pt-1 position-relative">
 			            	    {{ def_form.id }}
@@ -83,21 +128,23 @@
 			            	    <div class="mb-3">
 			            	    	<div class="d-flex justify-content-between align-items-center mt-3 mb-2 
 			            	    		position-relative">
-		            	    			<label for="def_form.description.id_for_label" class="form-label m-0">
-											{{ def_form.description.label }}
+		
+										<label for="def_form.description.id_for_label" class="form-label m-0
+											field-title-accent">
+											{{ def_form.description.label }} {{forloop.counter}}
 										</label>
+										
 										<div class="tag" style="width: 100px; height: 30px;">
 										</div>
 										
 										<a class="position-absolute
-											remove-definition-item"
-											style="left: -35px;"
+											remove-definition-item edit-mode-show"
+											style="left: -32px;"
 					            			href="#" data-def-index="{{ def_index }}" 
 					            	    	onclick="removeDefinition(this); return false;">
 
-											<i class="fa-solid fa-trash"></i>
+											<i class="fa-solid fa-trash fs-6" style="color: var(--color-danger)"></i>
 										</a>
-
 		            	    		</div>
 		            	    		{% if forloop.last %}
 									    {{ def_form.description }}
@@ -107,8 +154,8 @@
 									{{ def_form.description.errors }}
 			            	    </div>
 				
-			            	    <div class="mb-3">
-			            	    	<label for="def_form.origin.id_for_label" class="form-label">
+			            	    <div class="mb-3 edit-mode-show">
+			            	    	<label for="def_form.origin.id_for_label" class="form-label field-title">
 			            	    		{{ def_form.origin.label }}
 			            	    	</label>
 			            	    	{{ def_form.origin }}
@@ -116,34 +163,29 @@
 			            	    </div>
 
 			            	    <div class="d-flex
-			            	    	position-relative pt-1">
-			            	    	<div class="position-absolute" style="left: -35px">
+			            	    	position-relative">
+			            	    	<div class="position-absolute edit-mode-show" style="left: -35px">
 			            	    		<a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
 			            	    		onclick="addExample(this, 'true'); return false;">
 											<i class="fa-solid fa-circle-plus fs-5"></i>
 										</a>
 									</div>
-			            	    	Examples
+			            	    	<div class="field-title">Examples</div>
 			            		</div>
 							</div>
-
 							<div class="wireframe w-45 d-flex justify-content-center align-items-center">
-								<div class="wireframe">
-<!-- 									<img src="{% static 'images/Image-not-found.png' %}"
-										style="width: 320px; height: 180px;" /> -->
-									<!-- some kind of if not img -->
-									<div style="width: 320px; height: 180px; background: #212838;
-										border-radius: 10px 10px 0 0" class="d-flex justify-content-center
-										align-items-center">
+								<div class="wireframe p-4 pb-0">
+									<div class="image-placeholder">
 										<i class="fa-regular fa-image" style="font-size: 80px;"></i>
 									</div>
-									<div class="wireframe h-15 d-flex justify-content-center align-items-center gap-3">
+									<div class="edit-mode-show wireframe h-15 d-flex justify-content-center align-items-center gap-3">
 			                			{{ def_form.image_file }}
 			                			{{ def_form.image_file.errors }}
 			                		</div>
 								</div>
 		            		</div>
 		                </div>
+						<div class="pt-3 view-mode-show"></div>
 		                <div class="d-flex">
 		                	<!-- Examples for this definition -->
 			                {% with ex_fs=example_formsets|get_at:def_index %}
@@ -165,15 +207,18 @@
 									                   {% if forloop.last %}checked{% endif %} class="d-hidden">
 
 			                                <div class="wireframe w-100 pb-4 d-flex">
-			                                	<div class="w-55 px-5">
-					                                <div class="d-flex justify-content-end gap-2">
-					                                	<div class="tag">Idiom</div>
-					                                	<div class="tag">Verb</div>
+			                                	<div class="px-5 w-55">
+					                                <div class="d-flex justify-content-{%if has_word%}between{%else%}end{%endif%}">
+														<div class="d-flex gap-2">
+															<div class="tag tag-muted">Idiom</div>
+					                                		<div class="tag tag-muted">Verb</div>
+														</div>
 					                                </div>
-					                                <div class="d-flex align-items-center gap-3 pt-2">
+													<div class="pt-2 edit-mode-show"></div>
+					                                <div class="d-flex align-items-center gap-3">
 														<a href="#" data-def-index="{{def_index}}"
 															data-ex-index="{{ forloop.counter0 }}" 
-															class="remove-example-item"
+															class="remove-example-item edit-mode-show"
 				            	    						onclick="removeExample(this); return false;">
 				            	    						<i class="fa-solid fa-trash"></i>
 				            	    					</a>
@@ -185,14 +230,23 @@
 					                                	{{ ex_form.description.errors }}
 					                            	</div>
 					                            </div>
-					                            <div class="w-45 pe-5">
+					                            <div class="pe-5 ps-4 position-relative" style="width: 45% !important;">
+													<div class="explanation-arrow">
+														<i class="fa-solid fa-angles-right"></i>
+													</div>
 					                            	<div class="d-flex justify-content-end gap-2" style="visibility: hidden;">
 					                                	<div class="tag">Idiom</div>
 					                                	<div class="tag">Verb</div>
 					                                </div>
-					                                <div class="pt-2 w-100">
-					                                	{{ ex_form.explanation }}
-					                                	{{ ex_form.explanation.errors }}
+					                                <div class="pt-2 d-flex">
+														<div class="w-75-e-100">
+															{{ ex_form.explanation }}
+					                                		{{ ex_form.explanation.errors }}
+														</div>
+														<div class="w-25 d-flex gap-3 justify-content-end align-items-center view-mode-show">
+															<i class="fa-solid fa-file-audio fs-4 icon-muted"></i>
+															<i class="fa-solid fa-clapperboard fs-4 icon-muted"></i>
+														</div>
 					                                </div>
 					                            </div>
 			                                </div>
@@ -300,9 +354,19 @@
 	}
 	
 	document.addEventListener('DOMContentLoaded', function() {
-	    // Reset all forms to their default values on page load
 	    document.querySelectorAll('form').forEach(form => form.reset());
 	});
+
+	{% if not has_word %}
+		addDefinition();
+	{% else %}
+		document.querySelectorAll('input:not([type="hidden"]), textarea').forEach(el => {
+		    el.readOnly = true;
+		    el.classList.remove('form-control');
+		    el.classList.add('form-control-plaintext');
+		});
+	{% endif %}
+
 </script>
 {% endblock additionalScripts %}
 

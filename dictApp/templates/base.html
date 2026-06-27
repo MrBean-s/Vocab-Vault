@@ -11,38 +11,51 @@
 		<link rel="stylesheet" href="{% static 'css/base.css' %}">
 		<link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
 		<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
-		<style>	
+		<style>
+			:root {
+				--bs-primary:          #3155d0;
+				--bs-secondary:        #68809d;
+			    --color-bg-primary:    #3155d0;
+			    --color-bg-secondary:  #68809d;
+				--color-bg-info:       #3b92d0;
+			    --color-bg-card:       #161b2a;
+				--color-bg-body:       #131723;
+			    --color-bg-input:      #1d263c;
+				--color-bg-pill:	   #1c2230;
+			    --color-text-primary:  #ffffff;
+				--color-text-secondary:#c8d9ee;
+			    --color-text-muted:    #68809d;
+				--color-btn-muted:     #68809c;
+			    --color-title:        #d6dffd;
+			    --color-success:       #76b500;
+				--color-danger:		   #d4423f;
+				--color-important:	   #edc448;
+			    --color-border:        rgba(255, 255, 255, 0.08);
+				--color-border-blue:   #0466fe;
+			}
+
 			.wireframe { border: 0px solid white; } 
-			body { background: #131723; min-height: 100vh } 
-			* { color: white }
+			body { background: var(--color-bg-body); min-height: 100vh } 
+			* { color: var(--color-text-primary) }
 			#sidebar { z-index: 1021 }
-			.btn-primary { background-color: #3155d0 !important }
 			
-			.btn-secondary { background-color: #68809d !important; border: 0 !important }
-			.btn-info { background-color: #3b92d0 !important; border: 0 !important }
-			.btn-important { background-color: #edc448 !important; border: 0 !important; color: black; font-weight: 700}
+			.btn-secondary, .btn-info, .btn-important { border: 0 !important }
+			.btn-important { background-color: var(--color-important); border: 0 !important; color: black; font-weight: 700}
 			.btn-outline-primary { border-color: #3155d0 !important;}
 			.btn-outline-primary:hover { background-color: #3155d0 !important;}
-			.btn-outline-important { border-color: #edc448 !important;}
-			.btn-outline-important:hover { background-color: #edc448 !important;}
 
-			.blue-bg { background-color: #161b2a !important }
-			.blue-bg-light { background-color: #1d263c !important}
-			.blue-line {
-				border-bottom: 1px solid #0466fe;
-			}
-			.card { background-color: #161b2a;}
-			.green-bg { background-color: #76b500; color: white }
-			.green { color: #76b500 }
-			.orange-bg { background-color: #e1653f; color: white }
-			.orange { color: #e1653f }
-			.yellow-bg { background-color: #edc448; }
-			.yellow { color: #edc448; }
+			.blue-line { border-bottom: 1px solid var(--color-border-blue); }
 			
-			[class*=" add-"] i, [class^="add-"] i { color: #76b500; }
-			[class*=" remove-"] i, [class^="remove-"] i { color: #d4423f; }
-			textarea, input { background-color: #1d263c !important; border: 0 !important; color: white !important}
-			::placeholder { color: #68809d !important }
+			[class*=" add-"] i, [class^="add-"] i { color: var(--color-success) }
+			[class*=" remove-"] i, [class^="remove-"] i { color: var(--color-danger) }
+			textarea:not([readonly]), input:not([readonly]) {
+			    background-color: var(--color-bg-input) !important;
+			    border: 0 !important;
+			    color: var(--color-text-primary) !important;
+			}
+			::placeholder { color: var(--color-text-muted) !important }
+
+			
 
 			/* 
 			404664 – noticeably lighter, good for highlights

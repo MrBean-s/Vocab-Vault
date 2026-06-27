@@ -44,7 +44,7 @@ class WordForm(forms.ModelForm):
         labels = { 'name': 'Word or phrase name'}
         widgets = {
             'name': forms.TextInput(attrs={
-                    'class': 'form-control banner-input',
+                    'class': 'form-control banner-input field-important underline-important',
                     'placeholder': 'Word name'
                 }),
         }
@@ -67,7 +67,7 @@ class DefinitionForm(forms.ModelForm):
                 attrs={
                     'rows': 2, 
                     'cols': 50, 
-                    'class': 'form-control resize-none',
+                    'class': 'form-control resize-none field-description',
                     'manual-required': 'true'
                 }
             ),
@@ -75,7 +75,7 @@ class DefinitionForm(forms.ModelForm):
                 attrs={
                     'rows': 2, 
                     'cols': 50, 
-                    'class': 'form-control resize-none',
+                    'class': 'form-control resize-none field-description',
                 }
             ),
             'image_file': forms.FileInput(
@@ -100,7 +100,7 @@ class ExampleForm(forms.ModelForm):
                 attrs={
                     'rows': 1,
                     'cols': 50, 
-                    'class': 'form-control resize-none',
+                    'class': 'form-control resize-none field-quote',
                     'placeholder': 'Write an example',
                     'manual-required': 'true'
                 }
@@ -109,7 +109,7 @@ class ExampleForm(forms.ModelForm):
                 attrs={
                     'rows': 1, 
                     'cols': 50, 
-                    'class': 'form-control resize-none',
+                    'class': 'form-control resize-none field-explanation',
                     'placeholder': 'Explained in other words'
                 }
             ),
