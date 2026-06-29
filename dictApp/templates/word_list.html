@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block additionalStyles %}
+<style>
+  .pseudo-header {background-color: var(--color-table-header);}
+  .row-even {background-color: var(--color-table-even);}
+  .row-odd {background-color: var(--color-table-odd);}
+  .table-header { font-weight: bold; font-size: 1.4rem;}
+  .table-row, .table-cell {border: 1px solid var(--color-border);}
+  .table-row { padding: 5px 10px; min-height: 50px;}
+  .ex-number { color: var(--color-text-muted);}
+  .word-name { font-size: 1.3rem; font-style: italic; font-weight: 600;}
+  .def-text { padding-right: 20px; hyphens: auto; font-size: 1.2rem;} 
+  .ex-text { font-style: italic; hyphens: auto; font-size: 1.1rem;} 
+  details.custom-marker summary { list-style: none; }
+  details.custom-marker summary::-webkit-details-marker { display: none; }
+
+  details.custom-marker.has-example summary::before {
+      content: "▶"; 
+      margin-right: 0.5rem;
+      color: var(--color-muted);
+      font-size: 0.7rem;
+  }
+  details.custom-marker[open] summary::before { content: "▼"; }
+  details.details-success.custom-marker summary::before { color: var(--color-success); }
+  details.details-important.custom-marker summary::before { color: var(--color-important); }
+  details.details-danger.custom-marker summary::before { color: var(--color-accent); }
+
+  .circle-marker { font-size: 0.7rem;}
+  .circle-marker.success { color: var(--color-success); }
+  .circle-marker.important { color: var(--color-important); }
+  .circle-marker.danger { color: var(--color-danger); }
+
+  .custom-tooltip { --bs-tooltip-bg: var(--color-bg-body); --bs-tooltip-color: white; }
+
+</style>
+{% endblock %}
+
+{% block innerbody %}
+<div class="container" style="min-height: 100vh;">
+  <div class="top-part">
+
+  </div>
+  
+  <div class="pseudo-table mt-5">
+    <div class="pseudo-header row table-row">
+      <div class="col-3 d-flex align-items-center"> <div class="table-header">Word</div></div>
+      <div class="col-7 d-flex justify-content-between">
+        <div class="d-flex gap-3 align-items-center">
+          <div class="table-header">Definition</div>
+          <i class="fa-regular fa-circle-question color-muted pt-1" style="font-size: 0.9rem;"
+              data-bs-toggle="tooltip" data-bs-html="true"
+              data-bs-title="Color shows forgetting frequency from quizzes.
+                  <br><br>Click rows with triangles for more info.">
+          </i>
+        </div>
+      </div>
+
+      <div class="col-2 d-flex justify-content-center pe-4"> <div class="table-header">Actions</div></div>
+    </div>
+    {% for word in page_obj %}
+    <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%}">
+      <div class="word-column col-3 d-flex align-items-center gap-3" data-word-id="{{word.id}}">
+        <i class="fa-regular fa-clock color-muted"></i>
+        <div class="word-name">{{word.name}}</div>
+      </div>
+      <div class="col-7">
+        <div class="def-column">
+          {% for def in word.definitions.all %}
+          <div class="def-row my-2 d-flex justify-content-between" data-def-id="{{def_id}}"
+            data-word-id="{{word_id}}">
+            <div>
+              <div class="d-flex gap-2">
+                {% if def.origin or def.examples.count > 0 %}
+                  <details class="custom-marker has-example
+                    {% if def.forgetting_frequency %}details-{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %}">
+                    <summary>
+                      {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
+                      <div class="def-text" style="display: inline-block;">{{ def.description }}</div>
+                    </summary>
+                    <div class="details-content p-2 ps-5 pe-0">
+                      {%if def.origin%}<div>Origin: {{def.origin}}</div>{%endif%}
+                      <div class="my-2">
+                        {% for ex in def.examples.all %}
+                          <div class="d-flex">
+                            <div class="ex-number pe-2">
+                              {{forloop.counter}}.
+                            </div>
+                            <div class="ex-text" lang="es"
+                              {% if ex.explanation %}data-bs-toggle="tooltip" data-bs-placement="right"
+                              data-bs-custom-class="custom-tooltip"
+                              data-bs-title="{{ex.explanation}}"{% endif %}>
+                              {{ex.description}}
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </details>
+                {% else %}
+                  <div class="d-flex circle-marker align-items-center
+                    {% if def.forgetting_frequency %}{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %} pe-1">
+                    ●
+                  </div>
+                  {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
+                  <div class="ps-1 def-text">
+                    {{def.description}}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-2 d-flex align-items-center justify-content-center">
+        <div class="actions-column d-flex gap-4 pe-3">
+          <div class="check-icon">
+            <i class="fa-solid fa-clock position-relative color-muted fs-3">
+              <i class="fa-solid fa-square-check position-absolute start-50 fs-5"
+                style="bottom: -1px;"></i>
+            </i>
+          </div>
+          <a href="{% url 'word_edit' lang_id=lang_id word_id=word.id %}">
+            <i class="fa-solid fa-arrow-right-to-bracket fs-3 color-primary"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock innerbody %}
+
+{% block additionalScripts %}
+<script>
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+</script>
+{% endblock %}

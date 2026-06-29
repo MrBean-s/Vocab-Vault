@@ -3,10 +3,9 @@
 {% block title %}Start Page{% endblock %}
 
 {% block sidebar %}{% endblock %}
+{% block sidebarStyle %}{% endblock %}
 
 {% block additionalStyles %}
-	<style>
-	</style>
 {% endblock additionalStyles %}
 
 {% block innerbody %}
@@ -89,11 +88,11 @@
 						        	justify-content-center mt-5 gap-3"
 						        	style="height: 100%;">
 
-								    <a href="{% url 'dashboard' lan.id %}" class="wireframe">
+								    <a href="{% url 'word_list' lan.id %}" class="wireframe">
 								        <img src="{{ lan.image.file.url }}" alt="{{ lan.name }}"
 								        	width="300" height="150">
 								    </a>
-								    <a href="{% url 'dashboard' lan.id %}" class="wireframe
+								    <a href="{% url 'word_list' lan.id %}" class="wireframe
 								    	text-light text-decoration-none m-0 p-0"
 								    	style="font-size: 20px; margin-bottom: 10px;">
 								        {{ lan.name }}

@@ -1,5 +1,5 @@
 #sidebar { background-color: #151b29 !important; border-right: 1px solid #1d263c }
-.sidebar-active { 
+.sidebar-active .sidebar-item{ 
         background-color: var(--color-bg-primary) !important;
         border-radius: 50%; width: 46px; height: 46px;
         position: absolute; top: 7px; left: 7px; right: 7px;
@@ -19,3 +19,5 @@
 .nav-item { display: flex; justify-content: center; align-items: center; gap: 15px;}
 .label-active { font-weight: bold; color: var(--color-text-primary);}
 .nav-label { cursor: pointer; font-size: 18px;}
+
+.right-side { width: calc(100vw - 280px); margin-left: 280px; }

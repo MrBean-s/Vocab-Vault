@@ -10,7 +10,6 @@
 		<link rel="stylesheet" href="{% static 'fontawesome/all.min.css' %}">
 		<link rel="stylesheet" href="{% static 'css/base.css' %}">
 		<link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
-		<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
 		<style>
 			:root {
 				--bs-primary:          #3155d0;
@@ -22,11 +21,15 @@
 				--color-bg-body:       #131723;
 			    --color-bg-input:      #1d263c;
 				--color-bg-pill:	   #1c2230;
+				--color-table-header:  #121927;
+				--color-table-odd:     #1f2636;
+				--color-table-even:    #242c3f;
 			    --color-text-primary:  #ffffff;
 				--color-text-secondary:#c8d9ee;
 			    --color-text-muted:    #68809d;
 				--color-btn-muted:     #68809c;
-			    --color-title:        #d6dffd;
+			    --color-title:         #d6dffd;
+				--color-accent: 	   #e1653f;
 			    --color-success:       #76b500;
 				--color-danger:		   #d4423f;
 				--color-important:	   #edc448;
@@ -55,7 +58,11 @@
 			}
 			::placeholder { color: var(--color-text-muted) !important }
 
-			
+			.card { background-color: var(--color-bg-card); border: 1px solid var(--color-bg-input);}
+			.color-muted { color: var(--color-btn-muted) }
+			.color-primary { color: var(--color-bg-primary) }
+			.tag { display: inline-block; background-color: var(--color-bg-info); border-radius: 5px; padding: 2px 10px;  }
+			.tag-muted { background-color: var(--color-bg-input);}
 
 			/* 
 			404664 – noticeably lighter, good for highlights
@@ -72,17 +79,13 @@
 			 */
 		</style>
 	{% endblock styles%}
+	{% block sidebarStyle %}
+		<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+	{% endblock %}
 	{% block additionalStyles %}
 	{% endblock additionalStyles %}
 </head>
 <body>
-	{% block scripts %}
-		<script src="{% static 'bootstrap/bootstrap.bundle.min.js' %}"></script>
-		<script src="{% static 'htmx/htmx.min.js' %}"></script>
-	{% endblock scripts %}
-
-
-
 	{% if messages %}
 	  	{% for message in messages %}
 	    	<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}
@@ -99,9 +102,16 @@
 		<script src="{% static 'js/sidebar.js' %}"></script>
 	{% endblock %}
 	
+	{% block scripts %}
+		<script src="{% static 'bootstrap/bootstrap.bundle.min.js' %}"></script>
+		<script src="{% static 'htmx/htmx.min.js' %}"></script>
+	{% endblock scripts %}
+
+	{# right-side is defined in sidebar.css #}
+	<div class="wireframe right-side"> 
 	{% block innerbody %}
-		<h4> Base template </h4>
 	{% endblock innerbody %}
+	</div>
 
 	{% include 'modals/generic_modal.html' %}
 
