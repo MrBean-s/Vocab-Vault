@@ -111,81 +111,78 @@
 			</div>
 			{% endif %}
 				{% with def_index=forloop.counter0 %}
-				<div class="def-row pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%} position-relative"
+				<div class="def-row d-grid pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%} position-relative"
 					data-def-index="{{ def_index }}"
-					data-is-prototype="{% if forloop.last %}true{% else %}false{%endif%}">
-					<div class="position-absolute">
+					data-is-prototype="{% if forloop.last %}true{% else %}false{%endif%}"
+          style="grid-template-columns: 55% 45%;">
 
-					</div>
-					<div class="d-flex w-100">
-						<div class="wireframe w-55 px-5 pt-1 position-relative">
-							{{ def_form.id }}
-							<input type="checkbox" name="{{ def_form.DELETE.html_name }}"
-								id="{{ def_form.DELETE.id_for_label }}"
-								{% if forloop.last %}checked{% endif %} class="d-hidden def-to-delete">
-							
-							<div class="mb-3">
-								<div class="d-flex justify-content-between align-items-center mt-3 mb-2 
-									position-relative">
-	
-									<label for="def_form.description.id_for_label" class="form-label m-0
-										field-title-accent">
-										{{ def_form.description.label }} {{forloop.counter}}
-									</label>
-									
-									<div class="tag" style="width: 100px; height: 30px;">
-									</div>
-									
-									<a class="position-absolute
-										remove-definition-item edit-mode-show"
-										style="left: -32px;"
-										href="#" data-def-index="{{ def_index }}" 
-										onclick="removeDefinition(this); return false;">
+          <div class="wireframe px-5 pt-1 position-relative">
+            {{ def_form.id }}
+            <input type="checkbox" name="{{ def_form.DELETE.html_name }}"
+              id="{{ def_form.DELETE.id_for_label }}"
+              {% if forloop.last %}checked{% endif %} class="d-hidden def-to-delete">
+            
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mt-3 mb-2 
+                position-relative">
 
-										<i class="fa-solid fa-trash fs-6" style="color: var(--color-danger)"></i>
-									</a>
-								</div>
-								{% if forloop.last %}
-									{{ def_form.description }}
-								{% else %}
-									{% render_field def_form.description required="required" %}
-								{% endif %}
-								{{ def_form.description.errors }}
-							</div>
-			
-							<div class="mb-3 edit-mode-show">
-								<label for="def_form.origin.id_for_label" class="form-label field-title">
-									{{ def_form.origin.label }}
-								</label>
-								{{ def_form.origin }}
-								{{ def_form.origin.errors }}
-							</div>
+                <label for="def_form.description.id_for_label" class="form-label m-0
+                  field-title-accent">
+                  {{ def_form.description.label }} {{forloop.counter}}
+                </label>
+                
+                <div class="tag" style="width: 100px; height: 30px;">
+                </div>
+                
+                <a class="position-absolute
+                  remove-definition-item edit-mode-show"
+                  style="left: -32px;"
+                  href="#" data-def-index="{{ def_index }}" 
+                  onclick="removeDefinition(this); return false;">
 
-							<div class="d-flex
-								position-relative">
-								<div class="position-absolute edit-mode-show" style="left: -35px">
-									<a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
-									onclick="addExample(this, 'true'); return false;">
-										<i class="fa-solid fa-circle-plus fs-5"></i>
-									</a>
-								</div>
-								<div class="field-title">Examples</div>
-							</div>
-						</div>
-						<div class="wireframe w-45 d-flex justify-content-center align-items-center">
-							<div class="wireframe p-4 pb-0">
-								<div class="image-placeholder">
-									<i class="fa-regular fa-image" style="font-size: 80px;"></i>
-								</div>
-								<div class="edit-mode-show wireframe h-15 d-flex justify-content-center align-items-center gap-3">
-									{{ def_form.image_file }}
-									{{ def_form.image_file.errors }}
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="pt-3 view-mode-show"></div>
-					<div class="d-flex">
+                  <i class="fa-solid fa-trash fs-6" style="color: var(--color-danger)"></i>
+                </a>
+              </div>
+              {% if forloop.last %}
+                {{ def_form.description }}
+              {% else %}
+                {% render_field def_form.description required="required" %}
+              {% endif %}
+              {{ def_form.description.errors }}
+            </div>
+    
+            <div class="mb-3 edit-mode-show">
+              <label for="def_form.origin.id_for_label" class="form-label field-title">
+                {{ def_form.origin.label }}
+              </label>
+              {{ def_form.origin }}
+              {{ def_form.origin.errors }}
+            </div>
+
+            <div class="d-flex
+              position-relative">
+              <div class="position-absolute edit-mode-show" style="left: -35px">
+                <a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
+                onclick="addExample(this, 'true'); return false;">
+                  <i class="fa-solid fa-circle-plus fs-5"></i>
+                </a>
+              </div>
+              <div class="field-title">Examples</div>
+            </div>
+          </div>
+          <div class="wireframe d-flex justify-content-center align-items-center">
+            <div class="wireframe p-4 pb-0">
+              <div class="image-placeholder">
+                <i class="fa-regular fa-image" style="font-size: 80px;"></i>
+              </div>
+              <div class="edit-mode-show wireframe h-15 d-flex justify-content-center align-items-center gap-3">
+                {{ def_form.image_file }}
+                {{ def_form.image_file.errors }}
+              </div>
+            </div>
+          </div>
+					<div class="pt-3 view-mode-show" style="grid-column: 1 / -1;"></div>
+					<div class="d-flex" style="grid-column: 1 / -1;">
 						<!-- Examples for this definition -->
 						{% with ex_fs=example_formsets|get_at:def_index %}
 							<div class="examples-container w-100" data-def-index="{{ def_index }}">

@@ -65,7 +65,7 @@ class DefinitionForm(forms.ModelForm):
         widgets = {
             'description': forms.Textarea(
                 attrs={
-                    'rows': 2, 
+                    'rows': 3, 
                     'cols': 50, 
                     'class': 'form-control resize-none field-description',
                     'manual-required': 'true'
@@ -98,7 +98,7 @@ class ExampleForm(forms.ModelForm):
         widgets = {
             'description': forms.Textarea(
                 attrs={
-                    'rows': 1,
+                    'rows': 2,
                     'cols': 50, 
                     'class': 'form-control resize-none field-quote',
                     'placeholder': 'Write an example',
@@ -107,7 +107,7 @@ class ExampleForm(forms.ModelForm):
             ),
             'explanation': forms.Textarea(
                 attrs={
-                    'rows': 1, 
+                    'rows': 2, 
                     'cols': 50, 
                     'class': 'form-control resize-none field-explanation',
                     'placeholder': 'Explained in other words'

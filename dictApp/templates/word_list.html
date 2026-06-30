@@ -2,6 +2,7 @@
 
 {% block additionalStyles %}
 <style>
+  .top-part { padding-top: 40px; padding-bottom: 40px;}
   .pseudo-header {background-color: var(--color-table-header);}
   .row-even {background-color: var(--color-table-even);}
   .row-odd {background-color: var(--color-table-odd);}
@@ -10,21 +11,29 @@
   .table-row { padding: 5px 10px; min-height: 50px;}
   .ex-number { color: var(--color-text-muted);}
   .word-name { font-size: 1.3rem; font-style: italic; font-weight: 600;}
-  .def-text { padding-right: 20px; hyphens: auto; font-size: 1.2rem;} 
+  .def-text { hyphens: auto; font-size: 1.2rem;} 
   .ex-text { font-style: italic; hyphens: auto; font-size: 1.1rem;} 
   details.custom-marker summary { list-style: none; }
   details.custom-marker summary::-webkit-details-marker { display: none; }
+  details.custom-marker summary {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
 
   details.custom-marker.has-example summary::before {
-      content: "▶"; 
-      margin-right: 0.5rem;
-      color: var(--color-muted);
-      font-size: 0.7rem;
+    content: "▶";
+    font-size: 0.7rem;
+    color: var(--color-muted);
   }
-  details.custom-marker[open] summary::before { content: "▼"; }
+
+  details.custom-marker[open] summary::before {
+    content: "▼";
+  }
   details.details-success.custom-marker summary::before { color: var(--color-success); }
   details.details-important.custom-marker summary::before { color: var(--color-important); }
   details.details-danger.custom-marker summary::before { color: var(--color-accent); }
+ 
 
   .circle-marker { font-size: 0.7rem;}
   .circle-marker.success { color: var(--color-success); }
@@ -32,18 +41,77 @@
   .circle-marker.danger { color: var(--color-danger); }
 
   .custom-tooltip { --bs-tooltip-bg: var(--color-bg-body); --bs-tooltip-color: white; }
+  .select2-results__group { color: var(--color-text-primary)}
 
 </style>
 {% endblock %}
 
 {% block innerbody %}
 <div class="container" style="min-height: 100vh;">
-  <div class="top-part">
 
+
+  <div class="top-part">
+    <form action="" method="POST">
+      <div class="row">
+        <div class="col-3">
+          <label for="timeUnitSelect" class="form-label">Date added</label>
+          <div class="d-flex gap-2 align-items-center">
+            <input type="number" min="0" placeholder="#" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+              class="form-control w-20"/>
+            <select name="timeUnit" id="timeUnitSelect" class="form-select w-60">
+              <option value="" selected hidden>Choose an option...</option>
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
+            <div>Ago</div>
+          </div>
+        </div>
+        <div class="col-2">
+          <label for="freqSelect" class="form-label">Forgetting frequency</label>
+          <select name="forgettingFrequency" id="freqSelect" class="form-select">
+            <option value="" selected hidden>Choose an option...</option>
+            <option value="frequent">Frequent</option>
+            <option value="rare">Rare</option>
+            <option value="never">Never</option>
+          </select>
+        </div>
+        <div class="col-2">
+          <label for="regionSelect" class="form-label">Specific region</label>
+          <select name="regionCode" id="regionSelect" class="form-select">
+            <option value="" selected hidden>Choose an option...</option>
+            <option value="uk">UK</option>
+            <option value="us">US</option>
+            <option value="au">AU</option>
+          </select>
+        </div>
+        <div class="col-3">
+          <label for="sourceSelect" class="form-label">Source</label>
+          <select name="" id="sourceSelect" class="form-select">
+            <option value="" selected hidden>Choose an option...</option>
+            {% for cat, source in sources_by_category.items %}
+            <optgroup label="{{cat}}">
+              {% for source_id, source_name in source %}
+                <option value="{{source_id}}">{{source_name}}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-2">
+          <div class="d-flex gap-2 align-items-end h-100">
+            <button type="button" class="btn btn-secondary">Clear all</button>
+            <button type="submit" class="btn btn-important">Submit</button>
+          </div>
+        </div>
+      </div>
+    </form>
+    
   </div>
   
-  <div class="pseudo-table mt-5">
-    <div class="pseudo-header row table-row">
+  <div class="pseudo-table mb-5" id="word-list-table">
+    <div class="pseudo-header row table-row sticky-top">
       <div class="col-3 d-flex align-items-center"> <div class="table-header">Word</div></div>
       <div class="col-7 d-flex justify-content-between">
         <div class="d-flex gap-3 align-items-center">
@@ -72,11 +140,11 @@
             <div>
               <div class="d-flex gap-2">
                 {% if def.origin or def.examples.count > 0 %}
-                  <details class="custom-marker has-example
+                  <details id="details_{{def.id}}" class="custom-marker has-example
                     {% if def.forgetting_frequency %}details-{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %}">
                     <summary>
                       {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
-                      <div class="def-text" style="display: inline-block;">{{ def.description }}</div>
+                      <div class="def-text w-95">{{ def.description }}</div>
                     </summary>
                     <div class="details-content p-2 ps-5 pe-0">
                       {%if def.origin%}<div>Origin: {{def.origin}}</div>{%endif%}
@@ -136,5 +204,38 @@
 <script>
 const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+let toggledDescription = null;
+document.getElementById('word-list-table').addEventListener('click', (e) => {
+    const detailsItem = e.target.closest('details');
+    if (detailsItem) {
+      if (toggledDescription && toggledDescription != detailsItem) {
+        toggledDescription.open = false
+      }
+      toggledDescription = detailsItem;
+    }
+});
+
+const detailItems = document.querySelectorAll('details');
+detailItems.forEach((el) => {
+  el.addEventListener('mouseleave', () => el.open = false);
+});
+
+</script>
+
+<script>
+  $(document).ready(function() {
+    $('#sourceSelect').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Choose an option...',
+      allowClear: true
+    });
+    $('#regionSelect, #freqSelect, #timeUnitSelect').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Choose an option...',
+      minimumResultsForSearch: Infinity,
+      allowClear: true
+    });
+  });
 </script>
 {% endblock %}

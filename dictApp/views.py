@@ -1,10 +1,14 @@
+import json
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from .forms import *
-from .models import Language, Image, Word
+from .models import Language, Image, Word, Source, Definition, Example
 from django.contrib import messages
 from django.db.models import ProtectedError
 from django.core.paginator import Paginator
+from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
+
 
 
 def start_screen(request):
@@ -159,8 +163,74 @@ def word_list(request, lang_id):
   words = lang.word_set.prefetch_related('definitions__examples').order_by('-id')
   paginator = Paginator(words, 30)
   page_obj = paginator.get_page(request.GET.get('page', 1))
+
+  sources_by_category = {}
+  for category, name, id in Source.objects.values_list('source_category', 'name', 'id').iterator():
+    label = Source.SourceCategory(category).label
+    sources_by_category.setdefault(label, []).append((id, name))
   
+  print(sources_by_category)
+
   return render(request, 'word_list.html', {
     'lang_id': lang_id,
-    'page_obj': page_obj
+    'page_obj': page_obj,
+    'sources_by_category': sources_by_category
   })
+
+
+@csrf_exempt
+def import_words_from_old_json(request, lang_id):
+    language = get_object_or_404(Language, pk=lang_id)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    if not isinstance(data, list):
+        return JsonResponse({'error': 'Expecting list of words'}, status=400)
+
+    created_word_ids = []
+    errors = []
+
+    try:
+        with transaction.atomic():
+            for word_data in data:
+                name = word_data.get('name')
+                if not name:
+                    errors.append(f'Missing name in {word_data}')
+                    raise ValueError('Missing name')
+
+                word = Word.objects.create(name=name, language=language)
+
+                for def_data in word_data.get('definitions', []):
+                    desc = def_data.get('definition')  # old field name
+                    if not desc:
+                        errors.append(f'Missing definition for word "{name}"')
+                        raise ValueError('Missing definition')
+
+                    definition = Definition.objects.create(
+                        word=word,
+                        description=desc
+                    )
+
+                    for ex_data in def_data.get('examples', []):
+                        ex_text = ex_data.get('example')
+                        if not ex_text:
+                            errors.append(f'Missing example for word "{name}"')
+                            raise ValueError('Missing example')
+
+                        Example.objects.create(
+                            definition=definition,
+                            description=ex_text
+                        )
+
+                created_word_ids.append(word.id)
+
+    except ValueError:
+        pass
+
+    if errors:
+        return JsonResponse({'status': 'failed', 'errors': errors}, status=400)
+
+    return JsonResponse({'status': 'ok', 'created_word_ids': created_word_ids}, status=201)

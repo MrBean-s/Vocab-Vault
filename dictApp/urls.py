@@ -12,5 +12,6 @@ urlpatterns = [
 	path("generic/confirm-delete/", views.generic_confirm_delete, name="generic_confirm_delete"),
 	path("lang/<int:lang_id>/word/", views.word, name="word"),
 	path("lang/<int:lang_id>/word/<int:word_id>", views.word, name="word_edit"),
-	path("lang/<int:lang_id>/words", views.word_list, name="word_list")
+	path("lang/<int:lang_id>/words", views.word_list, name="word_list"),
+  path("lang/<int:lang_id>/import/", views.import_words_from_old_json, name="import"),
 ]
