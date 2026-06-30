@@ -1,8 +1,10 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/genericModal.css' %}">
+
 <div class="modal fade" id="genericModal" tabindex="-1" aria-labelledby="genericModalLabel"
   aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background: #1e1e2f; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 0.7rem; box-shadow: 0 20px 40px rgba(0,0,0,0.4); color: #e0e0e0;">
+    <div class="modal-content">
       
       <div class="modal-header border-0">
         <div id="genericModalTitle">
@@ -11,7 +13,7 @@
           aria-label="Close"></button>
       </div>
       
-      <div id="genericModalBody" class="modal-body text-light position-relative" style="padding: 1.5rem 2rem;">
+      <div id="genericModalBody" class="modal-body text-light position-relative">
     </div>
   </div>
 </div>

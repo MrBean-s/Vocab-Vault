@@ -2,13 +2,10 @@
 
 {% block title %}Start Page{% endblock %}
 
+{% block sidebar %}{% endblock %}
+{% block sidebarStyle %}{% endblock %}
+
 {% block additionalStyles %}
-	<style>
-		.glow {
-		  box-shadow: 0 0px 20px rgba(255, 255, 255, 0.08),
-		              0 0px 6px rgba(255, 255, 255, 0.04);
-		}
-	</style>
 {% endblock additionalStyles %}
 
 {% block innerbody %}
@@ -37,7 +34,7 @@
 		    </a>
 		</div>
 
-		<div class="mx-auto wireframe glow rounded w-75 d-flex flex-column justify-content-center
+		<div class="card mx-auto wireframe w-75 d-flex flex-column justify-content-center
 			align-items-center position-relative" style="height: 60%;">
 			<h1 class="position-absolute start-50 translate-middle-x mt-3 text-light" 
 				style="top: 5%">
@@ -91,11 +88,11 @@
 						        	justify-content-center mt-5 gap-3"
 						        	style="height: 100%;">
 
-								    <a href="{% url 'dashboard' lan.id %}" class="wireframe">
+								    <a href="{% url 'word_list' lan.id %}" class="wireframe">
 								        <img src="{{ lan.image.file.url }}" alt="{{ lan.name }}"
 								        	width="300" height="150">
 								    </a>
-								    <a href="{% url 'dashboard' lan.id %}" class="wireframe
+								    <a href="{% url 'word_list' lan.id %}" class="wireframe
 								    	text-light text-decoration-none m-0 p-0"
 								    	style="font-size: 20px; margin-bottom: 10px;">
 								        {{ lan.name }}

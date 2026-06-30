@@ -1,0 +1,7 @@
+.modal-content {
+    background-color: #151b29;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.7rem; box-shadow: 0 20px 40px rgba(0,0,0,0.4); color: #e0e0e0;
+}
+
+.genericModalBody { padding: 1.5rem 2rem; }
