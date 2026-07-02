@@ -9,119 +9,117 @@
 {% endblock additionalStyles %}
 
 {% block innerbody %}
-	<div class="wireframe d-flex flex-column justify-content-center align-items-center"
-		style="height: 100vh;">
-		<div class="d-inline-flex position-fixed" style="bottom: 5%; left: 10%;">
-		    <a href="{% url 'languages' %}" class="d-flex gap-2 text-light text-decoration-none">
+<div class="wireframe d-flex flex-column justify-content-center align-items-center"
+   style="height: 100vh;">
+   <div class="d-inline-flex position-fixed" style="bottom: 5%; left: 10%;">
+      <a href="{% url 'languages' %}" class="d-flex gap-2 text-light text-decoration-none">
+         <h4><i class="fa-solid fa-shrimp" style="color: #bf562f;"></i></h4>
+         <h4>Add or edit a language</h4>
+      </a>
+   </div>
+   
+   <div class="d-inline-flex position-fixed" style="bottom: 5%; left: 85%;">
+      <a href="{% url 'lang_modal_form' %}" class="d-flex gap-2 text-light text-decoration-none">
+         <h4>Leave</h4>
+         <h4><i class="fa-solid fa-right-from-bracket text-danger"></i></h4>
+      </a>
+   </div>
+   
+   <div class="d-inline-flex position-fixed" style="top: 3%; left: 95%;">
+      <a href="{% url 'lang_modal_form' %}" class="text-light text-decoration-none">
+         <div style="font-size: 48px;">
+            <i class="fa-solid fa-circle-user"></i>
+         </div>
+      </a>
+   </div>
+   
+   <div class="card mx-auto wireframe w-75 d-flex flex-column justify-content-center
+      align-items-center position-relative" style="height: 60%;">
+      <h1 class="position-absolute start-50 translate-middle-x mt-3 text-light" 
+         style="top: 5%">
+         Choose a Language
+      </h1>
+      <div class="wireframe w-100 h-50 d-flex justify-content-center align-items-center">
+         {% if not languages %}
+            <div class="col-12 mx-auto wireframe text-center p-4">
+               <a data-bs-toggle="modal" data-bs-target="#genericModal"
+                  hx-get="{% url 'lang_modal_form' %}" hx-target="#genericModalBody"
+                  hx-trigger="click" hx-target-error="#error-box" 
+                  class="text-decoration-none" style="color: #c8c4cc;">
+            
+                  <i class="fa-solid fa-circle-plus text-warning mt-5"
+                     style="font-size: 54px;"></i>
+                  <h4 class="mt-5">Add a language</h4>
+               </a>
+            </div>
+         {% else %}
+            <div class="row w-100">
+               <!-- Left arrow -->
+               <div class="col-1 d-flex align-items-center justify-content-center">
+                  {% if languages|length > 3 %}
+                     <button type="button" class="btn btn-outline-dark border-0"
+                        data-bs-target="#myMultiCarousel" data-bs-slide="prev">
+                           <span class="carousel-control-prev-icon"> </span>
+                     </button>
+                  {% endif %}
+               </div>
+            
+               <div id="myMultiCarousel" class="carousel slide col-10"
+                  data-bs-ride="false">
+                  <div class="carousel-inner">
+                  
+                  {% for lan in languages %}
+                  
+                     {% if forloop.counter0|divisibleby:3 and forloop.counter0 != 0 %}
+                        </div></div>
+                        <div class="carousel-item">
+                           <div class="row g-2">
+                     {% endif %}
+                           
+                     {% if forloop.first %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <div class="row g-2">
+                     {% endif %}
+                           
+                     <div class="col-{% if forloop.counter > languages|length|add:substract_len_mod3 %}{{twelve_mod3}}
+                        {% else %}4{% endif %} wireframe d-flex flex-column align-items-center
+                        justify-content-center mt-5 gap-3"
+                        style="height: 100%;">
+                     
+                        <a href="{% url 'word_list' lan.id %}" class="wireframe">
+                           <img src="{{ lan.image.file.url }}" alt="{{ lan.name }}"
+                              width="300" height="150">
+                        </a>
+                        <a href="{% url 'word_list' lan.id %}" class="wireframe
+                           text-light text-decoration-none m-0 p-0"
+                           style="font-size: 20px; margin-bottom: 10px;">
+                           {{ lan.name }}
+                        </a>
+                     </div>
 
-		    	<h4><i class="fa-solid fa-shrimp" style="color: #bf562f;"></i></h4>
-		        <h4>Add or edit a language</h4>
-		    </a>
-		</div>
-
-		<div class="d-inline-flex position-fixed" style="bottom: 5%; left: 85%;">
-		    <a href="{% url 'lang_modal_form' %}" class="d-flex gap-2 text-light text-decoration-none">
-		    	<h4>Leave</h4>
-		        <h4><i class="fa-solid fa-right-from-bracket text-danger"></i></h4>
-		    </a>
-		</div>
-
-		<div class="d-inline-flex position-fixed" style="top: 3%; left: 95%;">
-		    <a href="{% url 'lang_modal_form' %}" class="text-light text-decoration-none">
-		        <div style="font-size: 48px;">
-		        	<i class="fa-solid fa-circle-user"></i>
-		        </div>
-		    </a>
-		</div>
-
-		<div class="card mx-auto wireframe w-75 d-flex flex-column justify-content-center
-			align-items-center position-relative" style="height: 60%;">
-			<h1 class="position-absolute start-50 translate-middle-x mt-3 text-light" 
-				style="top: 5%">
-				Choose a Language
-			</h1>
-			<div class="wireframe w-100 h-50 d-flex justify-content-center align-items-center">
-				{% if not languages %}
-				  	<div class="col-12 mx-auto wireframe text-center p-4">
-				    	<a data-bs-toggle="modal" data-bs-target="#genericModal"
-							hx-get="{% url 'lang_modal_form' %}" hx-target="#genericModalBody"
-							hx-trigger="click" hx-target-error="#error-box" 
-				    		class="text-decoration-none" style="color: #c8c4cc;">
-
-				    		<i class="fa-solid fa-circle-plus text-warning mt-5"
-				    			style="font-size: 54px;"></i>
-				    		<h4 class="mt-5">Add a language</h4>
-				    	</a>
-				  	</div>
-				{% else %}
-				  	<div class="row w-100">
-				    	<!-- Left arrow -->
-					    <div class="col-1 d-flex align-items-center justify-content-center">
-					    	{% if languages|length > 3 %}
-						        <button type="button" class="btn btn-outline-dark border-0"
-						        	data-bs-target="#myMultiCarousel" data-bs-slide="prev">
-						          	<span class="carousel-control-prev-icon"> </span>
-						        </button>
-					      	{% endif %}
-					    </div>
-
-					    <div id="myMultiCarousel" class="carousel slide col-10"
-					    	data-bs-ride="false">
-					      	<div class="carousel-inner">
-
-					        {% for lan in languages %}
-
-						        {% if forloop.counter0|divisibleby:3 and forloop.counter0 != 0 %}
-						          	</div></div>
-						          	<div class="carousel-item">
-						          		<div class="row g-2">
-						        {% endif %}
-
-						        {% if forloop.first %}
-						          	<div class="carousel-item {% if forloop.first %}
-						          		active{% endif %}">
-						            	<div class="row g-2">
-						        {% endif %}
-
-						        <div class="col-{% if forloop.counter > languages|length|add:substract_len_mod3 %}{{twelve_mod3}}
-						        	{% else %}4{% endif %} wireframe d-flex flex-column align-items-center
-						        	justify-content-center mt-5 gap-3"
-						        	style="height: 100%;">
-
-								    <a href="{% url 'word_list' lan.id %}" class="wireframe">
-								        <img src="{{ lan.image.file.url }}" alt="{{ lan.name }}"
-								        	width="300" height="150">
-								    </a>
-								    <a href="{% url 'word_list' lan.id %}" class="wireframe
-								    	text-light text-decoration-none m-0 p-0"
-								    	style="font-size: 20px; margin-bottom: 10px;">
-								        {{ lan.name }}
-								    </a>
-								</div>
-					          	{% if forloop.last %}
-					            	</div></div> <!-- close row w-100 and carousel-item -->
-					          	{% endif %}
-
-						    {% endfor %}
-
-					      	</div>
-					    </div>
-
-					    <!-- Right arrow -->
-					    <div class="col-1 d-flex align-items-center justify-content-center">
-						    {% if languages|length > 3 %}
-						        <button type="button" class="btn btn-outline-dark border-0"
-						                data-bs-target="#myMultiCarousel" data-bs-slide="next">
-						        	<span class="carousel-control-next-icon"></span>
-						        </button>
-						    {% endif %}
-					    </div>
-					</div>
-				{% endif %}
-
-
-			</div>
-		</div>
-	</div>
+                     {% if forloop.last %}
+                     </div></div> <!-- close row w-100 and carousel-item -->
+                     {% endif %}
+                           
+                  {% endfor %}
+                           
+                  </div>
+               </div>
+            
+               <!-- Right arrow -->
+               <div class="col-1 d-flex align-items-center justify-content-center">
+                  {% if languages|length > 3 %}
+                     <button type="button" class="btn btn-outline-dark border-0"
+                        data-bs-target="#myMultiCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                     </button>
+                  {% endif %}
+               </div>
+            </div>
+         {% endif %}
+      </div>
+   </div>
+</div>
 {% endblock innerbody %}
-
+   
+   
