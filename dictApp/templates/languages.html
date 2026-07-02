@@ -9,69 +9,67 @@
 {% endblock additionalStyles %}
 
 {% block innerbody %}
-	<div class="py-5 wireframe w-100 d-flex justify-content-center" style="margin-top: 20px;">
-		<div class="w-75 wireframe">
-			<a data-bs-toggle="modal" data-bs-target="#genericModal"
-				hx-get="{% url 'lang_modal_form' %}" hx-target="#genericModalBody"
-				hx-trigger="click" hx-target-error="#error-box" 
-				class="text-decoration-none d-flex justify-content-center gap-3 add-lang" style="color: #c8c4cc;">
-		
-				<i class="fa-solid fa-circle-plus"
-					style="font-size: 36px;"></i>
-				<h4 class="pt-1">Add a language</h4>
-			</a>
-		</div>
-	</div>
-	<div class="wireframe d-flex justify-content-center">
-		<div class="wireframe w-75">
-			<div class="row gx-5 gy-4">
-			{% for lang in languages %}
-				<div class="col-6 {% if languages|length == 1 %}offset-3{% endif %}">
-					<div class="lang-card card rounded text-light px-5 py-4 position-relative"
-						style="height: 300px;">
-						<h4>{{lang.name}}</h4>
-						<div class="wireframe row" style="height: 120px; margin-top: 34px">
-							<div class="col-6 wireframe" style="overflow: hidden;">
-								<div class="d-flex gap-3">
-									<p><b>Word count:</b></p>
-									<p>{{lang.word_set.count}}</p>
-								</div>
-							</div>
-							<div class="col-6 wireframe d-flex justify-content-center">
-								<div style="width: 70%; height: 120px; overflow: hidden;
-									position: relative;">
-									<img src="{{ lang.image.file.url }}" alt="{{ lan.name }}"
-										style="width: 100%; height: 100%; object-fit: cover;">
-								</div>
-							</div>
-						</div>
-						<div class="mt-4 d-flex gap-5 justify-content-between align-items-center">
-							<a data-bs-toggle="modal"
-								data-bs-target="#genericModal"
-								hx-get="{% url 'lang_edit_form' lang_id=lang.id %}" hx-target="#genericModalBody"
-								hx-trigger="click" hx-target-error="#error-box" style="cursor: pointer;">
-								<i class="fa-solid fa-pen-to-square yellow pe-4"></i>Edit
-							</a>
-							<a style="bottom: 20px; right: 20px; position: absolute;
-								right: 24px; bottom: 24px; cursor: pointer;"
-								class="remove-lang"
-								hx-get="{% url 'generic_confirm_delete' %}"
-						        hx-vals='{"type": "Language", "name": "{{ lang.name }}", "delete_url":
-						        	"{% url 'lang_delete' lang.id %}"}'
-						        hx-target="#genericModalBody"
-						        hx-trigger="click"
-						        data-bs-toggle="modal"
-						        data-bs-target="#genericModal">
-								<i class="fa-solid fa-trash"></i>
-							</a>
-						</div>
-						
-					</div>
-				</div>
-			{% endfor %}
-			</div>
-		</div>
-	</div>
-	<div class="wireframe d-flex justify-content-center" style="min-height: 200px;">
-	</div>
+   <div class="py-5 wireframe w-100 d-flex justify-content-center" style="margin-top: 20px;">
+      <div class="w-75 wireframe">
+         <a data-bs-toggle="modal" data-bs-target="#genericModal"
+            hx-get="{% url 'lang_modal_form' %}" hx-target="#genericModalBody"
+            hx-trigger="click" hx-target-error="#error-box" 
+            class="text-decoration-none d-flex justify-content-center gap-3 add-lang" style="color: #c8c4cc;">
+      
+            <i class="fa-solid fa-circle-plus"
+               style="font-size: 36px;"></i>
+            <h4 class="pt-1">Add a language</h4>
+         </a>
+      </div>
+   </div>
+   <div class="wireframe d-flex justify-content-center">
+      <div class="wireframe w-75">
+         <div class="row gx-5 gy-4">
+         {% for lang in languages %}
+            <div class="col-6 {% if languages|length == 1 %}offset-3{% endif %}">
+               <div class="lang-card card rounded text-light px-5 py-4 position-relative"
+                  style="height: 300px;">
+                  <h4>{{lang.name}}</h4>
+                  <div class="wireframe row" style="height: 120px; margin-top: 34px">
+                     <div class="col-6 wireframe" style="overflow: hidden;">
+                        <div class="d-flex gap-3">
+                           <p><b>Word count:</b></p>
+                           <p>{{lang.word_set.count}}</p>
+                        </div>
+                     </div>
+                     <div class="col-6 wireframe d-flex justify-content-center">
+                        <div style="width: 70%; height: 120px; overflow: hidden;
+                           position: relative;">
+                           <img src="{{ lang.image.file.url }}" alt="{{ lan.name }}"
+                              style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                     </div>
+                  </div>
+                  <div class="mt-4 d-flex gap-5 justify-content-between align-items-center">
+                     <a data-bs-toggle="modal"
+                        data-bs-target="#genericModal"
+                        hx-get="{% url 'lang_edit_form' lang_id=lang.id %}" hx-target="#genericModalBody"
+                        hx-trigger="click" hx-target-error="#error-box" style="cursor: pointer;">
+                        <i class="fa-solid fa-pen-to-square yellow pe-4"></i>Edit
+                     </a>
+                     <a style="bottom: 20px; right: 20px; position: absolute;
+                        right: 24px; bottom: 24px; cursor: pointer;"
+                        class="remove-lang"
+                        hx-get="{% url 'generic_confirm_delete' %}"
+                        hx-vals='{"type": "Language", "name": "{{ lang.name }}", "delete_url":"{% url 'lang_delete' lang.id %}"}'
+                        hx-target="#genericModalBody"
+                        hx-trigger="click"
+                        data-bs-toggle="modal"
+                        data-bs-target="#genericModal">
+                        <i class="fa-solid fa-trash"></i>
+                     </a>
+                  </div>
+               </div>
+            </div>
+         {% endfor %}
+         </div>
+      </div>
+   </div>
+   <div class="wireframe d-flex justify-content-center" style="min-height: 200px;">
+   </div>
 {% endblock %}

@@ -1,0 +1,48 @@
+{% include 'forms/_search_bar.html' %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/simpleSearch.css' %}">
+
+
+{% if results_dict.words %}
+   <h5 class="text-accent">Words</h5>
+   <div class="word-results">
+   {% for item in results_dict.words %}
+      <div class="">
+         <a href="{% url 'word_edit' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
+      </div>
+   {% endfor %}
+   </div>
+{% endif %}
+   
+{% if results_dict.definitions %}
+   <hr>
+   <h5 class="text-accent">Definitions</h5>
+   {% for item in results_dict.definitions %}
+      <div class="mb-2">
+         <span>{{ item.definition }}</span>
+         <a class="d-inline ps-2" href="{% url 'word_edit' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
+      </div>
+   {% endfor %}
+{% endif %}
+      
+      
+{% if results_dict.examples %}
+   <hr>
+   <h5 class="text-accent">Examples</h5>
+   {% for item in results_dict.examples %}
+      <div class="mb-2">
+         {% for ex in item.examples %}
+            {% if forloop.last %}
+               <span>{{ ex }}</span>
+            {% else %}
+               <div>{{ex}}</div>
+            {% endif %}
+         {% endfor %}
+         <a class="d-inline ps-2" href="{% url 'word_edit' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
+      </div>
+   {% endfor %}
+{% endif %}
+      
+{% if is_submission and not has_results %}
+   <div>No results</div>
+{% endif %}

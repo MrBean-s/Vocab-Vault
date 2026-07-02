@@ -1,0 +1,48 @@
+
+<div id="genericModalTitle" hx-swap-oob="true">
+   Search In:
+</div> 
+
+{% if search_form.non_field_errors %}
+   {% for error in search_form.non_field_errors %}
+   <div class="text-danger">{{ error }}</div>
+   {% endfor %}
+{% endif %}
+
+<form hx-get="{% url 'search' lang_id=lang_id %}"
+      hx-target="#genericModalBody"
+      hx-swap="innerHTML">
+   <div class="d-flex gap-2 align-items-center">
+      {% for checkbox in search_form.filter %}
+      <div class="checkbox-wrapper-47">
+         {{checkbox.tag}}
+         <label for="{{checkbox.id_for_label}}">{{checkbox.choice_label}}</label>
+      </div>
+      {% endfor %}
+   
+      <label for="{{search_form.limit.id_for_label}}" class="my-auto ps-4">
+         {{search_form.limit.label}}
+      </label>
+      <div class="w-10">
+         {{search_form.limit}}
+      </div>
+      {{search_form.limit.errors}}
+   
+      <div class="ms-4 form-check form-switch">
+      <label class="form-check-label" for="{{ form.newest_first.id_for_label }}">
+         Newest first
+      </label>
+      {{ search_form.newest_first }}
+      </div>
+   </div>
+
+   <div class="my-3 d-flex gap-2">
+      <div style="flex-grow: 2;">{{search_form.query}}</div>
+      <button type="submit" class="btn btn-primary w-20">Search</button>
+   </div>
+
+   <div>
+      {{search_form.query.errors}}
+   </div>
+
+</form>

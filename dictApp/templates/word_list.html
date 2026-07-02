@@ -2,240 +2,235 @@
 
 {% block additionalStyles %}
 <style>
-  .top-part { padding-top: 40px; padding-bottom: 40px;}
-  .pseudo-header {background-color: var(--color-table-header);}
-  .row-even {background-color: var(--color-table-even);}
-  .row-odd {background-color: var(--color-table-odd);}
-  .table-header { font-weight: bold; font-size: 1.4rem;}
-  .table-row, .table-cell {border: 1px solid var(--color-border);}
-  .table-row { padding: 5px 10px; min-height: 50px;}
-  .ex-number { color: var(--color-text-muted);}
-  .word-name { font-size: 1.3rem; font-style: italic; font-weight: 600;}
-  .def-text { hyphens: auto; font-size: 1.2rem;} 
-  .ex-text { font-style: italic; hyphens: auto; font-size: 1.1rem;} 
-  details.custom-marker summary { list-style: none; }
-  details.custom-marker summary::-webkit-details-marker { display: none; }
-  details.custom-marker summary {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-  }
+   .top-part { padding-top: 40px; padding-bottom: 40px;}
+   .pseudo-header {background-color: var(--color-table-header);}
+   .row-even {background-color: var(--color-table-even);}
+   .row-odd {background-color: var(--color-table-odd);}
+   .table-header { font-weight: bold; font-size: 1.4rem;}
+   .table-row, .table-cell {border: 1px solid var(--color-border);}
+   .table-row { padding: 5px 10px; min-height: 50px;}
+   .ex-number { color: var(--color-text-muted);}
+   .word-name { font-size: 1.3rem; font-style: italic; font-weight: 600;}
+   .def-text { hyphens: auto; font-size: 1.2rem;} 
+   .ex-text { font-style: italic; hyphens: auto; font-size: 1.1rem;} 
+   details.custom-marker summary { list-style: none; }
+   details.custom-marker summary::-webkit-details-marker { display: none; }
+   details.custom-marker summary {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+   }
 
-  details.custom-marker.has-example summary::before {
-    content: "▶";
-    font-size: 0.7rem;
-    color: var(--color-muted);
-  }
+   details.custom-marker.has-example summary::before {
+      content: "▶";
+      font-size: 0.7rem;
+      color: var(--color-muted);
+   }
 
-  details.custom-marker[open] summary::before {
-    content: "▼";
-  }
-  details.details-success.custom-marker summary::before { color: var(--color-success); }
-  details.details-important.custom-marker summary::before { color: var(--color-important); }
-  details.details-danger.custom-marker summary::before { color: var(--color-accent); }
- 
+   details.custom-marker[open] summary::before {
+      content: "▼";
+   }
+   details.details-success.custom-marker summary::before { color: var(--color-success); }
+   details.details-important.custom-marker summary::before { color: var(--color-important); }
+   details.details-danger.custom-marker summary::before { color: var(--color-accent); }
 
-  .circle-marker { font-size: 0.7rem;}
-  .circle-marker.success { color: var(--color-success); }
-  .circle-marker.important { color: var(--color-important); }
-  .circle-marker.danger { color: var(--color-danger); }
 
-  .custom-tooltip { --bs-tooltip-bg: var(--color-bg-body); --bs-tooltip-color: white; }
-  .select2-results__group { color: var(--color-text-primary)}
+   .circle-marker { font-size: 0.7rem;}
+   .circle-marker.success { color: var(--color-success); }
+   .circle-marker.important { color: var(--color-important); }
+   .circle-marker.danger { color: var(--color-danger); }
+
+   .custom-tooltip { --bs-tooltip-bg: var(--color-bg-body); --bs-tooltip-color: white; }
+   .select2-results__group { color: var(--color-text-primary)}
 
 </style>
 {% endblock %}
 
 {% block innerbody %}
 <div class="container" style="min-height: 100vh;">
-
-
-  <div class="top-part">
-    <form action="" method="POST">
+   <div class="top-part">
+      <form action="" method="POST">
       <div class="row">
-        <div class="col-3">
-          <label for="timeUnitSelect" class="form-label">Date added</label>
-          <div class="d-flex gap-2 align-items-center">
-            <input type="number" min="0" placeholder="#" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-              class="form-control w-20"/>
-            <select name="timeUnit" id="timeUnitSelect" class="form-select w-60">
-              <option value="" selected hidden>Choose an option...</option>
-              <option value="day">Day</option>
-              <option value="week">Week</option>
-              <option value="month">Month</option>
-              <option value="year">Year</option>
+         <div class="col-3">
+            <label for="timeUnitSelect" class="form-label">Date added</label>
+            <div class="d-flex gap-2 align-items-center">
+               <input type="number" min="0" placeholder="#" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                  class="form-control w-20"/>
+               <select name="timeUnit" id="timeUnitSelect" class="form-select w-60">
+                  <option value="" selected hidden>Choose an option...</option>
+                  <option value="day">Day</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="year">Year</option>
+               </select>
+               <div>Ago</div>
+            </div>
+         </div>
+         <div class="col-2">
+            <label for="freqSelect" class="form-label">Forgetting frequency</label>
+            <select name="forgettingFrequency" id="freqSelect" class="form-select">
+               <option value="" selected hidden>Choose an option...</option>
+               <option value="frequent">Frequent</option>
+               <option value="rare">Rare</option>
+               <option value="never">Never</option>
             </select>
-            <div>Ago</div>
-          </div>
-        </div>
-        <div class="col-2">
-          <label for="freqSelect" class="form-label">Forgetting frequency</label>
-          <select name="forgettingFrequency" id="freqSelect" class="form-select">
-            <option value="" selected hidden>Choose an option...</option>
-            <option value="frequent">Frequent</option>
-            <option value="rare">Rare</option>
-            <option value="never">Never</option>
-          </select>
-        </div>
-        <div class="col-2">
-          <label for="regionSelect" class="form-label">Specific region</label>
-          <select name="regionCode" id="regionSelect" class="form-select">
-            <option value="" selected hidden>Choose an option...</option>
-            <option value="uk">UK</option>
-            <option value="us">US</option>
-            <option value="au">AU</option>
-          </select>
-        </div>
-        <div class="col-3">
-          <label for="sourceSelect" class="form-label">Source</label>
-          <select name="" id="sourceSelect" class="form-select">
-            <option value="" selected hidden>Choose an option...</option>
-            {% for cat, source in sources_by_category.items %}
-            <optgroup label="{{cat}}">
-              {% for source_id, source_name in source %}
-                <option value="{{source_id}}">{{source_name}}</option>
-              {% endfor %}
-            </optgroup>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-2">
-          <div class="d-flex gap-2 align-items-end h-100">
-            <button type="button" class="btn btn-secondary">Clear all</button>
-            <button type="submit" class="btn btn-important">Submit</button>
-          </div>
-        </div>
+         </div>
+         <div class="col-2">
+            <label for="regionSelect" class="form-label">Specific region</label>
+            <select name="regionCode" id="regionSelect" class="form-select">
+               <option value="" selected hidden>Choose an option...</option>
+               <option value="uk">UK</option>
+               <option value="us">US</option>
+               <option value="au">AU</option>
+            </select>
+         </div>
+         <div class="col-3">
+            <label for="sourceSelect" class="form-label">Source</label>
+            <select name="" id="sourceSelect" class="form-select">
+               <option value="" selected hidden>Choose an option...</option>
+               {% for cat, source in sources_by_category.items %}
+               <optgroup label="{{cat}}">
+                  {% for source_id, source_name in source %}
+                     <option value="{{source_id}}">{{source_name}}</option>
+                  {% endfor %}
+               </optgroup>
+               {% endfor %}
+            </select>
+         </div>
+         <div class="col-2">
+            <div class="d-flex gap-2 align-items-end h-100">
+               <button type="button" class="btn btn-secondary">Clear all</button>
+               <button type="submit" class="btn btn-important">Submit</button>
+            </div>
+         </div>
       </div>
-    </form>
-    
-  </div>
-  
-  <div class="pseudo-table mb-5" id="word-list-table">
-    <div class="pseudo-header row table-row sticky-top">
+      </form>
+      
+   </div>
+   
+   <div class="pseudo-table mb-5" id="word-list-table">
+      <div class="pseudo-header row table-row sticky-top">
       <div class="col-3 d-flex align-items-center"> <div class="table-header">Word</div></div>
       <div class="col-7 d-flex justify-content-between">
-        <div class="d-flex gap-3 align-items-center">
-          <div class="table-header">Definition</div>
-          <i class="fa-regular fa-circle-question color-muted pt-1" style="font-size: 0.9rem;"
-              data-bs-toggle="tooltip" data-bs-html="true"
-              data-bs-title="Color shows forgetting frequency from quizzes.
+         <div class="d-flex gap-3 align-items-center">
+            <div class="table-header">Definition</div>
+            <i class="fa-regular fa-circle-question color-muted pt-1" style="font-size: 0.9rem;"
+               data-bs-toggle="tooltip" data-bs-html="true"
+               data-bs-title="Color shows forgetting frequency from quizzes.
                   <br><br>Click rows with triangles for more info.">
-          </i>
-        </div>
-      </div>
-
-      <div class="col-2 d-flex justify-content-center pe-4"> <div class="table-header">Actions</div></div>
-    </div>
-    {% for word in page_obj %}
-    <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%}">
-      <div class="word-column col-3 d-flex align-items-center gap-3" data-word-id="{{word.id}}">
-        <i class="fa-regular fa-clock color-muted"></i>
-        <div class="word-name">{{word.name}}</div>
-      </div>
-      <div class="col-7">
-        <div class="def-column">
-          {% for def in word.definitions.all %}
-          <div class="def-row my-2 d-flex justify-content-between" data-def-id="{{def_id}}"
-            data-word-id="{{word_id}}">
-            <div>
-              <div class="d-flex gap-2">
-                {% if def.origin or def.examples.count > 0 %}
-                  <details id="details_{{def.id}}" class="custom-marker has-example
-                    {% if def.forgetting_frequency %}details-{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %}">
-                    <summary>
-                      {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
-                      <div class="def-text w-95">{{ def.description }}</div>
-                    </summary>
-                    <div class="details-content p-2 ps-5 pe-0">
-                      {%if def.origin%}<div>Origin: {{def.origin}}</div>{%endif%}
-                      <div class="my-2">
-                        {% for ex in def.examples.all %}
-                          <div class="d-flex">
-                            <div class="ex-number pe-2">
-                              {{forloop.counter}}.
-                            </div>
-                            <div class="ex-text" lang="es"
-                              {% if ex.explanation %}data-bs-toggle="tooltip" data-bs-placement="right"
-                              data-bs-custom-class="custom-tooltip"
-                              data-bs-title="{{ex.explanation}}"{% endif %}>
-                              {{ex.description}}
-                            </div>
-                          </div>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  </details>
-                {% else %}
-                  <div class="d-flex circle-marker align-items-center
-                    {% if def.forgetting_frequency %}{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %} pe-1">
-                    ●
-                  </div>
-                  {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
-                  <div class="ps-1 def-text">
-                    {{def.description}}
-                  </div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="col-2 d-flex align-items-center justify-content-center">
-        <div class="actions-column d-flex gap-4 pe-3">
-          <div class="check-icon">
-            <i class="fa-solid fa-clock position-relative color-muted fs-3">
-              <i class="fa-solid fa-square-check position-absolute start-50 fs-5"
-                style="bottom: -1px;"></i>
             </i>
-          </div>
-          <a href="{% url 'word_edit' lang_id=lang_id word_id=word.id %}">
-            <i class="fa-solid fa-arrow-right-to-bracket fs-3 color-primary"></i>
-          </a>
-        </div>
+         </div>
       </div>
-    </div>
-    {% endfor %}
-  </div>
+      
+      <div class="col-2 d-flex justify-content-center pe-4"> <div class="table-header">Actions</div></div>
+      </div>
+      {% for word in page_obj %}
+         <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%}">
+            <div class="word-column col-3 d-flex align-items-center gap-3" data-word-id="{{word.id}}">
+               <i class="fa-regular fa-clock color-muted"></i>
+               <div class="word-name">{{word.name}}</div>
+            </div>
+            <div class="col-7">
+               <div class="def-column">
+                  {% for def in word.definitions.all %}
+                     <div class="def-row my-2 d-flex" data-def-id="{{def_id}}"
+                     data-word-id="{{word_id}}">
+                        <div class="d-flex gap-2">
+                           {% if def.origin or def.examples.count > 0 %}
+                              <details id="details_{{def.id}}" class="custom-marker has-example
+                                 {% if def.forgetting_frequency %}details-{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %}">
+                                 <summary>
+                                    {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
+                                    <div class="def-text w-95">{{ def.description }}</div>
+                                 </summary>
+                                 <div class="details-content p-2 ps-5 pe-0">
+                                    {%if def.origin%}<div>Origin: {{def.origin}}</div>{%endif%}
+                                    <div class="my-2">
+                                    {% for ex in def.examples.all %}
+                                       <div class="d-flex">
+                                          <div class="ex-number pe-2">
+                                          {{forloop.counter}}.
+                                          </div>
+                                          <div class="ex-text" lang="es"
+                                             {% if ex.explanation %}data-bs-toggle="tooltip" data-bs-placement="right"
+                                             data-bs-custom-class="custom-tooltip"
+                                             data-bs-title="{{ex.explanation}}"{% endif %}>
+                                             {{ex.description}}
+                                          </div>
+                                       </div>
+                                    {% endfor %}
+                                    </div>
+                                 </div>
+                              </details>
+                           {% else %}
+                              <div class="d-flex circle-marker align-items-center
+                                 {% if def.forgetting_frequency %}{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %} pe-1">
+                                 ●
+                              </div>
+                              {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
+                              <div class="ps-1 def-text"> {{def.description}} </div>
+                           {% endif %}
+                        </div>
+                     </div>
+                  {% endfor %}
+               </div>
+            </div>
+
+            <div class="col-2 d-flex align-items-center justify-content-center">
+               <div class="actions-column d-flex gap-4 pe-3">
+                  <div class="check-icon">
+                     <i class="fa-solid fa-clock position-relative color-muted fs-3">
+                        <i class="fa-solid fa-square-check position-absolute start-50 fs-5"
+                           style="bottom: -1px;"></i>
+                     </i>
+                  </div>
+                  <a href="{% url 'word_edit' lang_id=lang_id word_id=word.id %}">
+                     <i class="fa-solid fa-arrow-right-to-bracket fs-3 color-primary"></i>
+                  </a>
+               </div>
+            </div>
+         </div>
+      {% endfor %}
+   </div>
 </div>
 {% endblock innerbody %}
 
 {% block additionalScripts %}
 <script>
-const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+   const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+   const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
-let toggledDescription = null;
-document.getElementById('word-list-table').addEventListener('click', (e) => {
-    const detailsItem = e.target.closest('details');
-    if (detailsItem) {
+   let toggledDescription = null;
+   document.getElementById('word-list-table').addEventListener('click', (e) => {
+      const detailsItem = e.target.closest('details');
+      if (detailsItem) {
       if (toggledDescription && toggledDescription != detailsItem) {
-        toggledDescription.open = false
+         toggledDescription.open = false
       }
       toggledDescription = detailsItem;
-    }
-});
+      }
+   });
 
-const detailItems = document.querySelectorAll('details');
-detailItems.forEach((el) => {
-  el.addEventListener('mouseleave', () => el.open = false);
-});
+   const detailItems = document.querySelectorAll('details');
+   detailItems.forEach((el) => {
+      el.addEventListener('mouseleave', () => el.open = false);
+   });
 
 </script>
 
 <script>
-  $(document).ready(function() {
-    $('#sourceSelect').select2({
+   $(document).ready(function() {
+      $('#sourceSelect').select2({
       theme: 'bootstrap-5',
       placeholder: 'Choose an option...',
       allowClear: true
-    });
-    $('#regionSelect, #freqSelect, #timeUnitSelect').select2({
+      });
+      $('#regionSelect, #freqSelect, #timeUnitSelect').select2({
       theme: 'bootstrap-5',
       placeholder: 'Choose an option...',
       minimumResultsForSearch: Infinity,
       allowClear: true
-    });
-  });
+      });
+   });
 </script>
 {% endblock %}
