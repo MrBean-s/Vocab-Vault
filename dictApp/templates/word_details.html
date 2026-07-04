@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title%}Details{% endblock %}
+
+{% block additionalStyles %}
+<style>
+   .title { font-size: 2.5rem; font-weight: bold; }
+   .def-description { font-size: 1.4rem }
+   .def-origin { font-size: 1.2rem; }
+   .ex-description {font-size: 1.2rem; font-style: italic; }
+   .ex-explanation { font-size: 1.2rem }
+   .p-speech { color: var(--color-text-muted); font-weight: bold;}
+</style>
+{% endblock additionalStyles %}
+
+{% block innerbody %}
+   <div class="container">
+      <div class="top-bar row py-5">
+         <div class="top-bar-left col-auto d-flex align-items-center gap-5">
+            <div class="title">{{word.name}}</div>
+            <div id="readAloudToggle" class="ms-5 d-flex gap-3 align-items-center">
+               <i class="fa-solid fa-book-open position-relative fs-1">
+                  <i class="fa-solid fa-circle-play position-absolute fs-5 bottom-0" style="left: 75%; z-index: 2;"></i>
+               </i>
+               <div>Read aloud</div>
+            </div>
+            <a href="">Ngram</a>
+         </div>
+         <div class="top-bar-right col my-auto">
+            <div class="d-flex justify-content-end">
+               <button class="btn btn-secondary" style="width: 120px;">Edit</button>
+            </div>
+         </div>
+      </div>
+
+      {% for def in word.definitions.all %}
+      <div class="def-container" data-def-id="{{def.id}}">
+
+         <div class="tag">US</div>
+         <div class="tag">UK</div>
+         <div class="tag">AU</div>
+         {% if def.forgetting_frequency %}
+            <div class="freq-text d-inline ps-3 ">
+               {% with ff=def.forgetting_frequency %}
+                  {% if ff == 'FRQ' %} Frequently {% elif ff == 'RAR' %} Rarely {% elif ff == 'NVR' %} Never {% endif %}
+                  forgotten
+               {% endwith %}
+            </div>
+         {% endif %}
+         <img src="https://picsum.photos/300/300" alt="" style="float: right;" class="ms-5">
+         <div class="my-4 def-description">
+            {{def.description}}
+         </div>
+         <div class="mb-4 def-origin text-secondary">
+            {{def.origin}}
+         </div>
+         <div class="ex-container ps-4 d-flex flex-column gap-3">
+            {% for ex in def.examples.all %}
+               <div class="ex-wrapper" data-ex-id="{{ex.id}}">
+                  {% if ex.part_of_speech %}
+                     <div class="p-speech"> {{ex.part_of_speech.name}}</div>
+                  {% endif %}
+                  
+                  <span class="ex-description">{{ex.description}}</span>
+                  
+                  {% if ex.explanation %}
+                     <div class="ex-explanation d-inline ps-3 text-secondary">({{ex.explanation}})</div>
+                  {% endif %}
+
+                  <i class="fa-solid fa-clapperboard d-inline ps-3 color-muted" title="Add Source"
+                     data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip"
+                     data-bs-title="Add a citation"></i>
+               </div>
+               
+            {% endfor %}
+         </div>
+         <div style="clear: both;"></div>
+      </div>
+      {% endfor %}
+   </div>
+{% endblock innerbody %}
+
+{% block additionalScripts %}
+<script>
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+</script>
+{% endblock additionalScripts %}

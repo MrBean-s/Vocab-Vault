@@ -2,7 +2,7 @@ import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from .forms import *
-from .models import Language, Image, Word, Source, Definition, Example
+from .models import *
 from django.contrib import messages
 from django.db.models import ProtectedError
 from django.core.paginator import Paginator
@@ -25,22 +25,35 @@ def start_screen(request):
 
 def language_form(request, lang_id=None):
 
-   instance = get_object_or_404(Language, pk=lang_id) if lang_id else None
+   language = get_object_or_404(Language, pk=lang_id) if lang_id else None
+   
 
    if request.method == 'POST':
-      print(f"lang_id : {lang_id}")
-      form = LanguageForm(request.POST, request.FILES, instance=instance)
-      if form.is_valid():			
-         form.save()
+      lang_form = LanguageForm(request.POST, request.FILES, instance=language)
+      formset = CountryFormSet(request.POST, prefix='countries')
+      
+      if lang_form.is_valid() and formset.is_valid():
+         for country_form in formset:
+            if country_form.cleaned_data and not country_form.cleaned_data.get('DELETE', False):
+               if country_form.has_changed():
+                  country = country_form.save()
+                  country.languages.add(language)
 
+         lang_form.save()
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': '/languages/'})
          return redirect('languages')
    else:
-      form = LanguageForm(instance=instance)
+      lang_form = LanguageForm(instance=language)
+      formset = CountryFormSet(prefix='countries', queryset=Country.objects.none())
+
    return render(request, "forms/_language_form.html", 
       {
-         "form": form,
-         "is_edit" : instance is not None,
-         'edit_lang_id': instance.id if instance else 0
+         "form": lang_form,
+         "is_edit" : language is not None,
+         'edit_lang_id': language.id if language else 0,
+         'formset': formset
       })
 
 def languages(request):
@@ -134,7 +147,7 @@ def word(request, lang_id, word_id=None):
             if def_form.cleaned_data.get('DELETE', False) and def_form.instance.pk:
                def_form.instance.delete()
    
-         return redirect(request.path)
+         return redirect('word_details', lang_id=lang_id, word_id=word.id) 
          # If any form is invalid, fall through to render the form with errors
          # (word_form, def_formset, and example_formsets are already bound)
    
@@ -150,7 +163,7 @@ def word(request, lang_id, word_id=None):
 
          example_formsets.append(ex_fs)
    
-   return render(request, 'word.html', {
+   return render(request, 'word_add_edit.html', {
       'word_form': word_form,
       'def_formset': def_formset,
       'example_formsets': example_formsets,
@@ -306,5 +319,11 @@ def search(request, lang_id):
    })
    
    
+def word_details(request, lang_id, word_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   word = get_object_or_404(Word, pk=word_id)
 
-   
+   return render(request, 'word_details.html', {
+      'lang_id': lang_id,
+      'word': word
+   })

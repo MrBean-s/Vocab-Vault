@@ -1,11 +1,11 @@
 from django import forms
-from .models import Language, Image, Word, Definition, Example
-from django.forms import inlineformset_factory
+from .models import Language, Image, Word, Definition, Example, Country
+from django.forms import inlineformset_factory, modelformset_factory
 from django.forms.models import BaseInlineFormSet
 
 class LanguageForm(forms.ModelForm):
    image_file = forms.ImageField(
-      required=True,
+      required=False,
       widget=forms.FileInput(attrs={'class': 'form-control'})
    )
 
@@ -21,21 +21,70 @@ class LanguageForm(forms.ModelForm):
    def save(self, commit=True):
       language = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
-
+      
       if image_file:
          old_img = language.image
-      if language.pk and old_img:
-         storage = old_img.file.storage
-         if storage.exists(old_img.file.name):
-            storage.delete(old_img.file.name)
-         old_img.delete()
 
-      new_img = Image.objects.create(file=image_file)
-      language.image = new_img
+         if language.pk and old_img:
+            storage = old_img.file.storage
+            if storage.exists(old_img.file.name):
+               storage.delete(old_img.file.name)
+            old_img.delete()
+
+         new_img = Image.objects.create(file=image_file)
+         language.image = new_img
 
       language.save() #can't use if commmit = False cause that'd leave an orphan img
 
       return language
+
+class CountryForm(forms.ModelForm):
+   name = forms.CharField(
+      required=False,
+      widget=forms.TextInput(attrs={
+         'class': 'form-control',
+         'placeholder': 'Country name',
+         'manual-required': 'true'
+      })
+   )
+   iso_code = forms.CharField(
+      required=False,
+      widget=forms.TextInput(attrs={
+         'class': 'form-control',
+         'placeholder': 'e.g. US, UK, AU',
+         'manual-required': 'true'
+      })
+   )
+   
+   class Meta:
+      model = Country
+      fields = ['name', 'iso_code']
+      labels = { 'name': 'Country name'}
+   
+   def clean(self):
+      cleaned_data = super().clean()
+      if cleaned_data.get('DELETE'):
+         return cleaned_data
+      name = cleaned_data.get('name')
+      iso_code = cleaned_data.get('iso_code')
+
+      if Country.objects.filter(name=name).exists():
+         self.add_error('name', "This Country Name already exists.")
+      if Country.objects.filter(iso_code=iso_code).exists():
+         self.add_error('iso_code', "This ISO code already exists.")
+      if name and iso_code:
+         if Country.objects.filter(name=name, iso_code=iso_code).exists():
+            raise forms.ValidationError("This country with this ISO code already exists.")
+
+      return cleaned_data
+
+CountryFormSet = modelformset_factory(
+   Country,
+   form=CountryForm,
+   fields=['name', 'iso_code'],
+   extra=1,
+   can_delete=True
+)
 
 class WordForm(forms.ModelForm):
    class Meta:

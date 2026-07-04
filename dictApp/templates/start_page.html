@@ -87,8 +87,12 @@
                         style="height: 100%;">
                      
                         <a href="{% url 'word_list' lan.id %}" class="wireframe">
+                           {% if lan.image.file %}
                            <img src="{{ lan.image.file.url }}" alt="{{ lan.name }}"
                               width="300" height="150">
+                           {% else %}
+                           <div style="height: 150px;"></div>
+                           {% endif %}
                         </a>
                         <a href="{% url 'word_list' lan.id %}" class="wireframe
                            text-light text-decoration-none m-0 p-0"

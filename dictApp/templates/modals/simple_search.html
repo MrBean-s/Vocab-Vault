@@ -8,7 +8,7 @@
    <div class="word-results">
    {% for item in results_dict.words %}
       <div class="">
-         <a href="{% url 'word_edit' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
+         <a href="{% url 'word_details' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
       </div>
    {% endfor %}
    </div>
@@ -20,7 +20,7 @@
    {% for item in results_dict.definitions %}
       <div class="mb-2">
          <span>{{ item.definition }}</span>
-         <a class="d-inline ps-2" href="{% url 'word_edit' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
+         <a class="d-inline ps-2" href="{% url 'word_details' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
       </div>
    {% endfor %}
 {% endif %}
@@ -38,7 +38,7 @@
                <div>{{ex}}</div>
             {% endif %}
          {% endfor %}
-         <a class="d-inline ps-2" href="{% url 'word_edit' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
+         <a class="d-inline ps-2" href="{% url 'word_details' lang_id=lang_id word_id=item.word_id %}">{{ item.word }}</a>
       </div>
    {% endfor %}
 {% endif %}
