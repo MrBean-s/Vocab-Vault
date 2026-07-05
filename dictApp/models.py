@@ -140,6 +140,7 @@ class Country(models.Model):
    name = models.CharField(max_length=60)
    iso_code = models.CharField(max_length=5, unique=True)
    languages = models.ManyToManyField(Language, through='CountryLanguage', related_name='countries')
+   added_manually = models.BooleanField(default=False)
 
    def __str__(self):
       return self.name

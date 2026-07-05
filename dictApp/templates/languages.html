@@ -81,33 +81,11 @@
 
 {% block additionalScripts %}
 <script>
-   const addCountryRow = function () {
-      const container = document.getElementById('countries-container');
-      const totalFormsInput = container.querySelector('#id_countries-TOTAL_FORMS');
-      const totalForms = parseInt(totalFormsInput.value);
-      const newRow = container.querySelector('.country-row[data-is-prototype="true"]').cloneNode(true);
-
-      newRow.dataset.isPrototype = "false";
-      newRow.classList.remove('d-hidden');
-
-      newRow.innerHTML = newRow.innerHTML.replace(/countries-0-/g, `countries-${totalForms}-`);
-      newRow.querySelector('input[id$="DELETE"]').checked = false;
-      newRow.querySelectorAll('[manual-required]')
-         .forEach((el) => el.setAttribute('required', 'required'));
-
-      container.append(newRow);
-      totalFormsInput.value = totalForms + 1;
-   };
-
-   const removeCountryRow = function (element) {
-      const row = element.closest('.country-row');
-      row.closest('.country-row-wrapper').classList.add('d-hidden');
-      row.querySelector('input[id$="DELETE"]').checked = true;
-      row.querySelectorAll('[manual-required]')
-         .forEach((el) => {
-            el.removeAttribute('required');
-            el.value = "";
-         })
-   };
+   const reloadSelect2Items = function() {
+      $('#id_countries').select2({
+         theme: 'bootstrap-5',
+         placeholder: 'Choose an option...',
+      });
+   }
 </script>
 {% endblock %}

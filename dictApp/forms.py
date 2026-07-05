@@ -1,5 +1,5 @@
 from django import forms
-from .models import Language, Image, Word, Definition, Example, Country
+from .models import *
 from django.forms import inlineformset_factory, modelformset_factory
 from django.forms.models import BaseInlineFormSet
 
@@ -9,14 +9,33 @@ class LanguageForm(forms.ModelForm):
       widget=forms.FileInput(attrs={'class': 'form-control'})
    )
 
+   countries = forms.ModelMultipleChoiceField(
+      queryset=Country.objects.all().order_by('name'),
+      widget=forms.SelectMultiple(attrs={'class': 'select2'}),
+      required=False
+   )
+
    class Meta:
       model = Language
       fields = ['name']
       widgets = {
          'name': forms.TextInput(attrs={'class': 'form-control'}),
-         'image_file': forms.FileInput(attrs={'class': 'form-control'})
       }
 
+   def clean(self):
+      cleaned_data = super().clean()
+      countries = cleaned_data.get('countries')
+
+      if self.instance.pk:
+         existing_ids = set(
+            CountryLanguage.objects.filter(language=self.instance)
+            .values_list('country_id', flat=True)
+         )
+         submitted_ids = {country.id for country in countries}
+         self.new_country_ids = submitted_ids - existing_ids
+         self.remove_country_ids = existing_ids - submitted_ids
+
+      return cleaned_data
 
    def save(self, commit=True):
       language = super().save(commit=False)
@@ -35,6 +54,16 @@ class LanguageForm(forms.ModelForm):
          language.image = new_img
 
       language.save() #can't use if commmit = False cause that'd leave an orphan img
+
+      if hasattr(self, 'new_country_ids'):
+         for cty_id in self.new_country_ids:
+            CountryLanguage.objects.create(language_id=language.id, country_id=cty_id)
+      
+      if hasattr(self, 'remove_country_ids') and self.remove_country_ids:
+         CountryLanguage.objects.filter(
+            language_id=language.id,
+            country_id__in=self.remove_country_ids
+         ).delete()
 
       return language
 
@@ -78,13 +107,6 @@ class CountryForm(forms.ModelForm):
 
       return cleaned_data
 
-CountryFormSet = modelformset_factory(
-   Country,
-   form=CountryForm,
-   fields=['name', 'iso_code'],
-   extra=1,
-   can_delete=True
-)
 
 class WordForm(forms.ModelForm):
    class Meta:

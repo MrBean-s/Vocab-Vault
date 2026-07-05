@@ -69,6 +69,7 @@
 
          .card { background-color: var(--color-bg-card); border: 1px solid var(--color-bg-input);}
          .color-muted { color: var(--color-btn-muted) !important }
+         .color-danger { color: var(--color-danger)}
          .color-primary { color: var(--color-bg-primary) }
          .tag { display: inline-block; background-color: var(--color-bg-info); border-radius: 5px; padding: 2px 10px;  }
          .tag-muted { background-color: var(--color-bg-input);}
@@ -87,13 +88,15 @@
          .select2-results__option--highlighted.select2-results__option--selectable { 
          background-color: var(--color-bg-primary) !important;
          }
+         .select2-selection { background-color: var(--color-bg-input) !important; border: 0 !important}
+         
          .select2-results__group { color: var(--color-accent) !important}
          .errorlist li { color: var(--color-danger) !important }
 
          .d-hidden { visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
             left: -9999px !important; top: -9999px !important;}
       </style>
-   {% endblock styles%}
+   {% endblock styles %}
    {% block sidebarStyle %}
       <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
    {% endblock %}

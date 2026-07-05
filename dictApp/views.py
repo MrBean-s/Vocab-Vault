@@ -27,33 +27,24 @@ def language_form(request, lang_id=None):
 
    language = get_object_or_404(Language, pk=lang_id) if lang_id else None
    
-
    if request.method == 'POST':
       lang_form = LanguageForm(request.POST, request.FILES, instance=language)
-      formset = CountryFormSet(request.POST, prefix='countries')
       
-      if lang_form.is_valid() and formset.is_valid():
-         for country_form in formset:
-            if country_form.cleaned_data and not country_form.cleaned_data.get('DELETE', False):
-               if country_form.has_changed():
-                  country = country_form.save()
-                  country.languages.add(language)
-
+      if lang_form.is_valid():
          lang_form.save()
 
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': '/languages/'})
          return redirect('languages')
    else:
-      lang_form = LanguageForm(instance=language)
-      formset = CountryFormSet(prefix='countries', queryset=Country.objects.none())
+      countries = language.countries.all().order_by('name') if language else Country.objects.none()
+      lang_form = LanguageForm(instance=language, initial={'countries': countries})
 
    return render(request, "forms/_language_form.html", 
       {
          "form": lang_form,
          "is_edit" : language is not None,
          'edit_lang_id': language.id if language else 0,
-         'formset': formset
       })
 
 def languages(request):
@@ -327,3 +318,30 @@ def word_details(request, lang_id, word_id):
       'lang_id': lang_id,
       'word': word
    })
+
+def countries(request):
+   if request.method == "POST":
+      form = CountryForm(request.POST)
+      if form.is_valid():
+         country = form.save(commit=False)
+         country.added_manually = True
+         country.save()
+         return redirect('countries')
+   else:   
+      form = CountryForm(instance=None)
+
+   countries = Country.objects.all().order_by('name')
+
+   return render(request, 'countries.html', {
+      'form': form,
+      'countries': countries
+   })
+
+def delete_country(request, cty_id):
+   instance = get_object_or_404(Country, pk=cty_id)
+
+   if request.method == 'POST':
+      instance.delete()      
+      messages.success(request, "Country deleted.")
+
+      return redirect('countries')

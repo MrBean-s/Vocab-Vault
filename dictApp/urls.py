@@ -15,5 +15,7 @@ urlpatterns = [
    path("lang/<int:lang_id>/word/<int:word_id>/", views.word_details, name="word_details"),
    path("lang/<int:lang_id>/words/", views.word_list, name="word_list"),
    path("lang/<int:lang_id>/import/", views.import_words_from_old_json, name="import"),
-   path("lang/<int:lang_id>/search/", views.search, name="search")
+   path("lang/<int:lang_id>/search/", views.search, name="search"),
+   path("countries/", views.countries, name="countries"),
+   path("country/<int:cty_id>/delete/", views.delete_country, name="country_delete"),
 ]
