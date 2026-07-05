@@ -35,7 +35,7 @@ class Definition(models.Model):
       choices = ForgettingFrequency.choices,
       null=True,
       blank=True
-)  
+   )  
 
 
 class Example(models.Model):
@@ -139,7 +139,20 @@ class PartOfSpeech(models.Model):
 class Country(models.Model):
    name = models.CharField(max_length=60)
    iso_code = models.CharField(max_length=5, unique=True)
-   languages = models.ManyToManyField(Language, related_name='countries')
+   languages = models.ManyToManyField(Language, through='CountryLanguage', related_name='countries')
+   added_manually = models.BooleanField(default=False)
 
    def __str__(self):
       return self.name
+   
+   class Meta:
+      constraints = [
+         models.UniqueConstraint(fields=['name', 'iso_code'], name='unique_name_iso')
+      ]
+
+class CountryLanguage(models.Model):
+   country = models.ForeignKey(Country, on_delete=models.CASCADE)
+   language = models.ForeignKey(Language, on_delete=models.CASCADE)
+
+   class Meta:
+      unique_together = ('country', 'language')

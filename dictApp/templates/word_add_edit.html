@@ -9,53 +9,20 @@
       .resize-none { 	resize: none; }
       .header-bar { background-color: #0f1420; padding: 30px 150px; height: 100px; }
       .def-row { background-color: #161b2a; border: 1px solid var(--color-bg-input); }
-      .d-hidden { visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
-          left: -9999px !important; top: -9999px !important;}
       .d-hidden-only { visibility: hidden !important; }
       .banner-input { font-size: 2rem; padding: 0; padding-left: 15px;}
       .banner-input::placeholder { color: var(--color-text-primary) !important }
       .img-input { width: 320px; border-radius: 0 0 10px 10px; }
-      .view-mode .underline-important {text-decoration: underline; text-decoration-color: var(--color-important); 
-         text-underline-offset: 10px; color: var(--color-text-primary)}
       .form-control-plaintext { caret-color: transparent; }
       textarea[readonly]::placeholder,
       input[readonly]::placeholder {
           color: transparent !important;
       }
-      .view-mode input[readonly],
-      .view-mode textarea[readonly] { background: transparent; border: none; caret-color: transparent; resize: none; }
-
-      .view-mode .edit-mode-show {
-         visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
-          left: -9999px !important; top: -9999px !important;
-      }
-
-      .edit-mode .view-mode-show {
-         visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
-          left: -9999px !important; top: -9999px !important;
-      }
-      .view-mode .field-important { font-weight: 700; }
-      .view-mode .field-title-accent { font-size: 1.2rem; font-weight: 700; color: var(--color-text-primary);}
-      .view-mode .field-title { font-size: 1.2rem; font-weight: 700; color: var(--color-title);}
-      .view-mode .field-description { font-size: 1.2rem; color: var(--color-text-secondary) }
-      .view-mode .field-muted { font-size: 1.2rem; font-weight: 700; color: var(--color-text-muted) }
-      .view-mode .field-quote {
-         font-style: italic;
-         font-size: 1.2rem;
-         border-bottom: 1px solid var(--color-bg-input) !important;
-         color: var(--color-text-secondary)
-      }
-
-      .view-mode .field-explanation { color: var(--color-text-secondary); border-bottom: 1px solid var(--color-bg-input) !important; }
       .icon-muted { color: var(--color-btn-muted); }
-
-      .edit-mode .tag-muted { background-color: var(--color-bg-info) !important; }
+      .tag-muted { background-color: var(--color-bg-info) !important; }
       .explanation-arrow { position: absolute; bottom: 10px; left: -21px;}
       .explanation-arrow i { color: var(--color-success); }
-      .view-mode .w-75-e-100 { width: 75% !important; }
-      .edit-mode .w-75-e-100 { width: 100% !important; }
       .image-placeholder { display: flex; justify-content: center; align-items: center; width: 320px; height: 180px; background: #212838; border-radius: 10px 10px 0 0; }
-      .view-mode .image-placeholder { border-radius: 10px; }
 
    </style>
 {% endblock additionalStyles %}
@@ -68,20 +35,15 @@
 {% if has_word %}
    {% url 'word_edit' word_id as target_url %}
 {% else %}
-   {% url 'word' as target_url %}
+   {% url 'word_details' as target_url %}
 {% endif %}
 
 <form action="{{target_url}}" method="post" enctype="multipart/form-data" id="word-form"
-   class="{% if has_word %}view-mode{% else %}edit-mode{% endif %}">
+   class="">
    {% csrf_token %}
    <div id="failing" class="d-flex justify-content-between sticky-top blue-line header-bar">
-      <div class="wireframe d-flex gap-5 align-items-center w-75">
-         <div class="wireframe">
-            {{word_form.name}}
-         </div>
-         <div style="text-decoration: underline;">Ngram</div>
-         <div> Related words: <div style="text-decoration: underline;">Brooding</div>
-         </div>
+      <div class="wireframe d-flex gap-5 align-items-center w-35">
+         {{word_form.name}}
       </div>
       <div class="wireframe">
          <div class="d-flex justify-content-end align-items-center gap-3 h-100">
@@ -91,7 +53,7 @@
       </div>
    </div>
    <div style="padding: 30px 150px">
-      <div class="position-relative mb-3 edit-mode-show">
+      <div class="position-relative mb-3 ">
          <a class="position-absolute add-definition-item" style="left: -35px"
             onclick="addDefinition(); return false;">
             <i class="fa-solid fa-circle-plus fs-5"></i>
@@ -132,7 +94,7 @@
                         </div>
                         
                         <a class="position-absolute
-                           remove-definition-item edit-mode-show"
+                           remove-definition-item "
                            style="left: -32px;"
                            href="#" data-def-index="{{ def_index }}" 
                            onclick="removeDefinition(this); return false;">
@@ -148,7 +110,7 @@
                      {{ def_form.description.errors }}
                   </div>
          
-                  <div class="mb-3 edit-mode-show">
+                  <div class="mb-3 ">
                      <label for="def_form.origin.id_for_label" class="form-label field-title">
                         {{ def_form.origin.label }}
                      </label>
@@ -157,7 +119,7 @@
                   </div>
 
                   <div class="d-flex position-relative">
-                     <div class="position-absolute edit-mode-show" style="left: -35px">
+                     <div class="position-absolute " style="left: -35px">
                         <a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
                         onclick="addExample(this, 'true'); return false;">
                            <i class="fa-solid fa-circle-plus fs-5"></i>
@@ -175,7 +137,7 @@
                      <div class="image-placeholder">
                         <i class="fa-regular fa-image" style="font-size: 80px;"></i>
                      </div>
-                     <div class="edit-mode-show wireframe h-15 d-flex justify-content-center align-items-center gap-3">
+                     <div class=" wireframe h-15 d-flex justify-content-center align-items-center gap-3">
                         {{ def_form.image_file }}
                         {{ def_form.image_file.errors }}
                      </div>
@@ -185,7 +147,7 @@
 
 
 
-               <div class="pt-3 view-mode-show" style="grid-column: 1 / -1;"></div>
+               
                <div class="d-flex" style="grid-column: 1 / -1;">
                   <!-- Examples for this definition -->
                   {% with ex_fs=example_formsets|get_at:def_index %}
@@ -208,17 +170,17 @@
 
                               <div class="wireframe w-100 pb-4 d-flex">
                                  <div class="px-5 w-55">
-                                    <div class="d-flex justify-content-{%if has_word%}between{%else%}end{%endif%}">
+                                    <div class="d-flex justify-content-end">
                                        <div class="d-flex gap-2">
                                           <div class="tag tag-muted">Idiom</div>
                                           <div class="tag tag-muted">Verb</div>
                                        </div>
                                     </div>
-                                    <div class="pt-2 edit-mode-show"></div>
+                                    <div class="pt-2 "></div>
                                     <div class="d-flex align-items-center gap-3">
                                        <a href="#" data-def-index="{{def_index}}"
                                           data-ex-index="{{ forloop.counter0 }}" 
-                                          class="remove-example-item edit-mode-show"
+                                          class="remove-example-item "
                                           onclick="removeExample(this); return false;">
                                           <i class="fa-solid fa-trash"></i>
                                        </a>
@@ -238,15 +200,9 @@
                                        <div class="tag">Idiom</div>
                                        <div class="tag">Verb</div>
                                     </div>
-                                    <div class="pt-2 d-flex">
-                                       <div class="w-75-e-100">
-                                          {{ ex_form.explanation }}
-                                          {{ ex_form.explanation.errors }}
-                                       </div>
-                                       <div class="w-25 d-flex gap-3 justify-content-end align-items-center view-mode-show">
-                                          <i class="fa-solid fa-file-audio fs-4 icon-muted"></i>
-                                          <i class="fa-solid fa-clapperboard fs-4 icon-muted"></i>
-                                       </div>
+                                    <div class="pt-2 d-flex w-100">
+                                       {{ ex_form.explanation }}
+                                       {{ ex_form.explanation.errors }}
                                     </div>
                                  </div>
                               </div>
@@ -360,13 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 {% if not has_word %}
-   addDefinition();
-{% else %}
-   document.querySelectorAll('input:not([type="hidden"]), textarea').forEach(el => {
-      el.readOnly = true;
-      el.classList.remove('form-control');
-      el.classList.add('form-control-plaintext');
-   });
+   addDefinition();   
 {% endif %}
    
 </script>

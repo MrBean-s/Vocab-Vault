@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import Language, Word, Definition, Example, Source, QuizAttempt, Deck, Image, PartOfSpeech, Country
-
+from .models import *
 # Register your models here.
 admin.site.register(Language)
 admin.site.register(Word)
@@ -12,3 +11,4 @@ admin.site.register(Deck)
 admin.site.register(Image)
 admin.site.register(PartOfSpeech)
 admin.site.register(Country)
+admin.site.register(CountryLanguage)

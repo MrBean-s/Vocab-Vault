@@ -21,15 +21,20 @@
       gap: 1rem;
    }
 
-   details.custom-marker.has-example summary::before {
+   details.custom-marker.has-example:not(.detail-marker-hidden) summary::before {
       content: "▶";
       font-size: 0.7rem;
       color: var(--color-muted);
    }
 
-   details.custom-marker[open] summary::before {
+   details.custom-marker[open]:not(.detail-marker-hidden) summary::before {
       content: "▼";
    }
+
+   details.custom-marker[open].detail-marker-hidden summary::before {
+      content: " ";
+   }
+
    details.details-success.custom-marker summary::before { color: var(--color-success); }
    details.details-important.custom-marker summary::before { color: var(--color-important); }
    details.details-danger.custom-marker summary::before { color: var(--color-accent); }
@@ -120,6 +125,16 @@
                   <br><br>Click rows with triangles for more info.">
             </i>
          </div>
+         <div class="d-flex gap-2">
+            <button class="btn btn-transparent" onclick="toggleIndicator()">
+               <span>Indicator</span>
+               <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn btn-transparent" onclick="toggleCollapse()">
+               <span>Collapse</span>
+               <i class="fa-solid fa-angles-down"></i>
+            </button>
+         </div>
       </div>
       
       <div class="col-2 d-flex justify-content-center pe-4"> <div class="table-header">Actions</div></div>
@@ -184,7 +199,7 @@
                            style="bottom: -1px;"></i>
                      </i>
                   </div>
-                  <a href="{% url 'word_edit' lang_id=lang_id word_id=word.id %}">
+                  <a href="{% url 'word_details' lang_id=lang_id word_id=word.id %}">
                      <i class="fa-solid fa-arrow-right-to-bracket fs-3 color-primary"></i>
                   </a>
                </div>
@@ -199,6 +214,8 @@
 <script>
    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+   let globalCollapse = false;
+   let globalIndicator = false;
 
    let toggledDescription = null;
    document.getElementById('word-list-table').addEventListener('click', (e) => {
@@ -211,25 +228,41 @@
       }
    });
 
-   const detailItems = document.querySelectorAll('details');
-   detailItems.forEach((el) => {
-      el.addEventListener('mouseleave', () => el.open = false);
-   });
+   const toggleCollapse = function() {
+      document.getElementById('word-list-table').querySelectorAll('details')
+         .forEach((el) => {el.open = !globalCollapse;});
 
-</script>
+      globalCollapse = !globalCollapse;
+   };
 
-<script>
+   const toggleIndicator = function() {
+      document.getElementById('word-list-table').querySelectorAll('details')
+         .forEach((el) => {
+            if (!globalIndicator) el.classList.add('detail-marker-hidden');
+            else el.classList.remove('detail-marker-hidden');
+         });
+      document.getElementById('word-list-table').querySelectorAll('.circle-marker')
+         .forEach((el) => {
+            if (!globalIndicator) el.textContent = " ";
+            else el.textContent = "●";
+         });
+      globalIndicator = !globalIndicator;
+   };
+
+   toggleCollapse();
+   toggleIndicator();
+
    $(document).ready(function() {
       $('#sourceSelect').select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Choose an option...',
-      allowClear: true
+         theme: 'bootstrap-5',
+         placeholder: 'Choose an option...',
+         allowClear: true
       });
       $('#regionSelect, #freqSelect, #timeUnitSelect').select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Choose an option...',
-      minimumResultsForSearch: Infinity,
-      allowClear: true
+         theme: 'bootstrap-5',
+         placeholder: 'Choose an option...',
+         minimumResultsForSearch: Infinity,
+         allowClear: true
       });
    });
 </script>

@@ -15,7 +15,9 @@
       <style>
          :root {
             --bs-primary:          #3155d0;
-            --bs-secondary:        #68809d;
+            --bs-secondary:        #b8c4d3;
+            --bs-secondary-rgb: 184, 196, 211;
+            --bs-secondary-color: #b8c4d3;
             --color-bg-primary:    #3155d0;
             --color-bg-secondary:  #68809d;
             --color-bg-info:       #3b92d0;
@@ -27,7 +29,7 @@
             --color-table-odd:     #1f2636;
             --color-table-even:    #242c3f;
             --color-text-primary:  #ffffff;
-            --color-text-secondary:#c8d9ee;
+            --color-text-secondary:#b8c4d3;
             --color-text-muted:    #68809d;
             --color-btn-muted:     #68809c;
             --color-title:         #d6dffd;
@@ -48,6 +50,8 @@
          .btn-outline-primary { border-color: #3155d0 !important;}
          .btn-success { background-color: var(--color-success) !important; }
          .btn-primary { background-color: var(--color-bg-primary) !important; }
+         .btn-muted { background-color: var(--color-btn-muted) !important;}
+         .btn-transparent { background-color: transparent !important;}
          .btn-outline-primary:hover { background-color: #3155d0 !important;}
          .text-accent { color: var(--color-accent) !important; }
          .text-danger { color: var(--color-danger) !important; }
@@ -64,7 +68,8 @@
          ::placeholder { color: var(--color-text-muted) !important }
 
          .card { background-color: var(--color-bg-card); border: 1px solid var(--color-bg-input);}
-         .color-muted { color: var(--color-btn-muted) }
+         .color-muted { color: var(--color-btn-muted) !important }
+         .color-danger { color: var(--color-danger)}
          .color-primary { color: var(--color-bg-primary) }
          .tag { display: inline-block; background-color: var(--color-bg-info); border-radius: 5px; padding: 2px 10px;  }
          .tag-muted { background-color: var(--color-bg-input);}
@@ -83,23 +88,15 @@
          .select2-results__option--highlighted.select2-results__option--selectable { 
          background-color: var(--color-bg-primary) !important;
          }
+         .select2-selection { background-color: var(--color-bg-input) !important; border: 0 !important}
+         
          .select2-results__group { color: var(--color-accent) !important}
          .errorlist li { color: var(--color-danger) !important }
-            /* 
-            404664 – noticeably lighter, good for highlights
-            #373d57 – soft, airy
-            #2e344a – mid‑tone brightness
-            #252b3d – visible lightening
-            #1c2230 – subtle lift
-            #131723
-            #0f131d – just a whisper darker
-            #0c0f17 – deeper, like a shadow
-            #080b11 – very dark, subtle
-            #05070b – almost black, hints of blue
-            #020305 – nearly pure black
-            */
+
+         .d-hidden { visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
+            left: -9999px !important; top: -9999px !important;}
       </style>
-   {% endblock styles%}
+   {% endblock styles %}
    {% block sidebarStyle %}
       <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
    {% endblock %}
@@ -139,7 +136,7 @@
    {% include 'modals/generic_modal.html' %}
 
    {% block additionalModals %}
-   {% endblock additionalModals%}
+   {% endblock additionalModals %}
 
    <script>
       document.getElementById('genericModal').addEventListener('hidden.bs.modal', function () {

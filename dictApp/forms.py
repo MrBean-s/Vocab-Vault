@@ -1,12 +1,18 @@
 from django import forms
-from .models import Language, Image, Word, Definition, Example
-from django.forms import inlineformset_factory
+from .models import *
+from django.forms import inlineformset_factory, modelformset_factory
 from django.forms.models import BaseInlineFormSet
 
 class LanguageForm(forms.ModelForm):
    image_file = forms.ImageField(
-      required=True,
+      required=False,
       widget=forms.FileInput(attrs={'class': 'form-control'})
+   )
+
+   countries = forms.ModelMultipleChoiceField(
+      queryset=Country.objects.all().order_by('name'),
+      widget=forms.SelectMultiple(attrs={'class': 'select2'}),
+      required=False
    )
 
    class Meta:
@@ -14,28 +20,93 @@ class LanguageForm(forms.ModelForm):
       fields = ['name']
       widgets = {
          'name': forms.TextInput(attrs={'class': 'form-control'}),
-         'image_file': forms.FileInput(attrs={'class': 'form-control'})
       }
 
+   def clean(self):
+      cleaned_data = super().clean()
+      countries = cleaned_data.get('countries')
+
+      if self.instance.pk:
+         existing_ids = set(
+            CountryLanguage.objects.filter(language=self.instance)
+            .values_list('country_id', flat=True)
+         )
+         submitted_ids = {country.id for country in countries}
+         self.new_country_ids = submitted_ids - existing_ids
+         self.remove_country_ids = existing_ids - submitted_ids
+
+      return cleaned_data
 
    def save(self, commit=True):
       language = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
-
+      
       if image_file:
          old_img = language.image
-      if language.pk and old_img:
-         storage = old_img.file.storage
-         if storage.exists(old_img.file.name):
-            storage.delete(old_img.file.name)
-         old_img.delete()
 
-      new_img = Image.objects.create(file=image_file)
-      language.image = new_img
+         if language.pk and old_img:
+            storage = old_img.file.storage
+            if storage.exists(old_img.file.name):
+               storage.delete(old_img.file.name)
+            old_img.delete()
+
+         new_img = Image.objects.create(file=image_file)
+         language.image = new_img
 
       language.save() #can't use if commmit = False cause that'd leave an orphan img
 
+      if hasattr(self, 'new_country_ids'):
+         for cty_id in self.new_country_ids:
+            CountryLanguage.objects.create(language_id=language.id, country_id=cty_id)
+      
+      if hasattr(self, 'remove_country_ids') and self.remove_country_ids:
+         CountryLanguage.objects.filter(
+            language_id=language.id,
+            country_id__in=self.remove_country_ids
+         ).delete()
+
       return language
+
+class CountryForm(forms.ModelForm):
+   name = forms.CharField(
+      required=False,
+      widget=forms.TextInput(attrs={
+         'class': 'form-control',
+         'placeholder': 'Country name',
+         'manual-required': 'true'
+      })
+   )
+   iso_code = forms.CharField(
+      required=False,
+      widget=forms.TextInput(attrs={
+         'class': 'form-control',
+         'placeholder': 'e.g. US, UK, AU',
+         'manual-required': 'true'
+      })
+   )
+   
+   class Meta:
+      model = Country
+      fields = ['name', 'iso_code']
+      labels = { 'name': 'Country name'}
+   
+   def clean(self):
+      cleaned_data = super().clean()
+      if cleaned_data.get('DELETE'):
+         return cleaned_data
+      name = cleaned_data.get('name')
+      iso_code = cleaned_data.get('iso_code')
+
+      if Country.objects.filter(name=name).exists():
+         self.add_error('name', "This Country Name already exists.")
+      if Country.objects.filter(iso_code=iso_code).exists():
+         self.add_error('iso_code', "This ISO code already exists.")
+      if name and iso_code:
+         if Country.objects.filter(name=name, iso_code=iso_code).exists():
+            raise forms.ValidationError("This country with this ISO code already exists.")
+
+      return cleaned_data
+
 
 class WordForm(forms.ModelForm):
    class Meta:

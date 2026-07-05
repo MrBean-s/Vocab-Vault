@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block sidebarStyle %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block additionalStyles %}
+<style>
+   .country-grid { grid-template-columns: 1fr 1fr 1fr 1fr; row-gap: 1rem;}
+</style>
+{% endblock additionalStyles %}
+
+{% block innerbody %}
+
+<a href="{% url 'start_screen' %}" style="position: fixed; top: 30px; left: 70px;">
+   <i class="fa-solid fa-house fs-1"></i>
+</a>
+<a href="{% url 'languages' %}" style="position: fixed; top: 30px; left: 140px;">
+   <i class="fa-solid fa-language fs-1"></i>
+</a>
+
+
+
+<div class="container">
+   <h2 class="mt-4 mb-5">Countries</h2>
+   <h5>Add a new country</h5>
+   <form action="{% url 'countries' %}" method="POST">
+      {% csrf_token %}
+      <div class="form-container mb-4">
+         <div class="d-flex gap-3">
+            <div class="w-50">{{form.name}}</div>
+            <div class="w-50">{{form.iso_code}}</div>
+            <button class="btn btn-primary" type="submit">Submit</button>
+         </div>
+         <div class="d-flex">
+            <div class="w-50">{{form.name.errors}}</div>
+            <div class="w-50">{{form.iso_code.errors}}</div>
+         </div>
+      </div>
+   </form>
+
+   <span>(This table is recreated each time a migration is applied)</span>
+
+   <div class="d-grid country-grid card p-4 mt-2">
+      {% for cty in countries %}
+         <div data-cty-id="{{cty.id}}" class="cty-col d-flex justify-content-between" style="align-self: center; border-bottom: 1px solid var(--color-border)">
+            <span>{{cty.name}} - {{cty.iso_code}}</span>
+            {% if cty.added_manually %}
+               <div class="d-flex gap-3 pe-4">
+                  <i class="fa-solid fa-pen-to-square color-muted" style="cursor: not-allowed;"></i>
+                  <a class="remove-country"
+                     hx-get="{% url 'generic_confirm_delete' %}"
+                     hx-vals='{"type": "Country", "name": "{{ cty.name }}", "delete_url":"{% url 'country_delete' cty.id %}"}'
+                     hx-target="#genericModalBody"
+                     hx-trigger="click"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal"
+                     style="cursor: pointer;">
+                     <i class="fa-solid fa-trash"></i>
+                  </a>
+               </div>
+            {% endif %}
+         </div>
+      {% endfor %}
+   </div>
+   <div style="min-height: 50px;"></div>
+</div>
+
+{% endblock innerbody %}
