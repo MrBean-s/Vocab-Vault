@@ -14,7 +14,7 @@
    <div class="d-inline-flex position-fixed" style="bottom: 5%; left: 10%;">
       <a href="{% url 'languages' %}" class="d-flex gap-2 text-light text-decoration-none">
          <h4><i class="fa-solid fa-shrimp" style="color: #bf562f;"></i></h4>
-         <h4>Add or edit a language</h4>
+         <h4>Create or edit a language</h4>
       </a>
    </div>
    
@@ -32,6 +32,19 @@
          </div>
       </a>
    </div>
+
+   {% if languages %}
+   <a data-bs-toggle="modal" data-bs-target="#genericModal"
+      hx-get="{% url 'lang_add_set' %}" hx-target="#genericModalBody"
+      hx-trigger="click" hx-target-error="#error-box" 
+      class="text-decoration-none d-flex justify-content-center gap-3 add-lang position-fixed"
+      style="color: #c8c4cc; top: 10%; left: 43%;">
+
+      <i class="fa-solid fa-circle-plus"
+         style="font-size: 36px;"></i>
+      <h4 class="pt-1">Add a language</h4>
+   </a>
+   {% endif %}
    
    <div class="card mx-auto wireframe w-75 d-flex flex-column justify-content-center
       align-items-center position-relative" style="height: 60%;">
@@ -43,11 +56,11 @@
          {% if not languages %}
             <div class="col-12 mx-auto wireframe text-center p-4">
                <a data-bs-toggle="modal" data-bs-target="#genericModal"
-                  hx-get="{% url 'lang_modal_form' %}" hx-target="#genericModalBody"
+                  hx-get="{% url 'lang_add_set' %}" hx-target="#genericModalBody"
                   hx-trigger="click" hx-target-error="#error-box" 
-                  class="text-decoration-none" style="color: #c8c4cc;">
+                  class="text-decoration-none add-lang" style="color: #c8c4cc;">
             
-                  <i class="fa-solid fa-circle-plus text-warning mt-5"
+                  <i class="fa-solid fa-circle-plus mt-5"
                      style="font-size: 54px;"></i>
                   <h4 class="mt-5">Add a language</h4>
                </a>
@@ -126,4 +139,14 @@
 </div>
 {% endblock innerbody %}
    
-   
+{% block additionalScripts %}
+<script>
+   const reloadSelect2Items = function() {
+      $('#id_language').select2({
+         theme: 'bootstrap-5',
+         placeholder: 'Search for a language...',
+         dropdownParent: $('#genericModal .modal-content')
+      });
+   }
+</script>
+{% endblock %}

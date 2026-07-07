@@ -6,10 +6,17 @@ from django.db.models import Q
 class Language(models.Model):
    name = models.CharField(max_length=200)
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
+   in_user_set = models.BooleanField(default=False)
+   added_manually = models.BooleanField(default=False)
+
+   def __str__(self):
+      return self.name
+
 
 class Word(models.Model):
    name = models.CharField(max_length=200)
    added_at = models.DateTimeField(auto_now_add=True)
+   is_idiom = models.BooleanField(default=False)
 
    language = models.ForeignKey(Language, on_delete=models.PROTECT)
 

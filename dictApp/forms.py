@@ -31,10 +31,13 @@ class LanguageForm(forms.ModelForm):
             CountryLanguage.objects.filter(language=self.instance)
             .values_list('country_id', flat=True)
          )
-         submitted_ids = {country.id for country in countries}
-         self.new_country_ids = submitted_ids - existing_ids
-         self.remove_country_ids = existing_ids - submitted_ids
+      else:
+         existing_ids = set()
 
+      submitted_ids = {country.id for country in countries}
+      self.new_country_ids = submitted_ids - existing_ids
+      self.remove_country_ids = existing_ids - submitted_ids
+      
       return cleaned_data
 
    def save(self, commit=True):
@@ -256,3 +259,9 @@ class ModalSearchForm(forms.Form):
 
       return cleaned_data
 
+class LanguageAddSetForm(forms.Form):
+   language=forms.ModelChoiceField(
+      widget=forms.Select(attrs={'class': 'select2'}),
+      empty_label="Search for a language",
+      queryset=Language.objects.all().order_by('name')
+   )

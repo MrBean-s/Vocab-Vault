@@ -13,11 +13,11 @@ from collections import defaultdict
 
 
 def start_screen(request):
-   languages = Language.objects.select_related('image').all()
+   languages = Language.objects.select_related('image').filter(in_user_set=True).all()
    remaining = len(languages) % 3
 
    return render(request, "start_page.html", {
-      "languages": Language.objects.select_related('image').all(),
+      "languages": languages,
       "substract_len_mod3": -remaining,
       "twelve_mod3": round(12 / remaining if remaining > 0 else 12)
    })
@@ -25,13 +25,19 @@ def start_screen(request):
 
 def language_form(request, lang_id=None):
 
+   can_edit_img = request.GET.get('can_edit_img', 'false')
+   can_edit_img = can_edit_img.lower() == 'true'
+
    language = get_object_or_404(Language, pk=lang_id) if lang_id else None
    
    if request.method == 'POST':
       lang_form = LanguageForm(request.POST, request.FILES, instance=language)
-      
+               
       if lang_form.is_valid():
-         lang_form.save()
+         new_lang = lang_form.save()
+         if not language:
+            new_lang.added_manually=True
+            new_lang.save()
 
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': '/languages/'})
@@ -45,11 +51,13 @@ def language_form(request, lang_id=None):
          "form": lang_form,
          "is_edit" : language is not None,
          'edit_lang_id': language.id if language else 0,
+         'can_edit_img': can_edit_img
       })
 
 def languages(request):
    languages = Language.objects.select_related('image').all()
-   return render(request, "languages.html", {"languages": languages})
+   in_home_screen = Language.objects.filter(in_user_set=True).values_list('id', 'name')
+   return render(request, "languages.html", {"languages": languages, "in_home_screen": in_home_screen})
 
 def delete_language(request, lang_id):
    instance = get_object_or_404(Language, pk=lang_id)
@@ -70,6 +78,35 @@ def delete_language(request, lang_id):
          messages.success(request, "Language deleted.")
 
       return redirect('languages')
+   
+def add_lang_to_set(request):
+   if request.method == 'POST':
+      form = LanguageAddSetForm(request.POST)
+      if form.is_valid():
+         language = form.cleaned_data.get('language')
+         language.in_user_set=True
+         language.save()
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': '/'})
+      else:
+         print('not valid')
+      return redirect('start_screen')
+   form = LanguageAddSetForm()
+   return render(request, 'forms/_add_language.html', {'form': form})
+
+def add_lang_to_set_with_id(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   language.in_user_set=True
+   language.save()
+
+   return redirect('languages')
+
+def remove_lang_from_set(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   language.in_user_set=False
+   language.save()
+   return redirect('start_screen')
+
 
 def generic_confirm_delete(request):
    name = request.GET.get('name', '')
