@@ -37,7 +37,7 @@ class LanguageForm(forms.ModelForm):
       submitted_ids = {country.id for country in countries}
       self.new_country_ids = submitted_ids - existing_ids
       self.remove_country_ids = existing_ids - submitted_ids
-      
+
       return cleaned_data
 
    def save(self, commit=True):
@@ -158,7 +158,6 @@ class DefinitionForm(forms.ModelForm):
             }
          )
       }
-
 
 
 class ExampleForm(forms.ModelForm):

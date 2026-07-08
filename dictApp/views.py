@@ -125,34 +125,55 @@ def dashboard(request, lang_id):
 
 
 def word(request, lang_id, word_id=None):
-   language = get_object_or_404(Language, pk=lang_id)
-   word = get_object_or_404(Word, pk=word_id) if word_id else None
+   language = get_object_or_404(
+      Language.objects.prefetch_related('countries'),
+      pk=lang_id
+   )
    
+   word = get_object_or_404(
+      Word.objects.prefetch_related('definitions__country_tags'),
+      pk=word_id
+   ) if word_id else None
+
+   country_qs = Country.objects.filter(languages__pk=language.id)
+   def_selected_ctys = {}
+
+   if word:
+      all_lang_countries_ids = {c.id for c in language.countries.all()}
+      for defn in word.definitions.all():
+         selected_ids = {c.id for c in defn.country_tags.all()}
+         if selected_ids == all_lang_countries_ids:
+            def_selected_ctys[defn.id] = None # flag for 'ALL' in the template
+         else:
+            def_selected_ctys[defn.id] = list(selected_ids)
+
    if request.method == 'POST':
       word_form = WordForm(request.POST, instance=word)
-      def_formset = DefinitionFormSet(request.POST, instance=word, prefix='definitions')
+
+      def_formset = DefinitionFormSet(
+         request.POST,
+         instance=word,
+         prefix='definitions',
+      )
    
-      # Build example formsets from POST data (same as you'd do in GET, but using POST)
+      # Build example formsets from POST data
       example_formsets = []
       total_defs = int(request.POST.get('definitions-TOTAL_FORMS', 0))
       for i in range(total_defs):
          prefix = f'def-{i}-examples'
-         # We need an instance only if this is an existing definition (has an ID)
+
          def_id = request.POST.get(f'definitions-{i}-id')
          def_instance = Definition.objects.get(pk=def_id) if def_id else None
          ex_fs = ExampleFormSet(request.POST, prefix=prefix, instance=def_instance)
          example_formsets.append(ex_fs)
-   
-      # Now validate everything
+
       if (word_form.is_valid() and def_formset.is_valid() and
          all(ex_fs.is_valid() for ex_fs in example_formsets)):
-   
-         # Save the Word
+         
          word = word_form.save(commit=False)
          word.language = language
          word.save()
    
-         # Iterate over all forms (including deleted ones) and keep the original index
          for idx, def_form in enumerate(def_formset.forms):
             # Skip forms marked for deletion
             if def_form.cleaned_data.get('DELETE', False):
@@ -160,7 +181,16 @@ def word(request, lang_id, word_id=None):
             definition = def_form.save(commit=False)
             definition.word = word
             definition.save()
-   
+
+            country_set = request.POST.getlist(f'def-{idx}-countries')
+
+            if '-999' in country_set: # -999: ALL tag
+               definition.country_tags.set(language.countries.all());
+               definition.save()
+            else:
+               countries = Country.objects.filter(id__in=country_set)
+               definition.country_tags.set(countries)
+
             # Use the original index to pick the correct example formset
             ex_fs = example_formsets[idx]
             examples = ex_fs.save(commit=False)
@@ -170,18 +200,21 @@ def word(request, lang_id, word_id=None):
             for obj in ex_fs.deleted_objects:
                obj.delete()
    
-         # Handle deleted definitions (those with DELETE=True, already skipped above)
+         # Handle deleted definitions
          for idx, def_form in enumerate(def_formset.forms):
             if def_form.cleaned_data.get('DELETE', False) and def_form.instance.pk:
                def_form.instance.delete()
    
-         return redirect('word_details', lang_id=lang_id, word_id=word.id) 
-         # If any form is invalid, fall through to render the form with errors
-         # (word_form, def_formset, and example_formsets are already bound)
-   
+         return redirect('word_details', lang_id=lang_id, word_id=word.id)
    else:
       word_form = WordForm(instance=word)
       def_formset = DefinitionFormSet(instance=word, prefix='definitions')
+      for def_form in def_formset:
+         if def_form.instance.pk:
+            def_form.selected_country_ids = def_selected_ctys.get(def_form.instance.pk, [])
+         else:
+            def_form.selected_country_ids = []
+
       example_formsets = []
 
       for i, def_form in enumerate(def_formset):
@@ -198,6 +231,7 @@ def word(request, lang_id, word_id=None):
       'has_word': word is not None,
       'word_id': word_id,
       'lang_id': lang_id,
+      'country_qs': country_qs,
    })
    
 def word_list(request, lang_id):

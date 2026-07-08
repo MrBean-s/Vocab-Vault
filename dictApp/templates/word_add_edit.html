@@ -23,6 +23,15 @@
       .explanation-arrow { position: absolute; bottom: 10px; left: -21px;}
       .explanation-arrow i { color: var(--color-success); }
       .image-placeholder { display: flex; justify-content: center; align-items: center; width: 320px; height: 180px; background: #212838; border-radius: 10px 10px 0 0; }
+      .select2-selection__choice { margin-bottom: 0 !important;}
+      .select2-selection { background-color: transparent !important; padding: 0 !important;}
+      .select2-search--inline { padding-top: 5px !important; padding-left: 10px !important;}
+      .select2-selection__rendered { display: flex !important; justify-content: end !important; }
+      .select2-search--inline { display: none !important;}
+      .select2-container--bootstrap-5.select2-container--focus .select2-selection { box-shadow: none !important; }
+      .select2-container .select2-selection--multiple { cursor: default !important; }
+      .select2-container.select2-container--bootstrap-5.select2-container--open .select2-dropdown { 
+         left: 40px !important; top: 10px !important }
 
    </style>
 {% endblock additionalStyles %}
@@ -52,8 +61,8 @@
          </div>
       </div>
    </div>
-   <div style="padding: 30px 150px">
-      <div class="position-relative mb-3 ">
+   <div class="container">
+      <div class="position-relative mb-3 pt-4">
          <a class="position-absolute add-definition-item" style="left: -35px"
             onclick="addDefinition(); return false;">
             <i class="fa-solid fa-circle-plus fs-5"></i>
@@ -89,8 +98,25 @@
                            field-title-accent">
                            {{ def_form.description.label }} {{forloop.counter}}
                         </label>
-                        
-                        <div class="tag" style="width: 100px; height: 30px;">
+
+                        <div class="d-flex gap-2 w-80 justify-content-end align-items-center">
+                              <select name="def-{{def_index}}-countries" multiple class="select2" id="def-{{def_index}}-countries" {% if def_form.selected_country_ids %}data-has-selection{% endif %}>
+                                 {% for country in country_qs %}
+                                    {% if forloop.first %}
+                                       <option value="-999" data-iso="ALL">All countries</option>
+                                    {% endif %}
+                                    <option value="{{ country.id }}"
+                                       data-iso="{{ country.iso_code }}"
+                                       {% if def_form.instance.pk and country.id in def_form.selected_country_ids %}selected{% endif %}>
+                                       {{ country.name }}
+                                    </option>
+                                 {% endfor %}
+                              </select>
+                              <a class="text-decoration-none text-muted " 
+                                 onclick="openSelect2Item('def-{{def_index}}-countries')"
+                                 style="cursor: pointer; text-align: right;">
+                                 <i class="ps-2 fa-solid fa-circle-plus"></i>
+                              </a>
                         </div>
                         
                         <a class="position-absolute
@@ -102,6 +128,7 @@
                            <i class="fa-solid fa-trash fs-6" style="color: var(--color-danger)"></i>
                         </a>
                      </div>
+                     <div id="def-{{def_index}}-countries-dropdownParent" class="position-relative"></div>
                      {% if forloop.last %}
                         {{ def_form.description }}
                      {% else %}
@@ -110,7 +137,7 @@
                      {{ def_form.description.errors }}
                   </div>
          
-                  <div class="mb-3 ">
+                  <div class="mb-3">
                      <label for="def_form.origin.id_for_label" class="form-label field-title">
                         {{ def_form.origin.label }}
                      </label>
@@ -222,8 +249,63 @@
 {% endblock innerbody %}
    
 {% block additionalScripts %}
+<script>
+const prepareSelect2 = function(selector, dropdownParent) {
+   console.log(`calling function with ${selector} - and - ${dropdownParent}`);
+   var $selectItem = $(`#${selector}`);
+   $selectItem.select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Region',
+      width: '75%',
+      templateSelection: function(data) {
+         var iso = $(data.element).data('iso');
+         return iso;
+      },
+      templateResult: function(data) { return data.text; },
+      dropdownParent: $(`#${dropdownParent}`)
+   });
+
+   if ($selectItem.data('hasSelection') === undefined)
+      $selectItem.val(['-999']).trigger('change'); //-999: 'ALL' option
+
+   $selectItem.data('allowOpen', false);
+   $selectItem.on('select2:opening', function(e) {
+      if (!$(this).data('allowOpen')) {
+         e.preventDefault();
+      }
+   });
+   $selectItem.on('select2:select', function(e) {
+      var id = e.params.data.id;
+      var $el = $(this);
+      if (id == "-999") {
+         $el.val(['-999']).trigger('change');
+      } else {
+         var selected = $el.val();
+         var all_index = selected.indexOf('-999');
+         if (all_index !== -1) {
+            selected.splice(all_index, 1);
+            $el.val(selected).trigger('change');
+         }
+      }
+   });
+}
+
+const openSelect2Item = function(selector) {
+   var $select = $(`#${selector}`);
+   $select.data('allowOpen', true);  
+   $select.select2('open');
+   $select.data('allowOpen', false);
+}
+
+$('select.select2').on('select2:opening', function(e) {
+   if (!$(this).data('allowOpen')) {
+      e.preventDefault();
+   }
+});
+</script>
 
 <script>
+
 function addDefinition() {
    const container = document.getElementById('definitions-container');
    const totalForms = document.getElementById('id_definitions-TOTAL_FORMS');
@@ -240,7 +322,8 @@ function addDefinition() {
    newRow.innerHTML = newRow.innerHTML
       .replace(/definitions-\d+/g, `definitions-${currentCount}`)
       .replace(/def-\d+-examples-\d+/g, `def-${currentCount}-examples-0`)
-      .replace(/def-\d+-examples/g, `def-${currentCount}-examples`);
+      .replace(/def-\d+-examples/g, `def-${currentCount}-examples`)
+      .replace(/def-\d+-countries/g, `def-${currentCount}-countries`);
 
    const deleteInput = newRow.querySelector('input[id$="-DELETE"]');
    
@@ -256,6 +339,8 @@ function addDefinition() {
 
    container.appendChild(newRow);
    totalForms.value = currentCount + 1;
+
+   prepareSelect2(`def-${currentCount}-countries`, `def-${currentCount}-countries-dropdownParent`);
 }
 
 function addExample(element) {
@@ -313,12 +398,13 @@ function setManualRequired(parent, requiredBool) {
 
 document.addEventListener('DOMContentLoaded', function() {
    document.querySelectorAll('form').forEach(form => form.reset());
+   {% if not has_word %}
+      addDefinition();
+   {% endif %}
+   document.querySelectorAll('select.select2').forEach(el => {
+      prepareSelect2(el.id, `${el.id}-dropdownParent`);
+   });
 });
-
-{% if not has_word %}
-   addDefinition();   
-{% endif %}
-   
 </script>
 {% endblock additionalScripts %}
 
