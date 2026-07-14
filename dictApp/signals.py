@@ -1,4 +1,6 @@
-from .models import Country
+from .models import Country, Language, PartOfSpeech, Image, CountryLanguage
+from django.conf import settings
+import os
 
 def seed_countries(sender, **kwargs):
    if sender.name != 'dictApp':
@@ -212,3 +214,186 @@ def seed_countries(sender, **kwargs):
 
    Country.objects.bulk_create(countries, ignore_conflicts=True)
 
+def seed_lang_and_parts_of_speech(sender, **kwargs):
+   LANGUAGES_DATA = {
+      "English": {
+         "flag": "flags/English.webp",
+         "pos": [
+            "Noun", "Verb", "Adjective", "Adverb", "Pronoun",
+            "Preposition", "Conjunction", "Interjection", "Article", "Determiner"
+         ],
+         "countries": [
+            "United Kingdom", "United States", "Canada", "Australia",
+            "New Zealand", "Ireland"
+         ],
+         "ngram_code": "en",
+      },
+      "Spanish": {
+         "flag": "flags/Spanish.webp",
+         "pos": [
+            "Sustantivo", "Verbo", "Adjetivo", "Adverbio", "Pronombre",
+            "Preposición", "Conjunción", "Interjección", "Artículo"
+         ],
+         "countries": [
+            "Spain", "Mexico", "Argentina", "Colombia",
+            "Venezuela", "Cuba"
+        ],
+        "ngram_code": "es",
+      },
+      "French": {
+         "flag": "flags/French.webp",
+         "pos": [
+            "Nom", "Verbe", "Adjectif", "Adverbe", "Pronom",
+            "Préposition", "Conjonction", "Interjection", "Article"
+         ],
+         "countries": [
+            "France", "Belgium", "Switzerland", "Canada"
+        ],
+        "ngram_code": "fr",
+      },
+      "German": {
+         "flag": "flags/German.webp",
+         "pos": [
+            "Nomen", "Verb", "Adjektiv", "Adverb", "Pronomen",
+            "Präposition", "Konjunktion", "Interjektion", "Artikel"
+         ],
+         "countries": [
+            "Germany", "Austria", "Switzerland"
+         ],
+         "ngram_code": "de",
+      },
+      "Italian": {
+         "flag": "flags/Italian.webp",
+         "pos": [
+            "Nome", "Verbo", "Aggettivo", "Avverbio", "Pronome",
+            "Preposizione", "Congiunzione", "Interiezione", "Articolo"
+         ],
+         "countries": [
+            "Italy", "San Marino", "Vatican City", "Switzerland"
+         ],
+         "ngram_code": "it"
+      },
+      "Portuguese": {
+         "flag": "flags/Portuguese.webp",
+         "pos": [
+            "Substantivo", "Verbo", "Adjetivo", "Advérbio", "Pronome",
+            "Preposição", "Conjunção", "Interjeição", "Artigo"
+         ],
+         "countries": [
+            "Portugal", "Brazil"
+         ],
+         "ngram_code": "pt"
+      },
+      "Russian": {
+         "flag": "flags/Russian.webp",
+         "pos": [
+            "Существительное", "Глагол", "Прилагательное", "Наречие",
+            "Местоимение", "Предлог", "Союз", "Междометие", "Частица"
+         ],
+         "countries": [
+            "Russia", "Belarus", "Kazakhstan", "Kyrgyzstan"
+         ],
+         "ngram_code": "ru"
+      },
+      "Japanese": {
+         "flag": "flags/Japanese.webp",
+         "pos": [
+            "名詞 (Noun)", "動詞 (Verb)", "形容詞 (Adjective)",
+            "副詞 (Adverb)", "助詞 (Particle)", "接続詞 (Conjunction)",
+            "感動詞 (Interjection)", "連体詞 (Pre-noun adjectival)",
+            "助動詞 (Auxiliary verb)"
+         ],
+         "countries": [
+            "Japan"
+         ],
+         "ngram_code": "ja"
+      },
+      "Chinese (Mandarin)": {
+         "flag": "flags/Chinese.webp",
+         "pos": [
+            "名词 (Noun)", "动词 (Verb)", "形容词 (Adjective)",
+            "副词 (Adverb)", "代词 (Pronoun)", "介词 (Preposition)",
+            "连词 (Conjunction)", "助词 (Particle)", "叹词 (Interjection)",
+            "量词 (Measure word)"
+         ],
+         "countries": [
+            "China", "Taiwan", "Singapore"
+         ],
+         "ngram_code": "zh"
+      },
+      "Korean": {
+         "flag": "flags/Korean.webp",
+         "pos": [
+            "명사 (Noun)", "동사 (Verb)", "형용사 (Adjective)",
+            "부사 (Adverb)", "대명사 (Pronoun)", "조사 (Particle)",
+            "접속사 (Conjunction)", "감탄사 (Interjection)", "관형사 (Determiner)"
+         ],
+         "countries": [
+            "South Korea", "North Korea"
+         ],
+         "ngram_code": "ko"
+      },
+      "Arabic": {
+         "flag": "flags/Arabic.webp",
+         "pos": [
+            "اسم (Noun)", "فعل (Verb)", "صفة (Adjective)",
+            "ظرف (Adverb)", "حرف جر (Preposition)", "حرف عطف (Conjunction)",
+            "حرف نداء (Interjection)", "ضمير (Pronoun)"
+         ],
+         "countries": [
+            "Egypt", "Saudi Arabia", "Iraq", "Morocco", "Algeria",
+            "Sudan", "Yemen", "Syria", "Jordan", "Tunisia",
+            "Libya", "Lebanon", "Kuwait", "Oman", "Qatar",
+            "United Arab Emirates"
+         ],
+         "ngram_code": "ar"
+      },
+      "Turkish": {
+         "flag": "flags/Turkish.webp",
+         "pos": [
+            "İsim", "Fiil", "Sıfat", "Zarf", "Zamir",
+            "Edat (Postposition)", "Bağlaç", "Ünlem"
+         ],
+         "countries": [
+            "Turkey", "Cyprus"
+         ],
+         "ngram_code": "tr"
+      },
+      "Thai": {
+         "flag": "flags/Thai.webp",
+         "pos": [
+            "คำนาม (Noun)", "คำกริยา (Verb)", "คำคุณศัพท์ (Adjective)",
+            "คำกริยาวิเศษณ์ (Adverb)", "คำสรรพนาม (Pronoun)",
+            "คำบุพบท (Preposition)", "คำสันธาน (Conjunction)",
+            "คำอุทาน (Interjection)", "คำลักษณะนาม (Classifier)"
+         ],
+         "countries": [
+            "Thailand"
+         ],
+         "ngram_code": "th"
+      },
+   }
+
+   for lang_name, data in LANGUAGES_DATA.items():
+      language, created = Language.objects.get_or_create(name=lang_name)
+      if not language.image:
+         flag_path = data["flag"]
+         
+         full_path = os.path.join(settings.MEDIA_ROOT, flag_path)
+         if os.path.isfile(full_path):
+            img = Image.objects.create(file=flag_path)
+            language.image = img
+            language.save(update_fields=['image'])
+      
+      for pos_name in data["pos"]:
+         PartOfSpeech.objects.get_or_create(name=pos_name, language=language)
+
+      for country_name in data["countries"]:
+         try:
+            country = Country.objects.get(name=country_name)
+            CountryLanguage.objects.get_or_create(language=language, country=country)
+         except Country.DoesNotExist:
+            pass
+
+      language.google_ngram_code = data["ngram_code"]
+      language.save()

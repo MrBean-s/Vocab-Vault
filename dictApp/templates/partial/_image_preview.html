@@ -1,0 +1,11 @@
+<div class="image-wrapper d-flex justify-content-center">
+   {% if image.file %}
+      <img src="{{image.file.url}}" alt="Not found" class="img-fluid">
+   {% else %}
+      <img src="" alt="No img file" class="img-fluid">
+   {% endif %}
+</div>
+
+<div class="mt-5 d-flex justify-content-end gap-3">
+   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>

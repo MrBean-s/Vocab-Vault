@@ -1,82 +1,206 @@
 {% extends 'base.html' %}
-
+{% load custom_filters %}
 {% block title%}Details{% endblock %}
 
 {% block additionalStyles %}
 <style>
-   .title { font-size: 2.5rem; font-weight: bold; }
    .def-description { font-size: 1.4rem }
-   .def-origin { font-size: 1.2rem; }
-   .ex-description {font-size: 1.2rem; font-style: italic; }
-   .ex-explanation { font-size: 1.2rem }
-   .p-speech { color: var(--color-text-muted); font-weight: bold;}
+   .def-origin { font-size: 1.25rem; color: var(--text-muted) }
+   .ex-description, .ex-explanation { font-size: 1.25rem; font-style: italic }
+   .ex-description { color: var(--text-secondary)}
+   .ex-explanation { color: var(--text-muted) }
+   .p-speech { color: var(--text-info); font-weight: bold;}
+   .tag-region { background-color: var(--bg-purple); }
+
+   .separator { 
+      display: flex;
+   }
+   .separator-flag {
+      width: 10px;
+      height: 30px;
+      position: relative;
+      background: var(--bg-purple);
+   }
+   .separator-flag:after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 0;
+      height: 0;
+      border-top: 15px solid transparent;
+      border-bottom: 15px solid transparent;
+      border-left: 10px solid #141d2f;
+   }
+   .separator-content {  
+      height: 30px; width: 100px;
+      background: var(--bg-purple);
+      position: relative;
+      padding-right: 10px;
+   }
+   .separator-content:before{
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 0;
+      height: 0;
+      border-bottom: 15px solid #141d2f;
+      border-left: 10px solid transparent;
+   }
+   .separator-content:after {  
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 0;
+      height: 0;
+      border-top: 15px solid #141d2f;
+      border-left: 10px solid transparent;
+   }
+   .tag-region { background-color: var(--bg-info) }
+   .desc-image { float: right; max-width: 300px; max-height: 300px; border-radius: 5px; cursor: pointer }
+   #related-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px 10px;
+   }
 </style>
 {% endblock additionalStyles %}
 
 {% block innerbody %}
    <div class="container">
-      <div class="top-bar row py-5">
-         <div class="top-bar-left col-auto d-flex align-items-center gap-5">
-            <div class="title">{{word.name}}</div>
-            <div id="readAloudToggle" class="ms-5 d-flex gap-3 align-items-center">
-               <i class="fa-solid fa-book-open position-relative fs-1">
-                  <i class="fa-solid fa-circle-play position-absolute fs-5 bottom-0" style="left: 75%; z-index: 2;"></i>
-               </i>
-               <div>Read aloud</div>
-            </div>
-            <a href="">Ngram</a>
-         </div>
-         <div class="top-bar-right col my-auto">
-            <div class="d-flex justify-content-end">
-               <button class="btn btn-secondary" style="width: 120px;">Edit</button>
-            </div>
-         </div>
-      </div>
-
-      {% for def in word.definitions.all %}
-      <div class="def-container" data-def-id="{{def.id}}">
-
-         <div class="tag">US</div>
-         <div class="tag">UK</div>
-         <div class="tag">AU</div>
-         {% if def.forgetting_frequency %}
-            <div class="freq-text d-inline ps-3 ">
-               {% with ff=def.forgetting_frequency %}
-                  {% if ff == 'FRQ' %} Frequently {% elif ff == 'RAR' %} Rarely {% elif ff == 'NVR' %} Never {% endif %}
-                  forgotten
-               {% endwith %}
-            </div>
-         {% endif %}
-         <img src="https://picsum.photos/300/300" alt="" style="float: right;" class="ms-5">
-         <div class="my-4 def-description">
-            {{def.description}}
-         </div>
-         <div class="mb-4 def-origin text-secondary">
-            {{def.origin}}
-         </div>
-         <div class="ex-container ps-4 d-flex flex-column gap-3">
-            {% for ex in def.examples.all %}
-               <div class="ex-wrapper" data-ex-id="{{ex.id}}">
-                  {% if ex.part_of_speech %}
-                     <div class="p-speech"> {{ex.part_of_speech.name}}</div>
-                  {% endif %}
-                  
-                  <span class="ex-description">{{ex.description}}</span>
-                  
-                  {% if ex.explanation %}
-                     <div class="ex-explanation d-inline ps-3 text-secondary">({{ex.explanation}})</div>
-                  {% endif %}
-
-                  <i class="fa-solid fa-clapperboard d-inline ps-3 color-muted" title="Add Source"
-                     data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip"
-                     data-bs-title="Add a citation"></i>
+      <div class="px-3">
+         <div class="top-bar row py-4 py-xxl-5 mb-4">
+            <div class="top-bar-left col-auto d-flex align-items-center gap-5">
+               <div class="text-title">{{context.name}}</div>
+               <div id="readAloudToggle" class="ms-5 d-flex gap-3 align-items-center">
+                  <i class="fa-solid fa-book-open position-relative fs-1">
+                     <i class="fa-solid fa-circle-play position-absolute fs-5 bottom-0" style="left: 75%; z-index: 2;"></i>
+                  </i>
+                  <div>Read aloud</div>
                </div>
-               
-            {% endfor %}
+               {% if ngram_code %}
+               {% with ngram_url="https://books.google.com/ngrams/graph"%}
+                 <a href="{{ngram_url}}?content={% for w in context.name|lower|split %}{{ w|urlencode }}{% if not forloop.last %}+{% endif %}{% endfor %}&year_start=1800&year_end=2022&corpus={{ngram_code}}&smoothing=3"
+                  target="_blank" rel="noopener noreferrer">Ngram</a>
+               {% endwith %}
+               {% endif %}
+            </div>
+            <div class="top-bar-right col my-auto">
+               <div class="d-flex justify-content-end">
+                  <a href="{% url 'word_edit' lang_id=lang_id word_id=context.id %}" class="anchor-btn anchor-btn-secondary">Edit</a>
+               </div>
+            </div>
          </div>
-         <div style="clear: both;"></div>
+
+         {% for def in context.definitions %}
+         <div class="def-top d-flex justify-content-between gap-2 mb-3">
+            <div class="d-flex gap-2">
+               {% if def.all_countries %}
+                  <div class="tag tag-region"
+                     data-bs-toggle="tooltip" data-bs-placement="top"
+                     data-bs-title="{% for cty in def.countries %}{{cty.name}}{%if not forloop.last%}, {%endif%}{% endfor %}">
+                     All countries
+                  </div>
+               {% else %}
+                  {% for cty in def.countries %}
+                     <div class="tag tag-region">
+                        {{cty.name}}
+                     </div>
+                  {% endfor %}
+               {% endif %}
+            </div>
+            <div>
+               {% if def.forgetting_frequency %}
+                  <div class="freq-text">
+                     {% with ff=def.forgetting_frequency %}
+                        {% if ff == 'FRQ' %} Frequently {% elif ff == 'RAR' %} Rarely {% elif ff == 'NVR' %} Never {% endif %}
+                        forgotten
+                     {% endwith %}
+                  </div>
+               {% endif %}
+            </div>
+         </div>
+         <div class="def-container p-4 mb-5 custom-card" data-def-id="{{def.id}}">
+            {% if def.image_path and def.image_id %}
+               <img class="desc-image ms-5" src="{{ def.image_path }}" alt="{{ lan.name }}"
+                  hx-get="{% url 'show_image' img_id=def.image_id %}"
+                  hx-trigger="click"
+                  hx-target="#genericModalBody"
+                  hx-target-error="#error-box"
+                  data-bs-toggle="modal"
+                  data-bs-target="#genericModal"
+                  >
+                  
+            {% endif %}
+
+            <div class="mb-4 def-description">
+               {{def.description}}
+            </div>
+            {% if def.origin %}
+            <div class="mb-4 def-origin">
+               Origin: {{def.origin}}
+            </div>
+            {% endif %}
+            {% if def.examples %}
+            <div class="mb-3 separator">
+               <div class="separator-flag"></div>
+               <div class="separator-content d-flex align-items-center justify-content-center">Examples</div>
+            </div>
+            {% endif %}
+            <div class="ex-container ps-4 d-flex flex-column gap-3">
+               {% for ex in def.examples %}
+                  <div class="ex-wrapper" data-ex-id="{{ex.id}}">
+                     {% if ex.part_of_speech %}
+                        <div class="p-speech"> {{ex.part_of_speech}}</div>
+                     {% endif %}
+                     
+                     <span class="ex-description">{{ex.description}}</span>
+                     
+                     {% if ex.explanation %}
+                        <div class="ex-explanation d-inline ps-3 text-secondary">({{ex.explanation}})</div>
+                     {% endif %}
+
+                     <i class="fa-solid fa-clapperboard d-inline ps-3 text-muted" title="Add Source"
+                        data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip"
+                        data-bs-title="Add a citation"></i>
+                  </div>
+                  
+               {% endfor %}
+            </div>
+            <div style="clear: both;"></div>
+         </div>
+         {% endfor %}
+
+         <div class="mb-3">Related words:</div>
+         <div id="related-grid" class="px-5">
+            {% for word in related_words %}
+            <div class="grid-item">
+               <a href="{% url 'word_details' lang_id=lang_id word_id=word.id %}">
+                  {{word.name}}
+               </a>
+               <span class="px-1">-</span>
+               <span class="text-muted">{{word.relation}}</span>
+            </div>
+            {% endfor %}
+            <div class="grid-item">
+               <a data-bs-toggle="modal" data-bs-target="#genericModal"
+                  hx-get="{% url 'link_word' lang_id=lang_id word_id=context.id%}"
+                  hx-target="#genericModalBody"
+                  hx-trigger="click"
+                  hx-target-error="#error-box" class="text-decoration-none add-relation text-main"
+                  style="cursor: pointer">
+                  Add relation
+                  <i class="fa-solid fa-circle-plus ps-1"></i>
+               </a>
+            </div>
+         </div>
+
+
+         <div class="py-5"></div>
+
       </div>
-      {% endfor %}
    </div>
 {% endblock innerbody %}
 

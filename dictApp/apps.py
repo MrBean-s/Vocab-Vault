@@ -6,5 +6,6 @@ class DictappConfig(AppConfig):
    name = 'dictApp'
    def ready(self):
       #runs after migrations are applied
-      from .signals import seed_countries
+      from .signals import seed_countries, seed_lang_and_parts_of_speech
       post_migrate.connect(seed_countries, sender=self)
+      post_migrate.connect(seed_lang_and_parts_of_speech, sender=self)

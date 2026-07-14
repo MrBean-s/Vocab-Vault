@@ -14,87 +14,191 @@
       <link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
       <style>
          :root {
-            --bs-primary:          #3155d0;
-            --bs-secondary:        #b8c4d3;
-            --bs-secondary-rgb: 184, 196, 211;
-            --bs-secondary-color: #b8c4d3;
-            --color-bg-primary:    #3155d0;
-            --color-bg-secondary:  #68809d;
-            --color-bg-info:       #3b92d0;
-            --color-bg-card:       #161b2a;
-            --color-bg-body:       #131723;
-            --color-bg-input:      #1d263c;
-            --color-bg-pill:	   #1c2230;
-            --color-table-header:  #121927;
-            --color-table-odd:     #1f2636;
-            --color-table-even:    #242c3f;
-            --color-text-primary:  #ffffff;
-            --color-text-secondary:#b8c4d3;
-            --color-text-muted:    #68809d;
-            --color-btn-muted:     #68809c;
-            --color-title:         #d6dffd;
-            --color-accent: 	   #e1653f;
-            --color-success:       #76b500;
-            --color-danger:		   #d4423f;
-            --color-important:	   #edc448;
-            --color-border:        rgba(255, 255, 255, 0.08);
-            --color-border-blue:   #0466fe;
+            --bg-body:         #101827;
+            --bg-sidebar:      #0f1522;
+            --bg-sidebar-pill: #1f2738;
+            --bg-deep:         #0a0e17;
+            --bg-dark:         #0f1423;
+            --bg-surface:      #141d2f;
+            --bg-elevated:     #223454;
+            --bg-table-header: #141f2f;
+            --bg-table-odd:    #1b2536;
+            --bg-table-even:   #243044;
+            --bg-info:         #36719b;
+            --bg-purple:       #712dba;
+            --bg-red:          #b24a4a;
+            --bg-muted:        #919aaa;
+
+            --bg-success:      #8dc314;
+            --bg-important:    #edc448;
+            --bg-danger:       #d4423f;
+            --bg-primary:      #3155d0;
+            --bg-secondary:    #223454;
+
+            /*--text-title:     #d6dffd;*/
+            --text-success:    #8dc314;
+            --text-important:  #edc448;
+            --text-danger:     #d4423f;
+            --text-primary:    #0466ff;
+            --text-info:       #3b92d0;
+
+            --text-main:       #e6f1fc;
+            --text-secondary:  #beccda;
+            --text-muted:      #919aaa;
+
+            --accent-blue:     #065ade;
+            --accent-gold:     #d4b82a;
+            --accent-purple:   #a755ff;
+            --accent-red:      #b24a4a;
+            --accent-orange:   #e1653f;
+
+            --select-hover:     #b24a4a;
+            --select-selected:  #2441a6;
+            --select-dropdown:  #141d2f;
+
+            --select-input:     #0f1423;
+
+            --border-color:   rgba(255, 255, 255, 0.08);
+            --border-strong:  rgba(255, 255, 255, 0.15);          
+
+            --shadow-card:    8px 8px 20px rgba(0,0,0,0.5),
+                              -2px -2px 6px rgba(0,0,0,0.2);
+            --shadow-button:  0 4px 12px rgba(0,0,0,0.4);
+         }
+
+         body {
+            background-color: var(--bg-body);
+            min-height: 100vh;
          }
 
          .wireframe { border: 0px solid white; } 
-         body { background: var(--color-bg-body); min-height: 100vh } 
-         * { color: var(--color-text-primary) }
+         * { color: var(--text-main) }
+         
          #sidebar { z-index: 1021 }
+
          .btn { border: 0 !important; --bs-btn-border-width: 0 !important }
-         .btn-important { background-color: var(--color-important); color: black; font-weight: 700}
-         .btn-outline-primary { border-color: #3155d0 !important;}
-         .btn-success { background-color: var(--color-success) !important; }
-         .btn-primary { background-color: var(--color-bg-primary) !important; }
-         .btn-muted { background-color: var(--color-btn-muted) !important;}
+         .btn-important { background-color: var(--bg-important); color: black; font-weight: 700}
+         .btn-success { background-color: var(--bg-success) !important; }
+         .btn-muted { background-color: var(--bg-muted) !important;}
          .btn-transparent { background-color: transparent !important;}
-         .btn-outline-primary:hover { background-color: #3155d0 !important;}
-         .text-accent { color: var(--color-accent) !important; }
-         .text-danger { color: var(--color-danger) !important; }
+         .btn-primary { background: var(--bg-primary) !important; border: none !important; }
 
-         .blue-line { border-bottom: 1px solid var(--color-border-blue); }
+         a { color: var(--accent-blue); }
+         a:hover { color: var(--accent-gold); }
+
+         .text-main { color: var(--text-main) }
+         .text-muted { color: var(--text-muted) !important; }
+         .text-danger { color: var(--text-danger) !important; }
+         .text-accent-orange { color: var(--accent-orange) }
+         .text-accent-blue { color: var(--accent-blue) }
+
          
-         [class*=" add-"] i, [class^="add-"] i { color: var(--color-success) }
-         [class*=" remove-"] i, [class^="remove-"] i { color: var(--color-danger) }
-         textarea:not([readonly]), input:not([readonly]) {
-            background-color: var(--color-bg-input) !important;
+         [class*=" add-"] i, [class^="add-"] i { color: var(--bg-success) }
+         [class*=" remove-"] i, [class^="remove-"] i { color: var(--bg-danger) }
+         
+         textarea:not([readonly]):not(.select2-search__field), input:not([readonly]) {
+            background-color: var(--bg-elevated) !important;
             border: 0 !important;
-            color: var(--color-text-primary) !important;
+            color: var(--text-main) !important;
          }
-         ::placeholder { color: var(--color-text-muted) !important }
-
-         .card { background-color: var(--color-bg-card); border: 1px solid var(--color-bg-input);}
-         .color-muted { color: var(--color-btn-muted) !important }
-         .color-danger { color: var(--color-danger)}
-         .color-primary { color: var(--color-bg-primary) }
-         .tag { display: inline-block; background-color: var(--color-bg-info); border-radius: 5px; padding: 2px 10px;  }
-         .tag-muted { background-color: var(--color-bg-input);}
-
-         input::-webkit-outer-spin-button,
-         input::-webkit-inner-spin-button {
-         -webkit-appearance: none;
-         margin: 0;
+         input:focus, textarea:focus:not(.select2-search__field) {
+            box-shadow: rgba(6, 90, 222, 0.7) 3px 3px !important;
          }
 
-         input[type=number] {
-         -moz-appearance: textfield;
+         ::placeholder { color: var(--text-muted) !important }
+
+         .custom-card { 
+            background-color: var(--bg-surface);
+            /*border: 1px solid var(--border-color);*/
+            /*box-shadow: var(--shadow-card);*/
+            border-radius: 0.5rem;
+            color: var(--text-main);
          }
-         .select2-dropdown { background-color: var(--color-bg-input) !important;}
-         .select2-results__option--selected { background-color: var(--color-important) !important; color: black !important; }
+         .card-blur {
+            background-color: #1c2233 !important;
+            background: 
+               radial-gradient(circle at 0% 0%, rgba(58, 84, 201, 0.25), transparent 50%),
+               radial-gradient(ellipse at 100% 100%, rgba(58, 84, 201, 0.25), transparent 50%) !important;
+         }
+
+         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0; var
+         }
+
+         input[type=number] { -moz-appearance: textfield; }
+
+         .select-wrapper { position: relative }
+         .select2-dropdown { 
+            background-color: var(--bg-surface) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 0 !important
+         }
+         .select2-selection, select:not(.select2) { 
+            border: 0px !important;
+            box-shadow: none !important;
+            background-color: var(--select-input) !important;
+         }
+         .select2-selection--single, select:not(.select2) { 
+            border-bottom: 1px solid var(--accent-blue) !important;
+            background-image: none !important; /*the arrow*/
+         }
+         .select2-selection--single::after, .select-wrapper::after {/* the V */
+           content: "\f078";
+           font-family: "Font Awesome 7 Free";
+           font-weight: 900;
+           color: var(--bg-muted);
+           position: absolute;
+           top: 50%;
+           right: 12px;
+           transform: translateY(-50%);
+           pointer-events: none;
+         }
+         .select2-selection__placeholder, select:not(.select2) { color: var(--text-muted) !important }
+         .select2-selection__rendered { color: white !important}
+         .select2-selection::focus { box-shadow: none !important; }
+         .select2-results__option--selected { background: var(--select-selected) !important; }
          .select2-results__option--highlighted.select2-results__option--selectable { 
-         background-color: var(--color-bg-primary) !important;
+            background-color: var(--select-hover) !important;
+            color: white !important;
          }
-         .select2-selection { background-color: var(--color-bg-input) !important; border: 0 !important}
-         
-         .select2-results__group { color: var(--color-accent) !important}
+         .select2-results__group { color: var(--accent-gold) !important}
+         .select2-selection__choice { background-color: var(--bg-purple); border: 0 !important; position: relative;}
+         .select2-selection__choice__remove { 
+            background-image: none !important; /* the x */
+            position: absolute;
+            top: 0;
+            left:0;
+            width: 100% !important;
+            height: 100% !important; 
+         }
+
          .errorlist li { color: var(--color-danger) !important }
 
          .d-hidden { visibility: hidden; height: 0px !important; width: 0px !important; position: fixed !important;
             left: -9999px !important; top: -9999px !important;}
+
+         .tag {
+            border: 0;
+            border-radius: 5px;
+            padding: 3px 5px;
+         }
+         .text-normal { font-size: calc(1vw + 0.1em); }
+         .text-title { font-size: calc(1vw + 1.5em); font-weight: bold; color: var(--accent-gold)}
+         .anchor-btn { padding: 10px 25px; border-radius: 5px; color: white; text-decoration: none }
+         .anchor-btn:hover { color: white }
+         .anchor-btn-secondary { background-color: var(--bg-secondary);}
+         .anchor-btn-secondary:hover { background-color: var(--bg-primary);}
+
+         .anchor-btn-important { background-color: var(--bg-important); }
+         .anchor-btn-important:hover { background-color: var(--bg-primary);}
+
+         /*to hide selects not initialized */
+         select.select2 {
+            opacity: 0;
+            position: absolute;
+            pointer-events: none;
+         }
       </style>
    {% endblock styles %}
    {% block sidebarStyle %}
@@ -158,6 +262,89 @@
       document.body.addEventListener('htmx:targetError', function(evt) {
          document.getElementById('error-box').textContent = 'Target not found: ' + evt.detail.target;
       });
+
+      const prepareSelect2 = function(selector) {
+         var $el = $(`#${selector}`);
+         if (!$el.length) return;
+
+         var params = {}
+         params.placeholder = $el.data('placeholder') || 'Select an option';
+         params.width = $el.data('width') || '100%';
+         params.dropdownParent = $(`#${$el.data('dropdownParent') || `${selector}-dropdownParent`}`);
+         params.allowClear = $el.data('allowClear') === true;
+
+
+         if ($el.data('removeSearch') === true) params.minimumResultsForSearch = Infinity;
+         if ($el.data('customTemplateSelect') === true) {
+            params.templateSelection = function(data) {
+               var displayInPill = $(data.element).data('displayInPill');
+               return displayInPill || data.text;
+            }
+         }
+         params.theme = 'bootstrap-5';
+         params.templateResult = function(data) { return data.text; };
+
+         if ($el.data('isAjax')) {
+            params.ajax = {
+               url: $el.data('ajaxUrl'),
+               dataType: 'json',
+               delay: 250,
+               data: function (params) {
+                  return { query: params.term };
+               },
+               processResults: function (data) {
+                  return { 
+                     results: data.map((item) => ({id: item.id, text: item.name}))
+                  };
+               }
+            };
+         }
+
+      
+         $el.select2(params);
+
+
+         if ($el.data('isMultiple') && $el.data('hasSelection') === undefined)
+            $el.val(['-999']).trigger('change'); //-999: 'ALL' option
+
+         $el.on('select2:opening', function(e) {
+            var denied = $(this).data('denyOpen');
+            if (denied == true) { e.preventDefault(); }
+         });
+
+         $el.on('select2:select', function(e) {
+            var id = e.params.data.id;
+            var $el = $(this);
+            if (id == "-999") {
+               $el.val(['-999']).trigger('change');
+            } else {
+               var selected = $el.val();
+               var all_index = selected.indexOf('-999');
+               if (all_index !== -1) {
+                  selected.splice(all_index, 1);
+                  $el.val(selected).trigger('change');
+               }
+            }
+         });
+      }
+
+      const initSelect2InsideModals = function() {
+         const container = document.getElementById('genericModalBody');
+
+         $(container).find('select.select2').each(function() {
+            if (!$(this).data('select2')) {
+                prepareSelect2(this.id);
+            }
+         });
+      }
+
+      // htmx event triggered after loading, and after the dom has loaded
+      document.body.addEventListener('htmx:afterSettle', function(evt) {
+          if (evt.detail.target.id === 'genericModalBody') {
+              initSelect2InsideModals();
+          }
+      });
    </script>
+
 </body>
 </html>

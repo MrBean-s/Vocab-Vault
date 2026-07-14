@@ -11,7 +11,7 @@ class LanguageForm(forms.ModelForm):
 
    countries = forms.ModelMultipleChoiceField(
       queryset=Country.objects.all().order_by('name'),
-      widget=forms.SelectMultiple(attrs={'class': 'select2'}),
+      widget=forms.SelectMultiple(attrs={'class': 'select2', 'data-placeholder': 'Select a country'}),
       required=False
    )
 
@@ -31,9 +31,12 @@ class LanguageForm(forms.ModelForm):
             CountryLanguage.objects.filter(language=self.instance)
             .values_list('country_id', flat=True)
          )
-         submitted_ids = {country.id for country in countries}
-         self.new_country_ids = submitted_ids - existing_ids
-         self.remove_country_ids = existing_ids - submitted_ids
+      else:
+         existing_ids = set()
+
+      submitted_ids = {country.id for country in countries}
+      self.new_country_ids = submitted_ids - existing_ids
+      self.remove_country_ids = existing_ids - submitted_ids
 
       return cleaned_data
 
@@ -156,12 +159,43 @@ class DefinitionForm(forms.ModelForm):
          )
       }
 
+   def save(self, commit=True):
+      definition = super().save(commit=False)
+      image_file = self.cleaned_data.get('image_file')
+      
+      if image_file:
+         old_img = definition.image
+
+         if definition.pk and old_img:
+            storage = old_img.file.storage
+            if storage.exists(old_img.file.name):
+               storage.delete(old_img.file.name)
+            old_img.delete()
+
+         new_img = Image.objects.create(file=image_file)
+         definition.image = new_img
+
+      if commit:
+         definition.save()
+
+      return definition
 
 
 class ExampleForm(forms.ModelForm):
+   part_of_speech = forms.ModelChoiceField(
+      queryset=PartOfSpeech.objects.none(),
+      widget=forms.Select(attrs={
+         'class': 'select2',
+         'data-allow-open': 'true',
+         'data-placeholder': 'Category',
+         'data-width': '45%',
+         'data-remove-search': 'true'
+      }),
+      required=False,
+   )
    class Meta:
       model = Example
-      fields = ['description', 'explanation', 'custom_audio', 'part_of_speech']
+      fields = ['description', 'explanation', 'part_of_speech']
       labels = {
       'description': 'Example ',
       'explanation': 'In other words / Explanation'
@@ -185,6 +219,16 @@ class ExampleForm(forms.ModelForm):
             }
          ),
       }
+   def __init__(self, *args, **kwargs):
+      lang = kwargs.pop('language', None)
+      is_last = kwargs.pop('is_last', False)
+      super().__init__(*args, **kwargs)
+      if lang:
+         self.fields['part_of_speech'].queryset = PartOfSpeech.objects.filter(language=lang)
+         self.fields['part_of_speech'].widget.attrs.update({
+            'backend-rendered': 'false' if is_last else 'true',
+            'data-select2-width': '45%',
+         })
 
 class SkipEmptyDeletedInlineFormSet(BaseInlineFormSet):
    def clean(self):
@@ -193,6 +237,17 @@ class SkipEmptyDeletedInlineFormSet(BaseInlineFormSet):
          if self._should_delete_form(form):
             # Discard all field errors – this row is going to be deleted
             form._errors = {}
+
+class BaseExampleFormSet(SkipEmptyDeletedInlineFormSet):
+   def __init__(self, *args, language=None, **kwargs):
+      self.language = language
+      super().__init__(*args, **kwargs)
+
+   def get_form_kwargs(self, index):
+      kwargs = super().get_form_kwargs(index)
+      kwargs['language'] = self.language
+      kwargs['is_last'] = (index == self.total_form_count() - 1)
+      return kwargs
 
 DefinitionFormSet = inlineformset_factory(
    Word, Definition,
@@ -205,7 +260,7 @@ DefinitionFormSet = inlineformset_factory(
 ExampleFormSet = inlineformset_factory(
    Definition, Example,
    form=ExampleForm,
-   formset=SkipEmptyDeletedInlineFormSet,
+   formset=BaseExampleFormSet,
    extra=1,
    can_delete=True
 )
@@ -255,4 +310,65 @@ class ModalSearchForm(forms.Form):
          raise forms.ValidationError("At least one filter is required.")
 
       return cleaned_data
+
+class LanguageAddSetForm(forms.Form):
+   language=forms.ModelChoiceField(
+      widget=forms.Select(attrs={'class': 'select2'}),
+      empty_label="Search for a language",
+      queryset=Language.objects.all().order_by('name')
+   )
+
+
+class LinkWordForm(forms.Form):
+   word_1_id = forms.IntegerField(
+      min_value=1,
+      required=True,
+      widget=forms.NumberInput(attrs={
+         'class': 'd-hidden',
+      })
+   )
+
+   word_2=forms.ModelChoiceField(
+      label="Related word",
+      widget=forms.Select(attrs={
+         'class': 'select2 select2-ajax',
+         'data-is-ajax': 'true',
+         'data-width': "100%",
+         'data-placeholder': "Search for a word"
+      }),
+      queryset=Word.objects.none()
+   )
+
+   relation_type = forms.ChoiceField(
+      choices=WordRelation.RelationType.choices,
+      required=False,
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )
+
+   def clean(self):
+      cleaned_data = super().clean()
+      word_1_id = cleaned_data.get('word_1_id')
+      selected_word = cleaned_data.get('word_2')
+      if word_1_id and selected_word:
+         if word_1_id == selected_word.pk:
+            raise forms.ValidationError("A word cannot be linked to itself.")
+
+         if WordRelation.objects.filter(word_1_id=word_1_id, word_2=selected_word).exists():
+            raise forms.ValidationError(f"This word is already linked to {selected_word.name}")
+
+      return cleaned_data
+
+   def __init__(self, *args, **kwargs):
+      ajax_url = kwargs.pop('ajax_url', None)
+      super().__init__(*args, **kwargs)
+
+      widget = self.fields['word_2'].widget
+      
+      if ajax_url is not None:
+         widget.attrs['data-ajax-url'] = ajax_url
+
+      if self.is_bound and 'word_2' in self.data:
+         submitted_id = self.data.get('word_2')
+         if submitted_id:
+            self.fields['word_2'].queryset = Word.objects.filter(pk=submitted_id)
 

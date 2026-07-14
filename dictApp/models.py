@@ -1,20 +1,40 @@
 from django.db import models
 from django.db.models import Q
-
+import json
 
 
 class Language(models.Model):
    name = models.CharField(max_length=200)
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
+   in_user_set = models.BooleanField(default=False)
+   added_manually = models.BooleanField(default=False)
+   google_ngram_code = models.CharField(max_length=10, blank=True)
+
+   def __str__(self):
+      return self.name
+
 
 class Word(models.Model):
    name = models.CharField(max_length=200)
    added_at = models.DateTimeField(auto_now_add=True)
+   is_idiom = models.BooleanField(default=False)
 
    language = models.ForeignKey(Language, on_delete=models.PROTECT)
+   related_words = models.ManyToManyField(
+      'Word',
+      through='WordRelation',
+      through_fields=('word_1', 'word_2'),
+      symmetrical=False,
+      related_name='+',
+      blank=True
+   )
 
    class Meta:
       unique_together = ('name', 'language')
+
+   def __str__(self):
+      return self.name
+
 
 
 class Definition(models.Model):
@@ -35,7 +55,37 @@ class Definition(models.Model):
       choices = ForgettingFrequency.choices,
       null=True,
       blank=True
-   )  
+   )
+
+   def to_json(self, all_lang_countries_ids=None):
+      data = {
+         "id": self.id,
+         "description": self.description,
+         "origin": self.origin or "",
+         "word_id": self.word.id if self.word else None,
+         "image_id": self.image.id if self.image else None,
+         "image_path": self.image.file.url if (self.image and self.image.file) else "",
+         "forgetting_frequency": self.forgetting_frequency,
+         "countries": [
+            {"id": cty.id, "name": cty.name, "iso_code": cty.iso_code}
+            for cty in self.country_tags.all()
+         ],
+         "all_countries": False,
+         "examples": [ex.to_json() for ex in self.examples.all()]
+      }
+      if all_lang_countries_ids is not None:
+         selected_ids = {c["id"] for c in data["countries"]}
+         data["all_countries"] = True if selected_ids == all_lang_countries_ids else False
+
+      return data
+
+   def get_selected_countries_ids(self):
+      selected_ids = { cty.id for cty in self.country_tags.all() }
+      all_lang_countries_ids = {c.id for c in self.word.language.countries.all()}
+      if selected_ids == all_lang_countries_ids:
+         return ['-999']
+      return list(selected_ids)
+
 
 
 class Example(models.Model):
@@ -48,6 +98,15 @@ class Example(models.Model):
       blank=True)
    definition = models.ForeignKey(Definition, related_name="examples", on_delete=models.CASCADE,
       null=False)
+
+   def to_json(self):
+      return {
+         "description": self.description,
+         "explanation": self.explanation or "",
+         "created": self.created.strftime("%Y-%m-%d %H:%M:%S"),
+         "part_of_speech": self.part_of_speech.name if self.part_of_speech else ""
+      }
+
 
 
 class Source(models.Model):
@@ -69,7 +128,7 @@ class Source(models.Model):
       choices = SourceCategory.choices,
       null=True,
       blank=True
-)  
+   )  
 
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True, blank=True)
    examples = models.ManyToManyField(
@@ -130,10 +189,13 @@ class Image(models.Model):
 
 class PartOfSpeech(models.Model):
    name = models.CharField(max_length=50, null=False)
-   language = models.ForeignKey(Language, on_delete=models.CASCADE)
+   language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name='parts_of_speech')
 
    class Meta:
       unique_together = ('name', 'language')
+
+   def __str__(self):
+      return self.name
 
 
 class Country(models.Model):
@@ -156,3 +218,21 @@ class CountryLanguage(models.Model):
 
    class Meta:
       unique_together = ('country', 'language')
+
+class WordRelation(models.Model):
+   word_1 = models.ForeignKey(Word, on_delete=models.CASCADE, related_name='+')
+   word_2 = models.ForeignKey(Word, on_delete=models.CASCADE, related_name='+')
+
+   class RelationType(models.TextChoices):
+      SYNONYM = 'SYN', 'SYNONYM'
+      ANTONYM = 'ANT', 'ANTONYM'
+
+   relation_type = models.CharField(
+      max_length=3,
+      choices = RelationType.choices,
+      null=False,
+      blank=False
+   )
+
+   class Meta:
+      unique_together = ('word_1', 'word_2')
