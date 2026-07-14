@@ -5,11 +5,64 @@
 {% block sidebar %}{% endblock %}
 {% block sidebarStyle %}{% endblock %}
 
-{% block additionalStyles %}{% endblock additionalStyles %}
+{% block additionalStyles %}
+<style>
+   .image-wrapper{
+      width: 100%; height: 120px; overflow: hidden; position: relative;
+      border-radius: 5px;
+   }
+   .container-custom { 
+      width: 100%;
+   }
+   .image-wrapper::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: 
+         linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1));
+       
+     pointer-events: none;
+   }
+
+   .language-grid {
+     display: grid;
+     gap: 1.5rem;
+     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+   }
+   @media (min-width: 576px) {
+     .language-grid {
+       grid-template-columns: repeat(2, 1fr);
+     }
+   }
+
+   /* Extra‑extra‑large – 3 columns */
+   @media (min-width: 1400px) {
+     .language-grid {
+       grid-template-columns: repeat(3, 1fr);
+     }
+     .container-custom {
+         width: 90%;
+         margin-left: auto;
+         margin-right: auto;
+     }
+   }
+
+   @media (min-width: 1921px) {
+     .language-grid {
+       grid-template-columns: repeat(3, 1fr);
+     }
+     .container-custom {
+         width: 60%;
+         margin-left: auto;
+         margin-right: auto;
+     }
+   }
+</style>
+{% endblock additionalStyles %}
 
 {% block innerbody %}
-<div class="container-fluid">
-   <div class="pt-5 wireframe w-95 mx-auto d-flex justify-content-center" style="margin-top: 20px;">
+<div class="container-custom">
+   <div class="pt-5 wireframe w-95 mx-auto d-flex justify-content-center" style="padding-top: 20px;">
       <div class="w-25">
          <a href="{% url 'start_screen' %}"><i class="fa-solid fa-house fs-2"></i></a>
       </div>
@@ -41,59 +94,56 @@
    </div>
 
    <div class="wireframe w-95 mx-auto">
-      <div class="row gx-5 gy-4">
+      <div class="language-grid">
       {% for lang in languages %}
-         <div class="col-4 {% if languages|length == 1 %}offset-3{% endif %}">
-            <div class="lang-card card rounded text-light px-5 py-4 position-relative"
-               style="height: 300px;">
-               <div class="d-flex justify-content-between align-items-center w-100">
-                  <div class="fs-4">{{lang.name}}</div>
-                  <a href="{% url 'lang_add_set_with_id' lang_id=lang.id %}" class="add-to-home"><i class="fa-solid fa-house-medical"></i></a>
-               </div>
-               <div class="wireframe row" style="height: 120px; margin-top: 34px">
-                  <div class="col-7 wireframe" style="overflow: hidden;">
-                     <div class="d-flex gap-3">
-                        <p><b>Word count:</b></p>
-                        <p>{{lang.word_set.count}}</p>
-                     </div>
-                     <div name="" id="" style="overflow: auto; max-height: 70px;">
-                        <span>
-                        {%for cty in lang.countries.all%}{{cty.name}}{%if not forloop.last%}, {%endif%}{%endfor%}
-                        </span>
-                     </div>
+         <div class="lang-card custom-card text-light px-4 py-3 position-relative"
+            style="height: 300px;">
+            <div class="d-flex justify-content-between align-items-center w-100">
+               <div class="fs-4">{{lang.name}}</div>
+               <a href="{% url 'lang_add_set_with_id' lang_id=lang.id %}" class="add-to-home"><i class="fa-solid fa-house-medical"></i></a>
+            </div>
+            <div class="wireframe row" style="height: 120px; margin-top: 34px">
+               <div class="col-7 wireframe" style="overflow: hidden;">
+                  <div class="d-flex gap-3">
+                     <p><b>Word count:</b></p>
+                     <p>{{lang.word_set.count}}</p>
                   </div>
-                  <div class="col-5 wireframe d-flex justify-content-center">
-                     <div style="width: 100%; height: 120px; overflow: hidden;
-                        position: relative;">
-                        {% if lang.image.file %}
-                        <img src="{{ lang.image.file.url }}" alt="{{ lan.name }}"
-                           style="width: 100%; height: 100%; object-fit: cover;">
-                        {% endif %}
-                     </div>
+                  <div name="" id="" style="overflow: auto; max-height: 70px;">
+                     <span>
+                     {%for cty in lang.countries.all%}{{cty.name}}{%if not forloop.last%}, {%endif%}{%endfor%}
+                     </span>
                   </div>
                </div>
-               <div class="mt-4 d-flex gap-5 justify-content-between align-items-center">
-                  <a data-bs-toggle="modal"
-                     data-bs-target="#genericModal"
-                     hx-get="{% url 'lang_edit_form' lang_id=lang.id %}" hx-target="#genericModalBody"
-                     hx-vals='{"can_edit_img": "{{lang.added_manually}}"}'
-                     hx-trigger="click" hx-target-error="#error-box" style="cursor: pointer;">
-                     <i class="fa-solid fa-pen-to-square yellow pe-4"></i>Edit
-                  </a>
-                  {% if lang.added_manually %}
-                  <a style="bottom: 20px; right: 20px; position: absolute;
-                     right: 24px; bottom: 24px; cursor: pointer;"
-                     class="remove-lang"
-                     hx-get="{% url 'generic_confirm_delete' %}"
-                     hx-vals='{"type": "Language", "name": "{{ lang.name }}", "delete_url":"{% url 'lang_delete' lang.id %}"}'
-                     hx-target="#genericModalBody"
-                     hx-trigger="click"
-                     data-bs-toggle="modal"
-                     data-bs-target="#genericModal">
-                     <i class="fa-solid fa-trash"></i>
-                  </a>
-                  {% endif %}
+               <div class="col-5 wireframe d-flex justify-content-center">
+                  <div class="image-wrapper">
+                     {% if lang.image.file %}
+                     <img src="{{ lang.image.file.url }}" alt="{{ lan.name }}"
+                        style="width: 100%; height: 100%; object-fit: cover;" >
+                     {% endif %}
+                  </div>
                </div>
+            </div>
+            <div class="mt-4 d-flex gap-5 justify-content-between align-items-center">
+               <a data-bs-toggle="modal"
+                  data-bs-target="#genericModal"
+                  hx-get="{% url 'lang_edit_form' lang_id=lang.id %}" hx-target="#genericModalBody"
+                  hx-vals='{"can_edit_img": "{{lang.added_manually}}"}'
+                  hx-trigger="click" hx-target-error="#error-box" style="cursor: pointer;">
+                  <i class="fa-solid fa-pen-to-square yellow pe-4"></i>Edit
+               </a>
+               {% if lang.added_manually %}
+               <a style="bottom: 20px; right: 20px; position: absolute;
+                  right: 24px; bottom: 24px; cursor: pointer;"
+                  class="remove-lang"
+                  hx-get="{% url 'generic_confirm_delete' %}"
+                  hx-vals='{"type": "Language", "name": "{{ lang.name }}", "delete_url":"{% url 'lang_delete' lang.id %}"}'
+                  hx-target="#genericModalBody"
+                  hx-trigger="click"
+                  data-bs-toggle="modal"
+                  data-bs-target="#genericModal">
+                  <i class="fa-solid fa-trash"></i>
+               </a>
+               {% endif %}
             </div>
          </div>
       {% endfor %}
@@ -107,13 +157,4 @@
 
 
 {% block additionalScripts %}
-<script>
-   const reloadSelect2Items = function() {
-      $('#id_countries').select2({
-         theme: 'bootstrap-5',
-         placeholder: 'Choose an option...',
-         dropdownParent: $('#genericModal .modal-content')
-      });
-   }
-</script>
 {% endblock %}

@@ -9,17 +9,14 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from collections import defaultdict
-
+from django.urls import reverse
 
 
 def start_screen(request):
    languages = Language.objects.select_related('image').filter(in_user_set=True).all()
-   remaining = len(languages) % 3
 
    return render(request, "start_page.html", {
       "languages": languages,
-      "substract_len_mod3": -remaining,
-      "twelve_mod3": round(12 / remaining if remaining > 0 else 12)
    })
 
 
@@ -126,12 +123,14 @@ def dashboard(request, lang_id):
 
 def word(request, lang_id, word_id=None):
    language = get_object_or_404(
-      Language.objects.prefetch_related('countries'),
+      Language.objects.prefetch_related('countries', 'parts_of_speech'),
       pk=lang_id
    )
    
    word = get_object_or_404(
-      Word.objects.prefetch_related('definitions__country_tags'),
+      Word.objects
+         .select_related('language')
+         .prefetch_related('language__countries', 'definitions__country_tags'),
       pk=word_id
    ) if word_id else None
 
@@ -139,19 +138,17 @@ def word(request, lang_id, word_id=None):
    def_selected_ctys = {}
 
    if word:
-      all_lang_countries_ids = {c.id for c in language.countries.all()}
-      for defn in word.definitions.all():
-         selected_ids = {c.id for c in defn.country_tags.all()}
-         if selected_ids == all_lang_countries_ids:
-            def_selected_ctys[defn.id] = None # flag for 'ALL' in the template
-         else:
-            def_selected_ctys[defn.id] = list(selected_ids)
+      def_selected_ctys = {
+         defn.id: defn.get_selected_countries_ids()
+         for defn in word.definitions.all()
+      }
 
    if request.method == 'POST':
       word_form = WordForm(request.POST, instance=word)
 
       def_formset = DefinitionFormSet(
          request.POST,
+         request.FILES,
          instance=word,
          prefix='definitions',
       )
@@ -164,7 +161,7 @@ def word(request, lang_id, word_id=None):
 
          def_id = request.POST.get(f'definitions-{i}-id')
          def_instance = Definition.objects.get(pk=def_id) if def_id else None
-         ex_fs = ExampleFormSet(request.POST, prefix=prefix, instance=def_instance)
+         ex_fs = ExampleFormSet(request.POST, prefix=prefix, instance=def_instance, language=language)
          example_formsets.append(ex_fs)
 
       if (word_form.is_valid() and def_formset.is_valid() and
@@ -191,7 +188,7 @@ def word(request, lang_id, word_id=None):
                countries = Country.objects.filter(id__in=country_set)
                definition.country_tags.set(countries)
 
-            # Use the original index to pick the correct example formset
+            # original index to pick the correct example formset
             ex_fs = example_formsets[idx]
             examples = ex_fs.save(commit=False)
             for ex in examples:
@@ -220,7 +217,8 @@ def word(request, lang_id, word_id=None):
       for i, def_form in enumerate(def_formset):
          prefix = f'def-{i}-examples'
          def_instance = def_form.instance if def_form.instance.pk else None
-         ex_fs = ExampleFormSet(prefix=prefix, instance=def_instance)
+         ex_fs = ExampleFormSet(prefix=prefix, instance=def_instance, language=language)
+
 
          example_formsets.append(ex_fs)
    
@@ -382,12 +380,37 @@ def search(request, lang_id):
    
    
 def word_details(request, lang_id, word_id):
-   language = get_object_or_404(Language, pk=lang_id)
-   word = get_object_or_404(Word, pk=word_id)
+   language = get_object_or_404(
+      Language.objects.prefetch_related('countries', 'parts_of_speech'),
+      pk=lang_id
+   )
+   
+   word = get_object_or_404(
+      Word.objects.prefetch_related('definitions__country_tags'),
+      pk=word_id
+   )
+
+   rels = WordRelation.objects.filter(word_1=word).select_related('word_2')
+   related_words = [
+      { "id": rel.word_2.id, "name": rel.word_2.name, "relation": rel.get_relation_type_display().title() }
+      for rel in rels
+   ]
+   
+   all_lang_countries_ids = {c.id for c in language.countries.all()}
+   context = { 
+      "name": word.name,
+      "id": word.id,
+      "definitions": [
+         defn.to_json(all_lang_countries_ids=all_lang_countries_ids)
+         for defn in word.definitions.all()
+      ]
+   }
 
    return render(request, 'word_details.html', {
       'lang_id': lang_id,
-      'word': word
+      'ngram_code': language.google_ngram_code,
+      'context': context,
+      'related_words': related_words
    })
 
 def countries(request):
@@ -416,3 +439,65 @@ def delete_country(request, cty_id):
       messages.success(request, "Country deleted.")
 
       return redirect('countries')
+
+def show_image(request, img_id):
+   instance = get_object_or_404(Image, pk=img_id)
+
+   return render(request, 'partial/_image_preview.html', {'image': instance})
+
+
+def link_word(request, lang_id, word_id):
+   word1 = get_object_or_404(Word, pk=word_id)
+   ajax_url = reverse('search_word', kwargs={'lang_id': lang_id})
+
+   if request.method == "POST":
+      form = LinkWordForm(request.POST, ajax_url=ajax_url)
+
+      if form.is_valid():
+         word2 = form.cleaned_data['word_2']
+         rel_type = form.cleaned_data['relation_type']
+
+
+         if word2.language.pk == lang_id:
+            WordRelation.objects.get_or_create(
+               word_1=word1,
+               word_2=word2,
+               defaults={'relation_type': rel_type}
+            )
+            WordRelation.objects.get_or_create(
+               word_1=word2,
+               word_2=word1,
+               defaults={'relation_type': rel_type}
+            )
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': f'/lang/{lang_id}/word/{word_id}/'})
+         return redirect('word_details', lang_id=lang_id, word_id=word_id)
+   else:
+      form = LinkWordForm(ajax_url=ajax_url)
+
+   form.fields['word_1_id'].initial = word1.id
+
+
+   return render(request, 'forms/_link_word_form.html', {
+      "form": form,
+      "lang_id": lang_id,
+      "word_id": word_id
+   })
+
+
+def word_only_search(request, lang_id):
+   query = request.GET.get('query', '')
+   items = []
+   print(f'query: {query} lang_id: {lang_id}')
+   if query:
+      items = list(
+         Word.objects.filter(
+            name__icontains=query, language_id=lang_id
+         ).values('id', 'name').order_by('name')[:15]
+      )
+   
+   return JsonResponse(items, safe=False)
+
+
+

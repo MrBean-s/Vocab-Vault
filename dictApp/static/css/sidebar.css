@@ -1,23 +1,40 @@
-#sidebar { background-color: #151b29 !important; border-right: 1px solid #1d263c }
+#sidebar { 
+   background-color: var(--bg-sidebar);
+   border-right: 1px solid var(--border-color)
+}
+.banner { height: 15vh }
+.mid-section { height: 75vh; overflow: auto }
+.lower-section { height: 10vh; }
+
 .sidebar-active .sidebar-item{ 
-        background-color: var(--color-bg-primary) !important;
-        border-radius: 50%; width: 46px; height: 46px;
-        position: absolute; top: 7px; left: 7px; right: 7px;
+        background-color: var(--accent-blue) !important;
+        border-radius: 50%; 
+        width: 2.35vw; height: 2.35vw;
+        position: absolute; top: 0.335vw; left: 0.335vw;
         display: flex; align-items: center; justify-content: center; 
 }
 
-.nav-pill { background-color: var(--color-bg-pill); width: 60px; height: 60px; position: relative; display: flex;
-        align-items: center; justify-content: center;}
-.nav-pill-top { border-radius: 50% 50% 0 0; }
-.nav-pill-bottom { border-radius: 0 0 50% 50%; }
-.nav-icon { font-size: 20px;}
+.nav-pill { 
+        background-color: var(--bg-sidebar-pill); 
+        width: 3vw; height: 3vw; 
+        position: relative; 
+        display: flex; align-items: center; justify-content: center; 
+}
+.nav-pill:not(.nav-pill-bottom):not(.nav-circle) { 
+        box-shadow: 0 0.9rem 0 0 var(--bg-sidebar-pill); 
+        margin-bottom: 0.8rem 
+}
+.nav-pill-top { border-radius: 50% 50% 0 0;}
+.nav-pill-bottom { border-radius: 0 0 50% 50%;}
+.nav-icon { font-size: 1vw}
 .nav-pill-label { width: 100%; height: 60px; display: flex; align-items: center;}
 .nav-pill-left { border-radius: 50% 0 0 50% ;}
 .nav-pill-right { border-radius: 0 50% 50% 0 ;}
-.nav-circle {  background-color: var(--color-bg-pill); border-radius: 50%; width: 46px; height: 46px;}
+.nav-circle {  background-color: var(--bg-sidebar-pill); border-radius: 50%; width: 3vw; height: 3vw;}
 
-.nav-item { display: flex; justify-content: center; align-items: center; gap: 15px;}
-.label-active { font-weight: bold; color: var(--color-text-primary);}
-.nav-label { cursor: pointer; font-size: 18px;}
+.nav-item { display: flex; justify-content: center; align-items: center;}
+.label-active { font-weight: bold; color: var(--text-primary);}
+.nav-label { cursor: pointer; font-size: 1vw; }
+.nav-label:not(.nav-label-bottom) { margin-bottom: 0.8rem }
 
-.right-side { width: calc(100vw - 280px); margin-left: 280px; }
+.right-side { width: 85vw; margin-left: 15vw; }

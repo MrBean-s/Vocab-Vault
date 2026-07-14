@@ -4,7 +4,7 @@
 
 
 {% if results_dict.words %}
-   <h5 class="text-accent">Words</h5>
+   <h5 class="text-accent-orange">Words</h5>
    <div class="word-results">
    {% for item in results_dict.words %}
       <div class="">
@@ -16,7 +16,7 @@
    
 {% if results_dict.definitions %}
    <hr>
-   <h5 class="text-accent">Definitions</h5>
+   <h5 class="text-accent-orange">Definitions</h5>
    {% for item in results_dict.definitions %}
       <div class="mb-2">
          <span>{{ item.definition }}</span>
@@ -28,7 +28,7 @@
       
 {% if results_dict.examples %}
    <hr>
-   <h5 class="text-accent">Examples</h5>
+   <h5 class="text-accent-orange">Examples</h5>
    {% for item in results_dict.examples %}
       <div class="mb-2">
          {% for ex in item.examples %}

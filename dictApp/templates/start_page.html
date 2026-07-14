@@ -1,4 +1,5 @@
 {% extends 'base.html'%}
+{% load static %}
 
 {% block title %}Start Page{% endblock %}
 
@@ -6,26 +7,81 @@
 {% block sidebarStyle %}{% endblock %}
 
 {% block additionalStyles %}
+<link rel="stylesheet" href="{% static 'swiper/swiper-bundle.min.css' %}">
+<style>
+   .action-text { font-size: calc(1vw + 0.5em);}
+   body { 
+      background:
+         radial-gradient(circle at 30% -20%, rgba(27, 43, 125, 0.25), transparent 40%),
+         radial-gradient(ellipse at 50% 100%, rgba(27, 43, 125, 0.25), transparent 40%),
+         linear-gradient(135deg, #0a0e17 0%, #0d1321 100%);
+   }
+
+   /* Small (sm) – 576px */
+   @media (min-width: 36rem) {
+      #lang-start-card { width: 90vw; }
+   }
+
+   /* Medium (md) – 768px */
+   @media (min-width: 48rem) {
+   }
+
+   /* Large (lg) – 992px */
+   @media (min-width: 62rem) {
+   }
+
+   /* Extra large (xl) – 1200px */
+   @media (min-width: 75rem) {
+      #lang-start-card { width: 75vw; }
+   }
+
+   .swiper-slide-active.card-float {
+      border-radius: 0.5rem;
+      /*box-shadow: 2px 2px 20px rgba(34, 61, 198, 0.5);*/
+      border: 1px solid var(--border-color);
+      background: 
+         radial-gradient(circle at 0% 0%, rgba(58, 84, 201, 0.25), transparent 50%),
+         radial-gradient(ellipse at 100% 100%, rgba(58, 84, 201, 0.25), transparent 50%);
+   }
+
+
+   /*.blur-right, .blur-left { position: relative; }
+   .blur-arrow::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 350px;
+      height: 100%;
+      z-index: 2;
+      background: linear-gradient(to right,
+         rgba(22, 27, 42, 0.15) 0%,
+         rgba(22, 27, 42, 0.05) 50%,
+         transparent 100%
+      );
+      backdrop-filter: blur(4px);
+   }
+   .blur-right::before { left: 100%; }
+   .blur-left::before { right: 100%; }*/
+</style>
 {% endblock additionalStyles %}
 
 {% block innerbody %}
 <div class="wireframe d-flex flex-column justify-content-center align-items-center"
    style="height: 100vh;">
-   <div class="d-inline-flex position-fixed" style="bottom: 5%; left: 10%;">
-      <a href="{% url 'languages' %}" class="d-flex gap-2 text-light text-decoration-none">
-         <h4><i class="fa-solid fa-shrimp" style="color: #bf562f;"></i></h4>
-         <h4>Create or edit a language</h4>
+   <div class="position-fixed d-flex justify-content-between" style="bottom: 5vh; width: 80vw;">
+      <a href="{% url 'languages' %}" class="d-flex gap-3 text-light text-decoration-none
+         action-text align-items-center">
+         <i class="fa-solid fa-shrimp" style="color: #bf562f;"></i>
+         <div>Create or edit a language</div>
+      </a>
+      <a href="{% url 'lang_modal_form' %}" class="d-flex gap-3 text-light text-decoration-none
+         action-text align-items-center">
+         <div>Leave</div>
+         <i class="fa-solid fa-right-from-bracket text-danger"></i>
       </a>
    </div>
-   
-   <div class="d-inline-flex position-fixed" style="bottom: 5%; left: 85%;">
-      <a href="{% url 'lang_modal_form' %}" class="d-flex gap-2 text-light text-decoration-none">
-         <h4>Leave</h4>
-         <h4><i class="fa-solid fa-right-from-bracket text-danger"></i></h4>
-      </a>
-   </div>
-   
-   <div class="d-inline-flex position-fixed" style="top: 3%; left: 95%;">
+   <div class="position-fixed d-flex justify-content-end" style="top: 2vh; width: 95vw;">
       <a href="{% url 'lang_modal_form' %}" class="text-light text-decoration-none">
          <div style="font-size: 48px;">
             <i class="fa-solid fa-circle-user"></i>
@@ -34,24 +90,23 @@
    </div>
 
    {% if languages %}
-   <a data-bs-toggle="modal" data-bs-target="#genericModal"
-      hx-get="{% url 'lang_add_set' %}" hx-target="#genericModalBody"
-      hx-trigger="click" hx-target-error="#error-box" 
-      class="text-decoration-none d-flex justify-content-center gap-3 add-lang position-fixed"
-      style="color: #c8c4cc; top: 10%; left: 43%;">
-
-      <i class="fa-solid fa-circle-plus"
-         style="font-size: 36px;"></i>
-      <h4 class="pt-1">Add a language</h4>
-   </a>
+   <div class="position-fixed d-flex justify-content-center" style="top: 10vh; width: 95vw;">
+      <a data-bs-toggle="modal" data-bs-target="#genericModal"
+         hx-get="{% url 'lang_add_set' %}" hx-target="#genericModalBody"
+         hx-trigger="click" hx-target-error="#error-box" 
+         class="text-decoration-none d-flex gap-3 add-lang action-text align-items-center"
+         style="color: #c8c4cc;">
+         <i class="fa-solid fa-circle-plus"></i>
+         <div>Add a language</div>
+      </a>
+   </div>
    {% endif %}
-   
-   <div class="card mx-auto wireframe w-75 d-flex flex-column justify-content-center
-      align-items-center position-relative" style="height: 60%;">
-      <h1 class="position-absolute start-50 translate-middle-x mt-3 text-light" 
-         style="top: 5%">
+   <div id="lang-start-card" class="custom-card wireframe d-flex flex-column justify-content-center
+      align-items-center position-relative" style="height: 60vh;">
+      <div class="position-absolute start-50 translate-middle-x mt-3 text-light" 
+         style="top: 5%; font-size: calc(1vw + 0.8em);">
          Choose a Language
-      </h1>
+      </div>
       <div class="wireframe w-100 h-50 d-flex justify-content-center align-items-center">
          {% if not languages %}
             <div class="col-12 mx-auto wireframe text-center p-4">
@@ -66,71 +121,32 @@
                </a>
             </div>
          {% else %}
-            <div class="row w-100">
-               <!-- Left arrow -->
-               <div class="col-1 d-flex align-items-center justify-content-center">
-                  {% if languages|length > 3 %}
-                     <button type="button" class="btn btn-outline-dark border-0"
-                        data-bs-target="#myMultiCarousel" data-bs-slide="prev">
-                           <span class="carousel-control-prev-icon"> </span>
-                     </button>
-                  {% endif %}
+            <div class="row w-100 h-100">
+               <div class="w-10 d-flex justify-content-center blur-right blur-arrow">
+                  <div class="swiper-button-prev" style="left: auto !important"></div>
                </div>
-            
-               <div id="myMultiCarousel" class="carousel slide col-10"
-                  data-bs-ride="false">
-                  <div class="carousel-inner">
-                  
-                  {% for lan in languages %}
-                  
-                     {% if forloop.counter0|divisibleby:3 and forloop.counter0 != 0 %}
-                        </div></div>
-                        <div class="carousel-item">
-                           <div class="row g-2">
-                     {% endif %}
-                           
-                     {% if forloop.first %}
-                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                        <div class="row g-2">
-                     {% endif %}
-                           
-                     <div class="col-{% if forloop.counter > languages|length|add:substract_len_mod3 %}{{twelve_mod3}}
-                        {% else %}4{% endif %} wireframe d-flex flex-column align-items-center
-                        justify-content-center mt-5 gap-3"
-                        style="height: 100%;">
-                     
-                        <a href="{% url 'word_list' lan.id %}" class="wireframe">
+               <div class="swiper mySwiper w-80">
+                 <div class="swiper-wrapper">
+                   {% for lan in languages %}
+                     <div class="swiper-slide card-float d-flex flex-column justify-content-center
+                        align-items-center">
+                        <a href="{% url 'word_list' lan.id %}" class="wireframe w-100 h-100 d-flex
+                           justify-content-center align-items-center flex-column gap-4 text-decoration-none position-relative">
                            {% if lan.image.file %}
                            <img src="{{ lan.image.file.url }}" alt="{{ lan.name }}"
-                              width="300" height="150">
+                              width="70%" height="40%">
                            {% else %}
                            <div style="height: 150px;"></div>
                            {% endif %}
-                        </a>
-                        <a href="{% url 'word_list' lan.id %}" class="wireframe
-                           text-light text-decoration-none m-0 p-0"
-                           style="font-size: 20px; margin-bottom: 10px;">
-                           {{ lan.name }}
+                           <div class="text-normal position-absolute" style="bottom: 2%">{{ lan.name }}</div>
+
                         </a>
                      </div>
-
-                     {% if forloop.last %}
-                     </div></div> <!-- close row w-100 and carousel-item -->
-                     {% endif %}
-                           
-                  {% endfor %}
-                           
-                  </div>
+                   {% endfor %}
+                 </div>
                </div>
-            
-               <!-- Right arrow -->
-               <div class="col-1 d-flex align-items-center justify-content-center">
-                  {% if languages|length > 3 %}
-                     <button type="button" class="btn btn-outline-dark border-0"
-                        data-bs-target="#myMultiCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon"></span>
-                     </button>
-                  {% endif %}
+               <div class="w-10 d-flex justify-content-center blur-left blur-arrow">
+                  <div class="swiper-button-next" style="right: auto !important"></div>
                </div>
             </div>
          {% endif %}
@@ -140,13 +156,26 @@
 {% endblock innerbody %}
    
 {% block additionalScripts %}
+<script src="{% static 'swiper/swiper-bundle.min.js' %}"></script>
 <script>
-   const reloadSelect2Items = function() {
-      $('#id_language').select2({
-         theme: 'bootstrap-5',
-         placeholder: 'Search for a language...',
-         dropdownParent: $('#genericModal .modal-content')
-      });
-   }
+   
+   new Swiper('.mySwiper', {
+      cssMode: true,
+      slidesPerView: 3,
+      spaceBetween: 16,
+      centeredSlides: true,
+      breakpoints: {
+         576: { slidesPerView: 1 },
+         700: { slidesPerView: 2 },
+         992: { slidesPerView: 3 },
+      },
+      navigation: {
+         nextEl: '.swiper-button-next',
+         prevEl: '.swiper-button-prev',
+      },
+      watchSlidesProgress: false,
+      mousewheel: false,
+      keyboard: true,
+   });
 </script>
 {% endblock %}

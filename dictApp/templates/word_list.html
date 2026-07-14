@@ -3,12 +3,23 @@
 {% block additionalStyles %}
 <style>
    .top-part { padding-top: 40px; padding-bottom: 40px;}
-   .pseudo-header {background-color: var(--color-table-header);}
-   .row-even {background-color: var(--color-table-even);}
-   .row-odd {background-color: var(--color-table-odd);}
-   .table-header { font-weight: bold; font-size: 1.4rem;}
-   .table-row, .table-cell {border: 1px solid var(--color-border);}
+  
+   /*.table-row{
+      border: 1px solid rgba(166, 138, 58, 0.2);
+         transition: background 0.2s;
+   }*/
+/*   .table-row:hover{
+      background: radial-gradient(ellipse at 50% 0%, rgba(180, 130, 40, 0.15), transparent 60%);
+   }*/
+   .pseudo-header { border-bottom: 1px solid var(--accent-blue); background: var(--bg-dark)}
+   /*.table-row { border-top: 1px solid var(--color-border); }*/
+   .row-even { background-color: #161b2a;}
+   .row-odd { background-color: #1d263c;}
+   .table-header-text { font-weight: bold; font-size: 1.4rem; color: var(--accent-gold); }
+   .word-name { color: var(--bg-info) }
+   /*.table-row, .table-cell {border: 1px solid var(--color-border);}*/
    .table-row { padding: 5px 10px; min-height: 50px;}
+   .table-separator { border: 1px solid var(--border-color); }
    .ex-number { color: var(--color-text-muted);}
    .word-name { font-size: 1.3rem; font-style: italic; font-weight: 600;}
    .def-text { hyphens: auto; font-size: 1.2rem;} 
@@ -46,8 +57,13 @@
    .circle-marker.danger { color: var(--color-danger); }
 
    .custom-tooltip { --bs-tooltip-bg: var(--color-bg-body); --bs-tooltip-color: white; }
-   .select2-results__group { color: var(--color-text-primary)}
-
+   .custom-square-check::before { 
+      background-color: var(--bg-primary); 
+      border-radius: 3px; 
+      padding: 1px 2px;
+   }
+   .custom-square-check { bottom: -3px; left: 60%; font-size: 0.8rem;}
+   .tag-region { background-color: var(--bg-info) }
 </style>
 {% endblock %}
 
@@ -113,36 +129,40 @@
       
    </div>
    
-   <div class="pseudo-table mb-5" id="word-list-table">
+   <div class="pseudo-table" id="word-list-table">
       <div class="pseudo-header row table-row sticky-top">
-      <div class="col-3 d-flex align-items-center"> <div class="table-header">Word</div></div>
-      <div class="col-7 d-flex justify-content-between">
-         <div class="d-flex gap-3 align-items-center">
-            <div class="table-header">Definition</div>
-            <i class="fa-regular fa-circle-question color-muted pt-1" style="font-size: 0.9rem;"
-               data-bs-toggle="tooltip" data-bs-html="true"
-               data-bs-title="Color shows forgetting frequency from quizzes.
-                  <br><br>Click rows with triangles for more info.">
-            </i>
+         <div class="col-3 d-flex align-items-center"> 
+            <div class="table-header-text">Word</div>
          </div>
-         <div class="d-flex gap-2">
-            <button class="btn btn-transparent" onclick="toggleIndicator()">
-               <span>Indicator</span>
-               <i class="fa-solid fa-eye"></i>
-            </button>
-            <button class="btn btn-transparent" onclick="toggleCollapse()">
-               <span>Collapse</span>
-               <i class="fa-solid fa-angles-down"></i>
-            </button>
+         <div class="col-7 d-flex justify-content-between">
+            <div class="d-flex gap-3 align-items-center">
+               <div class="table-header-text">Definition</div>
+               <i class="fa-regular fa-circle-question text-muted pt-1" style="font-size: 0.9rem;"
+                  data-bs-toggle="tooltip" data-bs-html="true"
+                  data-bs-title="Color shows forgetting frequency from quizzes.
+                     <br><br>Click rows with triangles for more info.">
+               </i>
+            </div>
+            <div class="d-flex gap-2">
+               <button class="btn btn-transparent" onclick="toggleIndicator()">
+                  <span>Indicator</span>
+                  <i class="fa-solid fa-eye"></i>
+               </button>
+               <button class="btn btn-transparent" onclick="toggleCollapse()">
+                  <span>Collapse</span>
+                  <i class="fa-solid fa-angles-down"></i>
+               </button>
+            </div>
          </div>
-      </div>
-      
-      <div class="col-2 d-flex justify-content-center pe-4"> <div class="table-header">Actions</div></div>
+         <div class="col-2 d-flex justify-content-center pe-4">
+            <div class="table-header-text">Actions</div>
+         </div>
       </div>
       {% for word in page_obj %}
-         <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%}">
+         <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%}"
+            {%if forloop.last%}last-row{%endif%}>
             <div class="word-column col-3 d-flex align-items-center gap-3" data-word-id="{{word.id}}">
-               <i class="fa-regular fa-clock color-muted"></i>
+               <i class="fa-regular fa-clock text-muted"></i>
                <div class="word-name">{{word.name}}</div>
             </div>
             <div class="col-7">
@@ -155,7 +175,7 @@
                               <details id="details_{{def.id}}" class="custom-marker has-example
                                  {% if def.forgetting_frequency %}details-{% if def.forgetting_frequency == 'NVR' %}success{% elif def.forgetting_frequency == 'RAR' %}important{% else %}danger{% endif %}{% endif %}">
                                  <summary>
-                                    {% if forloop.counter|divisibleby:2 %}<div class="tag tag-muted">UK</div>{% endif %}
+                                    {% if forloop.counter|divisibleby:2 %}<div class="tag tag-region">UK</div>{% endif %}
                                     <div class="def-text w-95">{{ def.description }}</div>
                                  </summary>
                                  <div class="details-content p-2 ps-5 pe-0">
@@ -194,19 +214,21 @@
             <div class="col-2 d-flex align-items-center justify-content-center">
                <div class="actions-column d-flex gap-4 pe-3">
                   <div class="check-icon">
-                     <i class="fa-solid fa-clock position-relative color-muted fs-3">
-                        <i class="fa-solid fa-square-check position-absolute start-50 fs-5"
-                           style="bottom: -1px;"></i>
+                     <i class="fa-solid fa-clock position-relative text-muted fs-3">
+                        <i class="custom-square-check fa-solid fa-check position-absolute text-main">
+                        </i>
                      </i>
                   </div>
                   <a href="{% url 'word_details' lang_id=lang_id word_id=word.id %}">
-                     <i class="fa-solid fa-arrow-right-to-bracket fs-3 color-primary"></i>
+                     <i class="fa-solid fa-arrow-right-to-bracket fs-3 text-accent-blue"></i>
                   </a>
                </div>
             </div>
          </div>
       {% endfor %}
    </div>
+
+   <div style="min-height: 6rem;"></div>
 </div>
 {% endblock innerbody %}
 

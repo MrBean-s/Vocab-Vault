@@ -225,7 +225,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          "countries": [
             "United Kingdom", "United States", "Canada", "Australia",
             "New Zealand", "Ireland"
-         ]
+         ],
+         "ngram_code": "en",
       },
       "Spanish": {
          "flag": "flags/Spanish.webp",
@@ -236,7 +237,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          "countries": [
             "Spain", "Mexico", "Argentina", "Colombia",
             "Venezuela", "Cuba"
-        ]
+        ],
+        "ngram_code": "es",
       },
       "French": {
          "flag": "flags/French.webp",
@@ -246,7 +248,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "France", "Belgium", "Switzerland", "Canada"
-        ]
+        ],
+        "ngram_code": "fr",
       },
       "German": {
          "flag": "flags/German.webp",
@@ -256,7 +259,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "Germany", "Austria", "Switzerland"
-         ]
+         ],
+         "ngram_code": "de",
       },
       "Italian": {
          "flag": "flags/Italian.webp",
@@ -266,7 +270,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "Italy", "San Marino", "Vatican City", "Switzerland"
-         ]
+         ],
+         "ngram_code": "it"
       },
       "Portuguese": {
          "flag": "flags/Portuguese.webp",
@@ -276,7 +281,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "Portugal", "Brazil"
-         ]
+         ],
+         "ngram_code": "pt"
       },
       "Russian": {
          "flag": "flags/Russian.webp",
@@ -286,7 +292,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "Russia", "Belarus", "Kazakhstan", "Kyrgyzstan"
-         ]
+         ],
+         "ngram_code": "ru"
       },
       "Japanese": {
          "flag": "flags/Japanese.webp",
@@ -298,7 +305,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "Japan"
-         ]
+         ],
+         "ngram_code": "ja"
       },
       "Chinese (Mandarin)": {
          "flag": "flags/Chinese.webp",
@@ -310,7 +318,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "China", "Taiwan", "Singapore"
-         ]
+         ],
+         "ngram_code": "zh"
       },
       "Korean": {
          "flag": "flags/Korean.webp",
@@ -321,7 +330,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "South Korea", "North Korea"
-         ]
+         ],
+         "ngram_code": "ko"
       },
       "Arabic": {
          "flag": "flags/Arabic.webp",
@@ -335,7 +345,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
             "Sudan", "Yemen", "Syria", "Jordan", "Tunisia",
             "Libya", "Lebanon", "Kuwait", "Oman", "Qatar",
             "United Arab Emirates"
-         ]
+         ],
+         "ngram_code": "ar"
       },
       "Turkish": {
          "flag": "flags/Turkish.webp",
@@ -345,7 +356,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "Turkey", "Cyprus"
-         ]
+         ],
+         "ngram_code": "tr"
       },
       "Thai": {
          "flag": "flags/Thai.webp",
@@ -357,7 +369,8 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
          ],
          "countries": [
             "Thailand"
-         ]
+         ],
+         "ngram_code": "th"
       },
    }
 
@@ -381,3 +394,6 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
             CountryLanguage.objects.get_or_create(language=language, country=country)
          except Country.DoesNotExist:
             pass
+
+      language.google_ngram_code = data["ngram_code"]
+      language.save()
