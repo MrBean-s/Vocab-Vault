@@ -12,6 +12,7 @@
       <link rel="stylesheet" href="{% static 'select2/select2-4.1.0.min.css' %}">
       <link rel="stylesheet" href="{% static 'select2/select2-bootstrap-5-theme.min.css' %}">
       <link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
+      <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
       <style>
          :root {
             --bg-body:         #101827;
@@ -45,6 +46,7 @@
             --text-main:       #e6f1fc;
             --text-secondary:  #beccda;
             --text-muted:      #919aaa;
+            --text-muted-darker: #646b79;
 
             --accent-blue:     #065ade;
             --accent-gold:     #d4b82a;
@@ -82,12 +84,14 @@
          .btn-muted { background-color: var(--bg-muted) !important;}
          .btn-transparent { background-color: transparent !important;}
          .btn-primary { background: var(--bg-primary) !important; border: none !important; }
+         .btn-danger { background: var(--bg-danger) !important }
 
          a { color: var(--accent-blue); }
          a:hover { color: var(--accent-gold); }
 
          .text-main { color: var(--text-main) }
          .text-muted { color: var(--text-muted) !important; }
+         .text-muted-darker { color: var(--text-muted-darker); }
          .text-danger { color: var(--text-danger) !important; }
          .text-accent-orange { color: var(--accent-orange) }
          .text-accent-blue { color: var(--accent-blue) }
@@ -185,7 +189,7 @@
          }
          .text-normal { font-size: calc(1vw + 0.1em); }
          .text-title { font-size: calc(1vw + 1.5em); font-weight: bold; color: var(--accent-gold)}
-         .anchor-btn { padding: 10px 25px; border-radius: 5px; color: white; text-decoration: none }
+         .anchor-btn { padding: 0.375rem 0.75rem; border-radius: 5px; color: white; text-decoration: none }
          .anchor-btn:hover { color: white }
          .anchor-btn-secondary { background-color: var(--bg-secondary);}
          .anchor-btn-secondary:hover { background-color: var(--bg-primary);}

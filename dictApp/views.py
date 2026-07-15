@@ -200,7 +200,16 @@ def word(request, lang_id, word_id=None):
          # Handle deleted definitions
          for idx, def_form in enumerate(def_formset.forms):
             if def_form.cleaned_data.get('DELETE', False) and def_form.instance.pk:
+               img_to_del = def_form.instance.image
+               if img_to_del:
+                  storage = img_to_del.file.storage
+                  if storage.exists(img_to_del.file.name):
+                     storage.delete(img_to_del.file.name)
+
+                  img_to_del.delete()
+
                def_form.instance.delete()
+
    
          return redirect('word_details', lang_id=lang_id, word_id=word.id)
    else:
@@ -231,12 +240,39 @@ def word(request, lang_id, word_id=None):
       'lang_id': lang_id,
       'country_qs': country_qs,
    })
-   
+
+def word_delete(request, lang_id, word_id):
+   word = get_object_or_404(
+      Word.objects.prefetch_related('definitions'),
+      pk=word_id,
+      language_id=lang_id
+   )
+
+   for defn in word.definitions.all():
+      img = defn.image
+      if img:
+         storage = img.file.storage
+         if storage.exists(img.file.name):
+            storage.delete(img.file.name)
+
+         img.delete()
+
+   word.delete()
+   messages.success(request, "Word deleted")
+
+   return redirect('word_list', lang_id=lang_id)
+
+
 def word_list(request, lang_id):
    lang = get_object_or_404(Language, pk=lang_id)
    words = lang.word_set.prefetch_related('definitions__examples').order_by('-id')
    paginator = Paginator(words, 30)
    page_obj = paginator.get_page(request.GET.get('page', 1))
+   page_range = paginator.get_elided_page_range(
+      number=page_obj.number,
+      on_each_side=2,
+      on_ends=1
+   )
 
    sources_by_category = {}
 
@@ -247,7 +283,8 @@ def word_list(request, lang_id):
    return render(request, 'word_list.html', {
       'lang_id': lang_id,
       'page_obj': page_obj,
-      'sources_by_category': sources_by_category
+      'sources_by_category': sources_by_category,
+      'pages': page_range
    })
 
 

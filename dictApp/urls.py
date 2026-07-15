@@ -17,6 +17,7 @@ urlpatterns = [
    path("lang/<int:lang_id>/word/<int:word_id>/edit/", views.word, name="word_edit"),
    path("lang/<int:lang_id>/word/<int:word_id>/", views.word_details, name="word_details"),
    path("lang/<int:lang_id>/word/<int:word_id>/link/", views.link_word, name="link_word"),
+   path("lang/<int:lang_id>/word/<int:word_id>/delete/", views.word_delete, name="word_delete"),
    path("lang/<int:lang_id>/words/", views.word_list, name="word_list"),
    path("lang/<int:lang_id>/import/", views.import_words_from_old_json, name="import"),
    path("lang/<int:lang_id>/search/", views.search, name="search"),
