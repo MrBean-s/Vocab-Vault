@@ -147,7 +147,7 @@
             border-bottom: 1px solid var(--accent-blue) !important;
             background-image: none !important; /*the arrow*/
          }
-         .select2-selection--single::after, .select-wrapper::after {/* the V */
+         .select2-selection--single::after, .select-wrapper::after{/* the V */
            content: "\f078";
            font-family: "Font Awesome 7 Free";
            font-weight: 900;
@@ -189,13 +189,17 @@
          }
          .text-normal { font-size: calc(1vw + 0.1em); }
          .text-title { font-size: calc(1vw + 1.5em); font-weight: bold; color: var(--accent-gold)}
-         .anchor-btn { padding: 0.375rem 0.75rem; border-radius: 5px; color: white; text-decoration: none }
+         .anchor-btn { padding: 0.375rem 0.75rem; border-radius: 5px; color: white; text-decoration: none;}
          .anchor-btn:hover { color: white }
+         .anchor-btn-primary { background-color: var(--bg-primary); }
+         .anchor-btn-danger { background-color: var(--bg-danger); }
          .anchor-btn-secondary { background-color: var(--bg-secondary);}
          .anchor-btn-secondary:hover { background-color: var(--bg-primary);}
 
-         .anchor-btn-important { background-color: var(--bg-important); }
+         .anchor-btn-important { background-color: var(--bg-important); color: black}
          .anchor-btn-important:hover { background-color: var(--bg-primary);}
+
+         .anchor-not-href { cursor: pointer; text-decoration: underline; color: var(--accent-blue); }
 
          /*to hide selects not initialized */
          select.select2 {

@@ -4,7 +4,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from .forms import *
 from .models import *
 from django.contrib import messages
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
@@ -537,4 +537,47 @@ def word_only_search(request, lang_id):
    return JsonResponse(items, safe=False)
 
 
+def word_relation(request, lang_id, word_id, rel_word_id):
+   word = get_object_or_404(Word, pk=word_id)
+   rel_word = get_object_or_404(Word, pk=rel_word_id)
 
+   relations = WordRelation.objects.filter(
+      (Q(word_1=word) & Q(word_2=rel_word)) |
+      (Q(word_1=rel_word) & Q(word_2=word))
+   )
+   form = RelationTypeForm({'relation_type': relations.first().relation_type})
+
+   if request.method == "POST":
+      form = RelationTypeForm(request.POST)
+      if form.is_valid():
+         for rel in relations:
+            rel.relation_type = form.cleaned_data['relation_type']
+            rel.save()
+
+         return redirect('word_details', lang_id=lang_id, word_id=word_id)
+
+   return render(request, 'forms/_relation_options.html', {
+      "lang_id": lang_id,
+      'word': word,
+      "rel_word": rel_word,
+      'form': form
+   })
+
+def confirm_unlink(request, lang_id, word_id, rel_word_id):
+   word = get_object_or_404(Word, pk=word_id)
+   rel_word = get_object_or_404(Word, pk=rel_word_id)
+
+   if request.method == "POST":
+      relations = WordRelation.objects.filter(
+         (Q(word_1=word) & Q(word_2=rel_word)) |
+         (Q(word_1=rel_word) & Q(word_2=word))
+      )
+      relations.delete()
+      return redirect('word_details', lang_id=lang_id, word_id=word_id)
+
+   return render(request, 'forms/_confirm_unlink.html', {
+      "lang_id": lang_id,
+      "word": word,
+      "rel_word": rel_word,
+      "form_url": request.path
+   })

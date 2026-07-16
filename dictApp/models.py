@@ -236,3 +236,6 @@ class WordRelation(models.Model):
 
    class Meta:
       unique_together = ('word_1', 'word_2')
+   
+   def __str__(self):
+      return f"{self.word_1.name} - {self.word_2.name} - {self.relation_type}"

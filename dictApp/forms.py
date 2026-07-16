@@ -372,3 +372,9 @@ class LinkWordForm(forms.Form):
          if submitted_id:
             self.fields['word_2'].queryset = Word.objects.filter(pk=submitted_id)
 
+class RelationTypeForm(forms.Form):
+   relation_type = forms.ChoiceField(
+      choices=WordRelation.RelationType.choices,
+      required=False,
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )

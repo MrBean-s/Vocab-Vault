@@ -1,0 +1,26 @@
+<div class="d-flex flex-column justify-content-between" style="flex: 1 1 auto;">
+   
+   <form method="POST" action="{% url 'word_relation' lang_id=lang_id word_id=word.id rel_word_id=rel_word.id %}"
+      class="d-flex justify-content-between gap-4">
+      {% csrf_token %}
+      <div class="select-wrapper w-100">
+         {{form.relation_type}}
+      </div>
+      <button type="submit" class="btn btn-primary">Update</button>
+   </form>
+   <a hx-get="{% url 'confirm_unlink' lang_id=lang_id word_id=word.id rel_word_id=rel_word.id %}"
+      hx-target="#genericModalBody"
+      hx-trigger="click" hx-target-error="#error-box" style="width: 200px;"
+      class="anchor-not-href"
+      >
+      Unlink {{rel_word.name}}
+   </a>
+
+   <div class="mt-5 d-flex justify-content-end">
+      <a class="anchor-btn" style="background-color: var(--bg-purple);"
+         href="{% url 'word_details' lang_id=lang_id word_id=rel_word.id%}"
+         >
+         Go to word
+      </a>
+   </div>
+</div>

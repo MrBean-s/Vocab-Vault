@@ -175,13 +175,19 @@
 
          <div class="mb-3">Related words:</div>
          <div id="related-grid" class="px-5">
-            {% for word in related_words %}
+            {% for rel_word in related_words %}
             <div class="grid-item">
-               <a href="{% url 'word_details' lang_id=lang_id word_id=word.id %}">
-                  {{word.name}}
+               <a hx-get="{% url 'word_relation' lang_id=lang_id word_id=context.id rel_word_id=rel_word.id %}"
+                  hx-trigger="click"
+                  hx-target="#genericModalBody"
+                  hx-target-error="#error-box"
+                  data-bs-toggle="modal"
+                  data-bs-target="#genericModal"
+                  class="anchor-not-href">
+                  {{rel_word.name}}
                </a>
                <span class="px-1">-</span>
-               <span class="text-muted">{{word.relation}}</span>
+               <span class="text-muted">{{rel_word.relation}}</span>
             </div>
             {% endfor %}
             <div class="grid-item">
