@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block innerbody %}
+<div class="container px-5 py-4">
+   <h1>
+   {% if episode %}
+      {{episode.name}}
+   {% elif segment %}
+      {{segment.name}}
+   {% else %}
+      {{source.name}}
+   {% endif %}
+   </h1>
+</div>
+
+{% endblock innerbody %}

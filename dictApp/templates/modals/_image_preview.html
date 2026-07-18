@@ -1,6 +1,6 @@
 <div class="image-wrapper d-flex justify-content-center">
    {% if image.file %}
-      <img src="{{image.file.url}}" alt="Not found" class="img-fluid">
+      <img src="{{image.file.url}}" alt="Not found" class="img-fluid" style="max-height: 70vh;">
    {% else %}
       <img src="" alt="No img file" class="img-fluid">
    {% endif %}

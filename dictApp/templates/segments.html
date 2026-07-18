@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block innerbody %}
+<div class="container px-5 my-4">
+   <div class="d-flex align-items-center">
+      <h1 class="m-0 d-inline">Segments</h1>
+      <button class="btn btn-primary ms-auto">Add a segment</button>
+   </div>
+</div>
+{% for seg in segments %}
+   <div>{{seg.name}} {{seg.number}}</div>
+{% endfor %}
+{% endblock%}

@@ -345,6 +345,12 @@ class LinkWordForm(forms.Form):
       widget=forms.Select(attrs={'class': 'form-control'})
    )
 
+   category = forms.ChoiceField(
+      choices=WordRelation.TopicCategory.choices,
+      required=False,
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )
+
    def clean(self):
       cleaned_data = super().clean()
       word_1_id = cleaned_data.get('word_1_id')
@@ -378,3 +384,100 @@ class RelationTypeForm(forms.Form):
       required=False,
       widget=forms.Select(attrs={'class': 'form-control'})
    )
+
+class SourceForm(forms.ModelForm):
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control img-input',})
+   )
+
+   source_category = forms.ChoiceField(
+      choices=Source.SourceCategory.choices,
+      required=True,
+      initial="OTH",
+      widget=forms.Select(attrs={'class': 'form-select'}),
+      label="Category"
+   )
+
+   class Meta:
+      model = Source
+      fields = ["released_year", "name", "short_name", "author", "source_category"]
+      widgets = {
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+         'released_year': forms.TextInput(attrs={'class': 'form-control'}),
+         'short_name': forms.TextInput(attrs={'class': 'form-control'}),
+         'author': forms.TextInput(attrs={'class': 'form-control'}),
+      }
+      labels = {'name': 'Source name'}
+
+   def clean(self):
+      cleaned_data = super().clean()
+      name = cleaned_data.get('name')
+      short_name = cleaned_data.get('short_name')
+      if name and short_name:
+         qs = Source.objects.filter(Q(name__iexact=name) | Q(short_name__iexact=short_name))
+
+         if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+         
+         if qs.exists():
+            raise forms.ValidationError("A show with that name or short_name already exist")
+      
+      return cleaned_data
+   
+   def save(self, commit=True):
+      source = super().save(commit=False)
+      image_file = self.cleaned_data.get('image_file')
+      
+      if image_file:
+         old_img = source.image
+
+         if source.pk and old_img:
+            storage = old_img.file.storage
+            if storage.exists(old_img.file.name):
+               storage.delete(old_img.file.name)
+            old_img.delete()
+
+         new_img = Image.objects.create(file=image_file)
+         source.image = new_img
+
+      if commit:
+         source.save()
+      
+      return source
+
+
+class EpisodeForm(forms.ModelForm):
+
+   class Meta:
+      model=Episode
+      fields=['season_number', 'episode_number', 'name']
+      widgets = {
+         'season_number': forms.NumberInput(attrs={'class': 'form-control'}),
+         'episode_number': forms.NumberInput(attrs={'class': 'form-control'}),
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+      }
+      labels = { 'name': 'Episode name'}
+
+   def clean(self):
+      cleaned_data = super().clean()
+
+      season_number = cleaned_data.get('season_number')
+      episode_number = cleaned_data.get('episode_number')
+      
+      source = self.instance.source
+
+      existing = Episode.objects.filter(
+         source=source,
+         season_number=season_number,
+         episode_number=episode_number
+      )
+
+      if self.instance.pk:
+         existing = existing.exclude(pk=self.instance.pk)
+
+      if existing.exists():
+         raise forms.ValidationError(f"Episode {episode_number} already exist in season {season_number}")
+
+      return cleaned_data
+      

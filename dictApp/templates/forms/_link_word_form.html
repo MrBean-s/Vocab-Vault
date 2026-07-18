@@ -14,15 +14,7 @@
    <div class="pt-3">
       {{form.word_1_id}}
 
-
-      <div class="mb-5">
-         <label for="{{form.word_2.id_for_label}}" class="form-label">
-            {{form.word_2.label}}
-         </label>
-         {{form.word_2}}
-      </div>
-
-      <div class="mb-3 d-flex gap-2 align-items-center justify-content-between">
+      <div class="mb-4 d-flex gap-2 align-items-center justify-content-between">
          <label for="{{form.relation_type.id_for_label}}" class="form-label w-30">
             Relation type
          </label>
@@ -30,6 +22,21 @@
             {{form.relation_type}}
          </div>
       </div>
+
+      <div class="mb-4">
+         <label for="{{form.word_2.id_for_label}}" class="form-label">
+            {{form.word_2.label}}
+         </label>
+         {{form.word_2}}
+      </div>
+
+      <div class="mb-3">
+         <label for="{{form.category.id_for_label}}" class="form-label">
+            {{form.category.label}}
+         </label>
+         {{form.category}}
+      </div>
+      
 
       <div id="id_word_2-dropdownParent"></div>
       {% if form.non_field_errors %}

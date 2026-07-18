@@ -6,10 +6,12 @@ from .models import *
 from django.contrib import messages
 from django.db.models import ProtectedError, Q
 from django.core.paginator import Paginator
+from django.core.exceptions import BadRequest
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from collections import defaultdict
 from django.urls import reverse
+from itertools import groupby
 
 
 def start_screen(request):
@@ -480,7 +482,7 @@ def delete_country(request, cty_id):
 def show_image(request, img_id):
    instance = get_object_or_404(Image, pk=img_id)
 
-   return render(request, 'partial/_image_preview.html', {'image': instance})
+   return render(request, 'modals/_image_preview.html', {'image': instance})
 
 
 def link_word(request, lang_id, word_id):
@@ -537,7 +539,7 @@ def word_only_search(request, lang_id):
    return JsonResponse(items, safe=False)
 
 
-def word_relation(request, lang_id, word_id, rel_word_id):
+def link_word_edit(request, lang_id, word_id, rel_word_id):
    word = get_object_or_404(Word, pk=word_id)
    rel_word = get_object_or_404(Word, pk=rel_word_id)
 
@@ -556,14 +558,14 @@ def word_relation(request, lang_id, word_id, rel_word_id):
 
          return redirect('word_details', lang_id=lang_id, word_id=word_id)
 
-   return render(request, 'forms/_relation_options.html', {
+   return render(request, 'forms/_link_word_edit.html', {
       "lang_id": lang_id,
-      'word': word,
+      'word_id': word_id,
       "rel_word": rel_word,
       'form': form
    })
 
-def confirm_unlink(request, lang_id, word_id, rel_word_id):
+def unlink_word(request, lang_id, word_id, rel_word_id):
    word = get_object_or_404(Word, pk=word_id)
    rel_word = get_object_or_404(Word, pk=rel_word_id)
 
@@ -575,9 +577,158 @@ def confirm_unlink(request, lang_id, word_id, rel_word_id):
       relations.delete()
       return redirect('word_details', lang_id=lang_id, word_id=word_id)
 
-   return render(request, 'forms/_confirm_unlink.html', {
+   return render(request, 'forms/_unlink_word.html', {
       "lang_id": lang_id,
       "word": word,
       "rel_word": rel_word,
       "form_url": request.path
+   })
+
+
+def sources(request, lang_id):
+
+   sources = Source.objects.filter(language_id=lang_id).order_by('-id')
+
+   return render(request, 'sources.html', {
+      'lang_id': lang_id,
+      'sources': sources
+   })
+
+def sources_add_edit(request, lang_id, source_id=None):
+
+   source = get_object_or_404(Source, pk=source_id) if source_id else None
+   language = get_object_or_404(Language, pk=lang_id)
+
+   if request.method == "POST":
+      form = SourceForm(request.POST, request.FILES, instance=source)
+      if form.is_valid():
+         source = form.save(commit=False)
+         source.language = language
+         source.save()
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': f'/lang/{lang_id}/sources/'})
+         return redirect('sources', lang_id=lang_id)
+   else:
+      form = SourceForm(instance=source)
+      
+   return render(request, 'forms/_source_form.html', {
+      "lang_id": lang_id,
+      "source": source,
+      "form": form,
+      "is_edit": source_id is not None
+   })
+
+
+def source_delete(request, lang_id, source_id):
+   source = get_object_or_404(Source, pk=source_id)
+
+   if request.method == 'POST':
+      img = source.image
+      try:
+         source.delete()	
+      except ProtectedError:
+         messages.error(request, "Cannot delete Source cause it still has related data. Delete all episodes/content first.")
+      else:
+         if img:
+            storage = img.file.storage
+            if storage.exists(img.file.name):
+               storage.delete(img.file.name)
+            img.delete()
+         
+         messages.success(request, "Source deleted.")
+
+      return redirect('sources', lang_id=lang_id)
+
+
+def episodes(request, lang_id, source_id):
+   source = get_object_or_404(Source, pk=source_id)
+   episodes = Episode.objects.filter(source_id=source_id).order_by('season_number')
+   grouped_by_season = {season: list(group) for season, group in groupby(episodes, key=lambda x: x.season_number)}
+
+   return render(request, 'episodes.html', {
+      'lang_id': lang_id,
+      'grouped_by_season': grouped_by_season,
+      'source': source
+   })
+
+
+def episode_add_edit(request, source_id, episode_id=None):
+   episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
+   source = get_object_or_404(Source, pk=source_id)
+
+   if request.method == "POST":
+      if episode is None:
+         episode = Episode(source=source)
+      
+      form = EpisodeForm(request.POST, instance=episode)
+      if form.is_valid():
+         episode = form.save(commit=False)
+         episode.source = source
+         episode.save()
+         
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': f'/lang/{source.language_id}/source/{source_id}/episodes/'})
+         return redirect('episodes', source_id=source_id)
+   else:
+      form = EpisodeForm(instance=episode)
+
+   return render(request, 'forms/_episode_form.html', {
+      'source_id': source_id,
+      'episode_id': episode_id,
+      'form': form,
+      'is_edit': episode is not None,
+      'episode': episode
+   })
+
+
+def episode_delete(request, source_id, episode_id):
+   episode = get_object_or_404(Episode, pk=episode_id)
+   source = get_object_or_404(Source, pk=source_id)
+   try:
+      episode.delete()
+      messages.success(request, "Language deleted.")
+   except ProtectedError:
+      messages.error(request, "Remove all citations before deleting the episode") 
+   
+   return redirect('episodes', lang_id=source.language_id, source_id=source_id)
+
+
+def segments(request, lang_id, source_id):
+   source = get_object_or_404(Source, pk=source_id)
+   segments = Segment.objects.filter(source_id=source_id)
+
+   return render(request, 'segments.html', {
+      'lang_id': lang_id,
+      'source_id': source_id,
+      'segments': segments
+   })
+
+
+def segment_add_edit(request):
+   return redirect()
+
+
+def segment_delete(request):
+   return redirect()
+
+
+def example_cite(request):
+   return redirect()
+
+
+def citation_delete(request):
+   return redirect()
+
+
+def play_session(request, lang_id, source_id, episode_id=None, segment_id=None):
+   source = get_object_or_404(Source, pk=source_id)
+   episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
+   segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+
+   return render(request, 'play_session.html', {
+      "lang_id": lang_id,
+      "source": source,
+      "episode": episode,
+      "segment": segment,
    })
