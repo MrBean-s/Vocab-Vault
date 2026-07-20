@@ -24,7 +24,7 @@
          <h3 class="my-4">Season {{season}}</h3>
          {% for ep in episode_list %}
             <div class="episode mb-3 fs-5">
-               <a href="{% url 'play_session_episode' lang_id=lang_id source_id=source.id episode_id=ep.id %}">
+               <a href="{% url 'play_session_episode' lang_id=lang_id episode_id=ep.id %}">
                   S{{ep.season_number}}E{{ep.episode_number|stringformat:"02d"}} - {{ep.name}}
                </a>
                <a hx-get="{% url 'episode_edit' source_id=source.id episode_id=ep.id %}"
@@ -41,6 +41,5 @@
          {% endfor %}
       {% endfor %}
    </div>
-
 </div>
 {% endblock innerbody %}

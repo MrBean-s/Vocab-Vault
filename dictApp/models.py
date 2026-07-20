@@ -173,7 +173,7 @@ class Citation(models.Model):
    added_at = models.DateTimeField(auto_now_add=True)
    spotted_at = models.DurationField(null=True, blank=True)
 
-   example = models.ForeignKey(Example, null=False, on_delete=models.PROTECT)
+   example = models.ForeignKey(Example, null=False, on_delete=models.CASCADE)
    source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT)
    episode = models.ForeignKey(Episode, null=True,  on_delete=models.PROTECT)
    segment = models.ForeignKey(Segment, null=True,  on_delete=models.PROTECT)

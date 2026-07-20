@@ -189,7 +189,8 @@ class ExampleForm(forms.ModelForm):
          'data-allow-open': 'true',
          'data-placeholder': 'Category',
          'data-width': '45%',
-         'data-remove-search': 'true'
+         'data-remove-search': 'true',
+         'data-min-input-len': 0
       }),
       required=False,
    )
@@ -481,3 +482,86 @@ class EpisodeForm(forms.ModelForm):
 
       return cleaned_data
       
+
+class CitationForm(forms.Form):
+   
+   spotted_at = forms.DurationField(
+      label="Spotted at:",
+      widget=forms.TextInput(attrs={
+         'placeholder': 'HH:MM:SS',
+         'class': 'form-control d-inline',
+         'style': 'width: auto'
+      }),
+      required=True
+   )
+
+   word = forms.CharField(
+      label="Word",
+      widget=forms.Select(attrs={
+         'class': 'select2 select2-ajax',
+         'data-is-ajax': 'true',
+         'data-width': '100%',
+         'data-placeholder': 'Word',
+         'data-tags': 'true'
+      }),
+      required=True
+   )
+
+   definition_input = forms.CharField(
+      label='New Definition',
+      widget=forms.Textarea(attrs={
+         'rows': 2,
+         'cols': 50,
+         'class': 'form-control resize-none'
+      }),
+      required=False
+   )
+
+   definition_select = forms.CharField(
+      label="Definition",
+      widget=forms.Select(attrs={
+         'class': 'form-select',
+      }),
+      required=False
+   )
+
+   example = forms.CharField(
+      widget=forms.Textarea(attrs={
+         'rows': 2,
+         'cols': 50,
+         'class': 'form-control resize-none'
+      }),
+      required=True
+   )
+
+   def __init__(self, *args, **kwargs):
+      ajax_url = kwargs.pop('ajax_url', None)
+      super().__init__(*args, **kwargs)
+
+      self.fields['word'].widget.attrs['data-ajax-url'] = ajax_url
+
+      # # when validation fails the same word is selected
+      # if self.is_bound and 'word' in self.data:
+      #    submitted_id = self.data.get('word')
+      #    if submitted_id:
+      #       self.fields['word'].queryset = Word.objects.filter(pk=submitted_id)
+
+   def clean(self):
+      cleaned_data = super().clean()
+      defn_input = cleaned_data.get('definition_input')
+      defn_select = cleaned_data.get('definition_select')
+      if not defn_input and not defn_select:
+         raise forms.ValidationError(f"An existent/new definition is required")
+      
+      if defn_select and defn_select != '-1':
+         try:
+            defn_obj = Definition.objects.get(pk=int(defn_select))
+            cleaned_data['defn_object']=defn_obj
+         except(ValueError, Definition.DoesNotExist):
+            raise forms.ValidationError(f"Invalid definition selected")
+      elif defn_select == '-1' and not def_input:
+         raise forms.ValidationError(f"Please enter a new definition description")
+      
+      return cleaned_data
+      
+

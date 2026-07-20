@@ -1,6 +1,6 @@
 import json
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseBadRequest
 from .forms import *
 from .models import *
 from django.contrib import messages
@@ -527,16 +527,15 @@ def link_word(request, lang_id, word_id):
 
 def word_only_search(request, lang_id):
    query = request.GET.get('query', '')
-   items = []
-   print(f'query: {query} lang_id: {lang_id}')
    if query:
-      items = list(
-         Word.objects.filter(
-            name__icontains=query, language_id=lang_id
-         ).values('id', 'name').order_by('name')[:15]
-      )
-   
-   return JsonResponse(items, safe=False)
+      word_qs = Word.objects.filter(
+         name__icontains=query, language_id=lang_id
+      ).values('id', 'name').order_by('name')[:15]
+
+      results = {
+         'results': [ {"id": item['id'], "text": item['name']} for item in word_qs]
+      }
+   return JsonResponse(results)
 
 
 def link_word_edit(request, lang_id, word_id, rel_word_id):
@@ -714,6 +713,7 @@ def segment_delete(request):
 
 
 def example_cite(request):
+
    return redirect()
 
 
@@ -721,14 +721,107 @@ def citation_delete(request):
    return redirect()
 
 
-def play_session(request, lang_id, source_id, episode_id=None, segment_id=None):
-   source = get_object_or_404(Source, pk=source_id)
+def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=None):
+   source = get_object_or_404(Source, pk=source_id) if source_id else None
    episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
    segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+   defn_ajax_url = reverse('search_definitions')
+
+   if not any([source, episode, segment]):
+      return HttpResponseBadRequest('At least one source is required')
 
    return render(request, 'play_session.html', {
       "lang_id": lang_id,
       "source": source,
       "episode": episode,
       "segment": segment,
+      'defn_ajax_url': defn_ajax_url
    })
+
+def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment_id=None):
+   source = get_object_or_404(Source, pk=source_id) if source_id else None
+   episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
+   segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+
+   ajax_url = reverse('search_word', kwargs={'lang_id': lang_id})
+   
+
+   if not any([source, episode, segment]):
+      return HttpResponseBadRequest('At least one source is required')
+
+   if request.method == "POST":
+      print(request.POST)
+      form = CitationForm(request.POST, ajax_url=ajax_url)
+      if form.is_valid():
+         word_val = form.cleaned_data['word']
+         new_def = form.cleaned_data['definition_input']
+         existing_def_id = form.cleaned_data['definition_select']
+         
+         if word_val.isdigit():
+            word = get_object_or_404(Word, pk=int(word_val))
+         else:
+            word, created = Word.objects.get_or_create(name=word_val, language_id=lang_id)
+         
+         if existing_def_id and existing_def_id.isdigit() and existing_def_id != '-1':
+            definition = get_object_or_404(Definition, pk=int(existing_def_id))
+         elif new_def:
+            definition = Definition.objects.create(description=new_def, word=word)
+
+         example = Example.objects.create(
+            description=form.cleaned_data['example'],
+            definition=definition
+         )
+
+         Citation.objects.create(
+            spotted_at=form.cleaned_data['spotted_at'],
+            example=example,
+            source=source,
+            episode=episode,
+            segment=segment
+         )
+
+         if source:
+            redirect_url = reverse('play_session_single', kwargs={'lang_id': lang_id, 'source_id': source_id})
+         
+         if episode:
+            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode_id})
+         
+         if segment:
+            redirect_url = reverse('play_session_segment', kwargs={'lang_id': lang_id, 'segment_id': source_id})
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': redirect_url})
+         return redirect(redirect_url)
+         
+   else:
+      form = CitationForm(ajax_url=ajax_url)
+
+   return render(request, 'forms/_citation_form.html', {
+      'lang_id': lang_id,
+      'source_id': source_id,
+      'episode_id': episode_id,
+      'segment_id': segment_id,
+      'form': form,
+      'path': request.path
+   })
+
+
+def search_definitions(request):
+   word_id = request.GET.get('word_id')
+   if not word_id:
+      return HttpResponseBadRequest('word_id is missing')
+
+   if not word_id.isdigit():
+      return JsonResponse({'results': []})
+
+   word = get_object_or_404(
+      Word.objects.prefetch_related('definitions'),
+      pk=word_id
+   )
+
+   results = {
+      'results': [ {'id': defn.id, 'text': defn.description} for defn in word.definitions.all() ]
+   }
+   print('definitions')
+   print(results)
+   return JsonResponse(results)

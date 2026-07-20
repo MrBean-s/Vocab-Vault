@@ -27,8 +27,9 @@
          border-radius: 10px 10px 0 0;
          background: #222c43;
       }
+      .placeholder-black { background: black; }
       .repr-image { max-height: 80%; }
-      .curr-image { max-height: 100%; min-width: 100%; border-radius: 10px 10px 0 0; }
+      .curr-image { max-height: 100%; max-width: 100%; }
       .add-example-item i, .add-country-item i { color: var(--bg-muted) !important }
 
       [select-cty-parent] .select2-selection__choice { margin-bottom: 0 !important;}
@@ -137,6 +138,7 @@
                                  data-placeholder="Countries"
                                  data-deny-open="true"
                                  data-custom-template-select="true"
+                                 data-min-input-len="0"
                                  {% if def_form.selected_country_ids %}data-has-selection{% endif %}>
                                  {% for country in country_qs %}
                                     {% if forloop.first %}
@@ -199,21 +201,25 @@
 
                <div class="wireframe d-flex justify-content-center align-items-center">
                   <div class="wireframe p-4 pb-0">
-                     <div class="image-placeholder">
-                        {% if def_form.instance.image and def_form.instance.image.file %}
-                           <img src="{{def_form.instance.image.file.url}}" alt="Current image"
-                              class="curr-image"
-                              hx-get="{% url 'show_image' img_id=def_form.instance.image.id %}"
-                              hx-trigger="click"
-                              hx-target="#genericModalBody"
-                              hx-target-error="#error-box"
-                              data-bs-toggle="modal"
-                              data-bs-target="#genericModal">
-                        {% else %}
-                           <img class="repr-image" src="{% static 'images/img_placeholder2.png' %}" alt="">
-                           <!-- <a href="https://www.flaticon.com/free-icons/image-comics" title="Image Comics icons">Image Comics icons  created by kmg design - Flaticon</a> -->
-                        {% endif %}
+                     
+                     {% if def_form.instance.image and def_form.instance.image.file %}
+                     <div class="image-placeholder placeholder-black">
+                        <img src="{{def_form.instance.image.file.url}}" alt="Current image"
+                           class="curr-image"
+                           hx-get="{% url 'show_image' img_id=def_form.instance.image.id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalBody"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModal">
                      </div>
+                     {% else %}
+                     <div class="image-placeholder">
+                        <img class="repr-image" src="{% static 'images/img_placeholder2.png' %}" alt="">
+                        <!-- <a href="https://www.flaticon.com/free-icons/image-comics" title="Image Comics icons">Image Comics icons  created by kmg design - Flaticon</a> -->
+                     </div>
+                     {% endif %}
+
                      <div class=" wireframe h-15 d-flex justify-content-center align-items-center gap-3">
                         {{ def_form.image_file }}
                         {{ def_form.image_file.errors }}

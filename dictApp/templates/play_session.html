@@ -1,16 +1,122 @@
 {% extends 'base.html' %}
 
+{% block additionalStyles %}
+<style>
+   .unselectable {
+      /* filter: blur(0.5rem); */
+      cursor: not-allowed;
+      display: none;
+   }
+
+</style>
+{% endblock additionalStyles %}
+
 {% block innerbody %}
+
+{% if episode %}
+   {% url 'session_episode_cite' episode_id=episode.id lang_id=lang_id as target_url %}
+{% elif segment %}
+   {% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id as target_url %}
+{% elif source %}
+   {% url 'session_single_cite' source_id=source.id lang_id=lang_id as target_url %}
+{% endif %}
+
+{% with item=episode|default:segment|default:source %}
 <div class="container px-5 py-4">
-   <h1>
-   {% if episode %}
-      {{episode.name}}
-   {% elif segment %}
-      {{segment.name}}
-   {% else %}
-      {{source.name}}
-   {% endif %}
-   </h1>
+
+   <h1>{{item.name}}</h1>
+
+   <button hx-get="{{target_url}}"
+      hx-trigger="click"
+      hx-target="#genericModalBody"
+      hx-target-error="#error-box"
+      data-bs-toggle="modal"
+      data-bs-target="#genericModal"
+      class="btn btn-primary"
+      >Add an example</button>
 </div>
+{% endwith %}
 
 {% endblock innerbody %}
+
+{% block additionalScripts %}
+<script>
+   const defn_ajax_url = "{{defn_ajax_url}}";
+
+   $(document).on('select2:opening', '#id_word', function() {
+      $(this).data('__oldVal', $(this).val());
+   });
+
+   //called from base.html htmx:afterSettle which looks for data-modal-init="prepareSelect2CitationForm" inside the _citation_form swapped content
+   //(ノಠ益ಠ)ノ彡┻━┻
+   function prepareSelect2CitationForm() {
+      $('#genericModalTitle').text('Create a citation');
+      const $defSelect = $('#id_definition_select');
+      const $defInput = $('#id_definition_input');
+
+
+      function showDefinitionField(useSelect) {
+         $defSelect.prop('disabled', !useSelect);
+         $defInput.prop('disabled', useSelect);
+         if (!useSelect) $defInput.val('');
+         $defSelect.closest('.row-wrapper').toggleClass('unselectable', !useSelect);
+         $defInput.closest('.row-wrapper').toggleClass('unselectable', useSelect);
+      }
+
+      async function loadDefinitions(wordId) {
+         const url = `${defn_ajax_url}?word_id=${wordId}`;
+         try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+            $defSelect.empty();
+            if (data.results.length > 0) {
+               data.results.forEach(item => {
+                  $('<option>', { value: item.id, text: item.text}).appendTo($defSelect);
+               });
+               $('<option>', { value: -1, text: 'New definition'}).appendTo($defSelect);
+               showDefinitionField(true);
+            } else {
+               showDefinitionField(false);
+            }
+         } catch (err) {
+            console.error('Fetch error:', err);
+         }
+      }
+
+      //since new tags wont trigger the select2:select event the first time you select them for some reason
+      $('#id_word').on('select2:close', function() {
+         var $el = $(this);
+         var newVal = $el.val();
+         if (newVal !== $el.data('__oldVal')) {
+            $el.trigger('wordChanged');
+         }
+      });
+
+      $('#id_word').on('wordChanged', async function(e) {
+         var wordId = parseInt($(this).val(), 10);
+
+         if (Number.isNaN(wordId)) {
+            showDefinitionField(false);
+         } else {
+            await loadDefinitions(wordId);
+            $defInput.val('');
+         }
+         
+         $('#id_example').closest('.row-wrapper').removeClass('unselectable');
+      });
+
+      $defSelect.on('change', function() {
+         if ($(this).val() == '-1') {
+            $defInput.closest('.row-wrapper').removeClass('unselectable');
+            $defInput.prop('disabled', false);
+         } else {
+            showDefinitionField(true);
+         }
+      });
+
+      $defSelect.prop('disabled', true);
+      $defInput.prop('disabled', true);
+   }
+</script>
+{% endblock additionalScripts %}
