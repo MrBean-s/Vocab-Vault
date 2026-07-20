@@ -43,14 +43,13 @@
 <script>
    const defn_ajax_url = "{{defn_ajax_url}}";
 
-   $(document).on('select2:opening', '#id_word', function() {
-      $(this).data('__oldVal', $(this).val());
-   });
 
    //called from base.html htmx:afterSettle which looks for data-modal-init="prepareSelect2CitationForm" inside the _citation_form swapped content
    //(ノಠ益ಠ)ノ彡┻━┻
    function prepareSelect2CitationForm() {
       $('#genericModalTitle').text('Create a citation');
+      $('<option></option>').appendTo('#id_word'); //select2.select not fire when use remote source and createTag  #5386
+
       const $defSelect = $('#id_definition_select');
       const $defInput = $('#id_definition_input');
 
@@ -84,16 +83,8 @@
          }
       }
 
-      //since new tags wont trigger the select2:select event the first time you select them for some reason
-      $('#id_word').on('select2:close', function() {
-         var $el = $(this);
-         var newVal = $el.val();
-         if (newVal !== $el.data('__oldVal')) {
-            $el.trigger('wordChanged');
-         }
-      });
 
-      $('#id_word').on('wordChanged', async function(e) {
+      $('#id_word').on('select2:select', async function(e) {
          var wordId = parseInt($(this).val(), 10);
 
          if (Number.isNaN(wordId)) {
