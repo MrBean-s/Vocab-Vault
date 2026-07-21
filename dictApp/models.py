@@ -38,7 +38,7 @@ class Word(models.Model):
 
 
 class Definition(models.Model):
-   description = models.TextField()
+   description = models.TextField(null=True, blank=True, db_index=True)
    origin = models.TextField(default = '', null=True, blank=True)
 
    word = models.ForeignKey(Word, related_name="definitions", on_delete=models.CASCADE, null=False)
@@ -50,11 +50,40 @@ class Definition(models.Model):
       RARE = 'RAR', 'RARE'
       NEVER = 'NVR', 'NEVER'
 
+   class TopicCategory(models.TextChoices):
+      SPORTS         = 'SPT', 'Sports'
+      MONEY          = 'MNY', 'Money & Finance'
+      MEDICINE       = 'MED', 'Medicine & Health'
+      FOOD           = 'FOD', 'Food & Cooking'
+      TECHNOLOGY     = 'TEC', 'Technology'
+      SCIENCE        = 'SCI', 'Science'
+      ART            = 'ART', 'Art & Literature'
+      MUSIC          = 'MUS', 'Music'
+      POLITICS       = 'POL', 'Politics & Government'
+      LAW            = 'LAW', 'Law & Legal'
+      RELIGION       = 'REL', 'Religion & Philosophy'
+      EDUCATION      = 'EDU', 'Education'
+      NATURE         = 'NAT', 'Nature & Animals'
+      TRAVEL         = 'TRV', 'Travel & Geography'
+      FASHION        = 'FAS', 'Fashion & Beauty'
+      MILITARY       = 'MIL', 'Military & War'
+      SLANG          = 'SLG', 'Slang & Informal'
+      TABOO          = 'TAB', 'Taboo / Swear Words'
+      WORK           = 'WRK', 'Work & Business'
+      FAMILY         = 'FAM', 'Family & Relationships'
+   
    forgetting_frequency = models.CharField(
       max_length=3,
       choices = ForgettingFrequency.choices,
       null=True,
       blank=True
+   )
+
+   topic_category = models.CharField(
+      max_length=3,
+      choices=TopicCategory.choices,
+      null=True, blank=True,
+      help_text='Topic domain of this relation'
    )
 
    def to_json(self, all_lang_countries_ids=None):
@@ -91,7 +120,6 @@ class Definition(models.Model):
 class Example(models.Model):
    description = models.TextField()
    explanation = models.TextField(null=True, blank=True)
-   custom_audio = models.FileField(upload_to = 'audio/', null=True, blank=True)
    created = models.DateTimeField(auto_now_add=True)
 
    part_of_speech = models.ForeignKey('PartOfSpeech', on_delete=models.PROTECT, null=True,
@@ -172,6 +200,8 @@ class Segment(models.Model):
 class Citation(models.Model):
    added_at = models.DateTimeField(auto_now_add=True)
    spotted_at = models.DurationField(null=True, blank=True)
+   custom_audio = models.FileField(upload_to = 'audio/', null=True, blank=True)
+   image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
 
    example = models.ForeignKey(Example, null=False, on_delete=models.CASCADE)
    source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT)
@@ -184,8 +214,7 @@ class Citation(models.Model):
          condition=Q(source__isnull=False) | Q(episode__isnull=False) | Q(segment__isnull=False),
          name='a_source_is_required'
       ) 
-   ]   
-   
+   ]
 
 
 class QuizAttempt(models.Model):
@@ -252,41 +281,12 @@ class WordRelation(models.Model):
       CONFUSED_WITH = 'CFW', 'CONFUSED WITH'
       HOMOPHONE = 'HPM', 'SOUND ALIKE'
       CATEGORY = 'CAT', 'SAME CATEGORY'
-   
-   class TopicCategory(models.TextChoices):
-      SPORTS         = 'SPT', 'Sports'
-      MONEY          = 'MNY', 'Money & Finance'
-      MEDICINE       = 'MED', 'Medicine & Health'
-      FOOD           = 'FOD', 'Food & Cooking'
-      TECHNOLOGY     = 'TEC', 'Technology'
-      SCIENCE        = 'SCI', 'Science'
-      ART            = 'ART', 'Art & Literature'
-      MUSIC          = 'MUS', 'Music'
-      POLITICS       = 'POL', 'Politics & Government'
-      LAW            = 'LAW', 'Law & Legal'
-      RELIGION       = 'REL', 'Religion & Philosophy'
-      EDUCATION      = 'EDU', 'Education'
-      NATURE         = 'NAT', 'Nature & Animals'
-      TRAVEL         = 'TRV', 'Travel & Geography'
-      FASHION        = 'FAS', 'Fashion & Beauty'
-      MILITARY       = 'MIL', 'Military & War'
-      SLANG          = 'SLG', 'Slang & Informal'
-      TABOO          = 'TAB', 'Taboo / Swear Words'
-      WORK           = 'WRK', 'Work & Business'
-      FAMILY         = 'FAM', 'Family & Relationships'
 
    relation_type = models.CharField(
       max_length=3,
       choices = RelationType.choices,
       null=False,
       blank=False
-   )
-
-   category = models.CharField(
-      max_length=3,
-      choices=TopicCategory.choices,
-      null=True, blank=True,
-      help_text='Topic domain of this relation'
    )
 
    class Meta:

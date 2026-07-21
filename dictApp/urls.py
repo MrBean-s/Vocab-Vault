@@ -45,7 +45,7 @@ urlpatterns = [
    path("source/<int:source_id>/episode/add/", views.episode_add_edit, name="episode_add"),
    path("source/<int:source_id>/episode/<int:episode_id>/edit/ ", views.episode_add_edit, name="episode_edit"),
    path("source/<int:source_id>/episode/<int:episode_id>/delete/", views.episode_delete, name="episode_delete"),
-   path("lang/<int:lang_id>/source/<int:source_id>/play-session/", views.play_session, name="play_session_single"),
+   path("lang/<int:lang_id>/source/<int:source_id>/play-session/", views.play_session, name="play_session_source"),
    path("lang/<int:lang_id>/episode/<int:episode_id>/play-session/", views.play_session, name="play_session_episode"),
 
    path("lang/<int:lang_id>/sources/<int:source_id>/segments/", views.segments, name="segments"),
@@ -55,11 +55,10 @@ urlpatterns = [
    path("lang/<int:lang_id>/segment/<int:segment_id>/play-session/", views.play_session, name="play_session_segment"),
 
    path("example/<int:ex_id>/cite/", views.example_cite, name="example_cite"),
-   path("example/<int:ex_id>/citation/<int:citation_id>/remove/ ", views.citation_delete, name="citation_delete"),
+   path("lang/<int:lang_id>/citation/<int:citation_id>/remove/", views.citation_delete, name="citation_delete"),
 
-   path("lang/<int:lang_id>/source/<int:source_id>/session/cite/", views.play_session_cite,   name="session_single_cite"),
+   path("lang/<int:lang_id>/source/<int:source_id>/session/cite/", views.play_session_cite,   name="session_source_cite"),
    path("lang/<int:lang_id>/episode/<int:episode_id>/session/cite/", views.play_session_cite, name="session_episode_cite"),
    path("lang/<int:lang_id>/segment/<int:segment_id>/session/cite/", views.play_session_cite, name="session_segment_cite"),
-
 
 ]

@@ -190,7 +190,6 @@ class ExampleForm(forms.ModelForm):
          'data-placeholder': 'Category',
          'data-width': '45%',
          'data-remove-search': 'true',
-         'data-min-input-len': 0
       }),
       required=False,
    )
@@ -314,9 +313,11 @@ class ModalSearchForm(forms.Form):
 
 class LanguageAddSetForm(forms.Form):
    language=forms.ModelChoiceField(
-      widget=forms.Select(attrs={'class': 'select2'}),
+      widget=forms.Select(attrs={
+         'class': 'select2',
+      }),
       empty_label="Search for a language",
-      queryset=Language.objects.all().order_by('name')
+      queryset=Language.objects.filter(in_user_set=False).order_by('name')
    )
 
 
@@ -335,19 +336,14 @@ class LinkWordForm(forms.Form):
          'class': 'select2 select2-ajax',
          'data-is-ajax': 'true',
          'data-width': "100%",
-         'data-placeholder': "Search for a word"
+         'data-placeholder': "Search for a word",
+         'data-min-input-len': '3'
       }),
       queryset=Word.objects.none()
    )
 
    relation_type = forms.ChoiceField(
       choices=WordRelation.RelationType.choices,
-      required=False,
-      widget=forms.Select(attrs={'class': 'form-control'})
-   )
-
-   category = forms.ChoiceField(
-      choices=WordRelation.TopicCategory.choices,
       required=False,
       widget=forms.Select(attrs={'class': 'form-control'})
    )
@@ -502,7 +498,8 @@ class CitationForm(forms.Form):
          'data-is-ajax': 'true',
          'data-width': '100%',
          'data-placeholder': 'Word',
-         'data-tags': 'true'
+         'data-tags': 'true',
+         'data-min-input-len': '3'
       }),
       required=True
    )
@@ -559,9 +556,28 @@ class CitationForm(forms.Form):
             cleaned_data['defn_object']=defn_obj
          except(ValueError, Definition.DoesNotExist):
             raise forms.ValidationError(f"Invalid definition selected")
-      elif defn_select == '-1' and not def_input:
+      elif defn_select == '-1' and not defn_input:
          raise forms.ValidationError(f"Please enter a new definition description")
       
       return cleaned_data
       
 
+class CitationDelete(forms.Form):
+   delete_example = forms.BooleanField(
+      required=False,
+      initial=False,
+      widget=forms.CheckboxInput(attrs={
+         'class': 'form-check-input'
+      }),
+   )
+
+   def __init__(self, *args, citation_id=None, **kwargs):
+      super().__init__(*args, **kwargs)
+      self.citation_id = citation_id
+
+   def save(self):
+      delete_example = self.cleaned_data.get('delete_example')
+      citation = Citation.objects.get(pk=self.citation_id)
+      if delete_example:
+         citation.example.delete()
+      citation.delete()

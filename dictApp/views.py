@@ -717,8 +717,31 @@ def example_cite(request):
    return redirect()
 
 
-def citation_delete(request):
-   return redirect()
+def citation_delete(request, lang_id, citation_id):
+   citation = get_object_or_404(Citation, pk=citation_id)
+   
+   if request.method == 'POST':
+      form = CitationDelete(request.POST, citation_id=citation_id)
+      if form.is_valid():
+         form.save()
+         if request.META.get('HTTP_HX_REQUEST'):
+            if citation.episode:
+               kind, obj_id = 'episode', citation.episode_id
+            elif citation.segment:
+               kind, obj_id = 'segment', citation.segment_id
+            else:
+               kind, obj_id = 'source', citation.source_id
+
+            return HttpResponse(headers={'HX-Redirect': f'/lang/{lang_id}/{kind}/{obj_id}/play-session/'})
+         return redirect('episodes', source_id=source_id)
+   else:
+      form = CitationDelete(citation_id=citation_id)
+
+   return render(request, 'forms/_citation_delete.html', {
+      'lang_id': lang_id,
+      'citation_id': citation_id,
+      'form': form
+   })
 
 
 def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=None):
@@ -726,6 +749,28 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
    episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
    segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
    defn_ajax_url = reverse('search_definitions')
+
+   qs = ( 
+      Citation.objects
+      .values_list(
+         'id',
+         'spotted_at',
+         'example__definition__word__id',
+         'example__definition__word__name',
+         'example__definition__id',
+         'example__definition__description',
+         'example__id',
+         'example__description',
+      )
+   )
+
+   if episode:
+      qs = qs.filter(episode=episode)
+   elif segment:
+      qs = qs.filter(episode=episode)
+   else:
+      qs = qs.filter(source=source)
+      
 
    if not any([source, episode, segment]):
       return HttpResponseBadRequest('At least one source is required')
@@ -735,8 +780,10 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
       "source": source,
       "episode": episode,
       "segment": segment,
-      'defn_ajax_url': defn_ajax_url
+      'defn_ajax_url': defn_ajax_url,
+      'citations': qs
    })
+
 
 def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment_id=None):
    source = get_object_or_404(Source, pk=source_id) if source_id else None
@@ -781,13 +828,13 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          )
 
          if source:
-            redirect_url = reverse('play_session_single', kwargs={'lang_id': lang_id, 'source_id': source_id})
+            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source_id})
          
-         if episode:
+         elif episode:
             redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode_id})
          
-         if segment:
-            redirect_url = reverse('play_session_segment', kwargs={'lang_id': lang_id, 'segment_id': source_id})
+         elif segment:
+            redirect_url = reverse('play_session_segment', kwargs={'lang_id': lang_id, 'segment_id': segment_id})
 
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': redirect_url})
@@ -822,6 +869,5 @@ def search_definitions(request):
    results = {
       'results': [ {'id': defn.id, 'text': defn.description} for defn in word.definitions.all() ]
    }
-   print('definitions')
-   print(results)
+
    return JsonResponse(results)

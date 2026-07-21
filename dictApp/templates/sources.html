@@ -79,7 +79,7 @@
                   {% if cat == 'TVS' %}
                      <a href="{% url 'episodes' lang_id=lang_id source_id=source.id %}">
                   {% elif cat == 'MOV' or cat == 'SON' %}
-                     <a href="{% url 'play_session_single' lang_id=lang_id source_id=source.id %}">
+                     <a href="{% url 'play_session_source' lang_id=lang_id source_id=source.id %}">
                   {% else %}
                      <a href="{% url 'segments' lang_id=lang_id source_id=source.id %}">
                   {% endif %}
@@ -109,4 +109,9 @@
 {% endblock innerbody %}
 
 {% block additionalScripts %}
+<script>
+function initSourceForm() {
+   document.getElementById('genericModalTitle').textContent = 'Create/Edit a source';
+}
+</script>
 {% endblock additionalScripts %}

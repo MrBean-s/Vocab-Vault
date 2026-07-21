@@ -24,7 +24,8 @@
 {% with item=episode|default:segment|default:source %}
 <div class="container px-5 py-4">
 
-   <h1>{{item.name}}</h1>
+   <div class="d-flex align-items-center">
+   <h1 class="">{{item.name}}</h1>
 
    <button hx-get="{{target_url}}"
       hx-trigger="click"
@@ -32,8 +33,30 @@
       hx-target-error="#error-box"
       data-bs-toggle="modal"
       data-bs-target="#genericModal"
-      class="btn btn-primary"
+      class="btn btn-primary ms-auto"
       >Add an example</button>
+   </div>
+
+   <div class="mt-5">
+      {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc in citations %}
+      <div>{{cit_id}}</div>
+      <div>{{time}}</div>
+      <div>{{w_id}}</div>
+      <div>{{w_name}}</div>
+      <div>{{d_id}}</div>
+      <div>{{d_desc}}</div>
+      <div>{{ex_id}}</div>
+      <div>{{ex_desc}}</div>
+      <a hx-get="{% url 'citation_delete' lang_id=lang_id citation_id=cit_id %}"
+         hx-trigger="click"
+         hx-target="#genericModalBody"
+         hx-target-error="#error-box"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+      >Remove citation</a>
+      <div class="mb-4"></div>
+      {% endfor %}
+   </div>
 </div>
 {% endwith %}
 

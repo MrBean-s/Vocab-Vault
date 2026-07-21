@@ -43,3 +43,12 @@
    </div>
 </div>
 {% endblock innerbody %}
+
+
+{% block additionalScripts %}
+<script>
+   function initEpisodeForm() {
+      document.getElementById('genericModalTitle').textContent = 'Add/Edit an episode';
+   }
+</script>
+{% endblock additionalScripts %}

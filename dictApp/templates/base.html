@@ -102,12 +102,12 @@
          [class*=" add-"] i, [class^="add-"] i { color: var(--bg-success) }
          [class*=" remove-"] i, [class^="remove-"] i { color: var(--bg-danger) }
          
-         textarea:not([readonly]):not(.select2-search__field), input:not([readonly]) {
+         textarea:not([readonly]):not(.select2-search__field), input:not([readonly]):not([type=checkbox]) {
             background-color: var(--bg-elevated) !important;
             border: 0 !important;
             color: var(--text-main) !important;
          }
-         input:focus, textarea:focus:not(.select2-search__field) {
+         input:focus:not([type=checkbox]), textarea:focus:not(.select2-search__field) {
             box-shadow: rgba(6, 90, 222, 0.7) 3px 3px !important;
          }
 
@@ -213,6 +213,12 @@
             position: absolute;
             pointer-events: none;
          }
+         .modal-form {
+            flex: 1;
+            display: flex; 
+            flex-direction: column;
+            justify-content: space-between;
+         }
       </style>
    {% endblock styles %}
    {% block sidebarStyle %}
@@ -284,7 +290,7 @@
          var params = {}
 
          const parsed = parseInt($el.data('minInputLen'), 10);
-         params.minimumInputLength = isNaN(parsed) ? 3 : parsed;
+         params.minimumInputLength = isNaN(parsed) ? 0 : parsed;
          
          params.placeholder = $el.data('placeholder') || 'Select an option';
          params.width = $el.data('width') || '100%';
@@ -368,7 +374,7 @@
 
          $(container).find('select.select2:not(.custom-select2)').each(function() {
             if (!$(this).data('select2')) {
-                prepareSelect2(this.id);
+               prepareSelect2(this.id);
             }
          });
       }

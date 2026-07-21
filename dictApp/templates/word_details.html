@@ -217,5 +217,9 @@
 <script>
 const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+function initLinkWordForm() {
+   document.getElementById('genericModalTitle').textContent = 'Link the word to a related item';
+}
 </script>
 {% endblock additionalScripts %}
