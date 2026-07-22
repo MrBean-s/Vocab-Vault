@@ -16,7 +16,7 @@
 {% if episode %}
    {% url 'session_episode_cite' episode_id=episode.id lang_id=lang_id as target_url %}
 {% elif segment %}
-   {% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id as target_url %}
+   {% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id as target_url %}   
 {% elif source %}
    {% url 'session_single_cite' source_id=source.id lang_id=lang_id as target_url %}
 {% endif %}
@@ -39,6 +39,22 @@
 
    <div class="mt-5">
       {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc in citations %}
+      
+      {% if episode %}
+         {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
+      {% elif segment %}
+         {% url 'session_segment_cite_edit' citation_id=cit_id segment_id=segment.id lang_id=lang_id as edit_url %}   
+      {% elif source %}
+         {% url 'session_single_cite_edit' citation_id=cit_id source_id=source.id lang_id=lang_id as edit_url %}
+      {% endif %}
+
+      <a hx-get="{{edit_url}}"
+         hx-trigger="click"
+         hx-target="#genericModalBody"
+         hx-target-error="#error-box"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+      >Edit citation</a>
       <div>{{cit_id}}</div>
       <div>{{time}}</div>
       <div>{{w_id}}</div>
@@ -71,11 +87,31 @@
    //(ノಠ益ಠ)ノ彡┻━┻
    function prepareSelect2CitationForm() {
       $('#genericModalTitle').text('Create a citation');
-      $('<option></option>').appendTo('#id_word'); //select2.select not fire when use remote source and createTag  #5386
 
+      const $wordInput = $('#id_word');
       const $defSelect = $('#id_definition_select');
       const $defInput = $('#id_definition_input');
 
+      
+      const $initialId = $wordInput.data('initialId');
+      console.log($initialId);
+      if ($initialId != "None") {
+         console.log('passed');
+         $wordInput.append(
+            $('<option>', {
+               value: $initialId,
+               text: $wordInput.data('initialWord')
+            })
+         ).trigger('change');
+         if ($defSelect.data('initialId')){
+            loadDefinitions($initialId).then(() => {
+               $defSelect.val($defSelect.data('initialId')).trigger('change');
+            });
+         }
+      } else {
+         $wordInput.append($('<option></option>')) //select2.select not fire when use remote source and createTag  #5386
+      }
+      
 
       function showDefinitionField(useSelect) {
          $defSelect.prop('disabled', !useSelect);
@@ -107,7 +143,7 @@
       }
 
 
-      $('#id_word').on('select2:select', async function(e) {
+      $wordInput.on('select2:select', async function(e) {
          var wordId = parseInt($(this).val(), 10);
 
          if (Number.isNaN(wordId)) {

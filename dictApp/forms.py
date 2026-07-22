@@ -499,7 +499,7 @@ class CitationForm(forms.Form):
          'data-width': '100%',
          'data-placeholder': 'Word',
          'data-tags': 'true',
-         'data-min-input-len': '3'
+         'data-min-input-len': '3',
       }),
       required=True
    )
@@ -533,9 +533,16 @@ class CitationForm(forms.Form):
 
    def __init__(self, *args, **kwargs):
       ajax_url = kwargs.pop('ajax_url', None)
+      initial_word_id = kwargs.pop('initial_word_id', None)
+      initial_word    = kwargs.pop('initial_word', None)
+      initial_defn_id = kwargs.pop('initial_defn_id', None)
       super().__init__(*args, **kwargs)
 
-      self.fields['word'].widget.attrs['data-ajax-url'] = ajax_url
+      word_widget = self.fields['word'].widget
+      word_widget.attrs['data-ajax-url'] = ajax_url
+      word_widget.attrs['data-initial-id'] = initial_word_id
+      word_widget.attrs['data-initial-word'] = initial_word
+      self.fields['definition_select'].widget.attrs['data-initial-id'] = initial_defn_id
 
       # # when validation fails the same word is selected
       # if self.is_bound and 'word' in self.data:

@@ -785,20 +785,21 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
    })
 
 
-def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment_id=None):
+def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment_id=None, citation_id=None):
    source = get_object_or_404(Source, pk=source_id) if source_id else None
    episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
    segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+   citation = get_object_or_404(Citation, pk=citation_id) if citation_id else None
 
    ajax_url = reverse('search_word', kwargs={'lang_id': lang_id})
-   
 
    if not any([source, episode, segment]):
       return HttpResponseBadRequest('At least one source is required')
+   
+   initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description } if citation else {}
 
    if request.method == "POST":
-      print(request.POST)
-      form = CitationForm(request.POST, ajax_url=ajax_url)
+      form = CitationForm(request.POST, ajax_url=ajax_url, initial=initial_data)
       if form.is_valid():
          word_val = form.cleaned_data['word']
          new_def = form.cleaned_data['definition_input']
@@ -814,18 +815,22 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          elif new_def:
             definition = Definition.objects.create(description=new_def, word=word)
 
-         example = Example.objects.create(
-            description=form.cleaned_data['example'],
-            definition=definition
-         )
+         example = citation.example if citation else Example()
+         example.description = form.cleaned_data['example']
+         example.definition = definition
+         example.save()
 
-         Citation.objects.create(
-            spotted_at=form.cleaned_data['spotted_at'],
-            example=example,
-            source=source,
-            episode=episode,
-            segment=segment
-         )
+         if not citation:
+            Citation.objects.create(
+               spotted_at=form.cleaned_data['spotted_at'],
+               example=example,
+               source=source,
+               episode=episode,
+               segment=segment
+            )
+         else:
+            citation.spotted_at=form.cleaned_data['spotted_at']
+            citation.save()
 
          if source:
             redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source_id})
@@ -840,16 +845,28 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             return HttpResponse(headers={'HX-Redirect': redirect_url})
          return redirect(redirect_url)
          
-   else:
-      form = CitationForm(ajax_url=ajax_url)
+   else:      
+      if citation:
+         form = CitationForm(
+            ajax_url=ajax_url,
+            initial=initial_data,
+            initial_word_id=citation.example.definition.word_id,
+            initial_word=citation.example.definition.word.name,
+            initial_defn_id=citation.example.definition_id,
+         )
+      else:
+         form = CitationForm(ajax_url=ajax_url)
 
+
+      
    return render(request, 'forms/_citation_form.html', {
       'lang_id': lang_id,
       'source_id': source_id,
       'episode_id': episode_id,
       'segment_id': segment_id,
       'form': form,
-      'path': request.path
+      'path': request.path,
+      'is_edit': citation is not None
    })
 
 

@@ -17,19 +17,19 @@
          <div id="{{form.word.id_for_label}}-dropdownParent"></div>
       </div>
 
-      <div class="mb-4 unselectable row-wrapper">
+      <div class="mb-4 row-wrapper{% if not is_edit %} unselectable{% endif %}">
          <label class="form-label" for="{{form.definition_select.id_for_label}}">{{form.definition_select.label}}</label>
          {{form.definition_select}}
          {{form.definition_select.errors}}
       </div>
 
-      <div class="mb-4 unselectable row-wrapper">
+      <div class="mb-4 row-wrapper {% if not is_edit %} unselectable{% endif %}">
          <label class="form-label" for="{{form.definition_input.id_for_label}}">{{form.definition_input.label}}</label>
          {{form.definition_input}}
          {{form.definition_input.errors}}
       </div>
 
-      <div class="mb-4 unselectable row-wrapper">
+      <div class="mb-4 row-wrapper {% if not is_edit %} unselectable{% endif %}">
          <label class="form-label" for="{{form.example.id_for_label}}">{{form.example.label}}</label>
          {{form.example}}
          {{form.example.errors}}
