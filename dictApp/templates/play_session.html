@@ -1,12 +1,87 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
 
 {% block additionalStyles %}
+<link rel="stylesheet" href="{% static 'swiper/swiper-bundle.min.css' %}">
 <style>
    .unselectable {
-      /* filter: blur(0.5rem); */
       cursor: not-allowed;
       display: none;
    }
+
+   .film-strip {
+      background: black;
+      height: 610px;
+      width: 1600px;
+      padding-left: 30px;
+      position: relative;
+   }
+
+   .film-strip::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: -20px;
+      background: var(--bg-body);
+      height: 50px;
+      width: calc(100% + 30px);
+   }
+
+   .film-square {
+      min-width: 360px;
+      max-width: 360px;
+      width: 360px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+   }
+
+   .film-strip-top, .film-strip-bottom { 
+      height: 30px;
+      display: flex;
+   }
+   .film-strip-top { margin-top: 20px; margin-bottom: 13px; }
+   .film-strip-bottom { margin-top: 13px; margin-bottom: 70px; }
+
+   .film-strip-cut {
+      /* background: rgb(92, 95, 107); */
+      background: rgb(61, 64, 73);
+      width: 15px;
+      border-radius: 3px;
+      margin-right: 30px;
+   }
+
+   .film-strip-middle {
+      background: #0c101e;
+      height: 520px;
+      margin-right: 20px;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+   }
+
+   .swiper-pagination-bullet {
+      width: 30px;
+      height: 30px;
+      text-align: center;
+      line-height: 30px;
+      font-size: 1rem;
+      color: var(--text-main);
+      opacity: 1;
+      background: var(--bg-elevated);
+   }
+
+   .swiper-pagination-bullet-active {
+      color: var(--text-main);
+      background: var(--accent-purple);
+   }
+
+   .text-example { margin-top: 20px; }
+   .text-word { margin-bottom: 20px; }
+   .text-time { font-weight: bold; font-size: 1.5rem;}
+   .film-strip-middle-lower { background: #0c101e; height: 50px; margin-right: 20px; padding-left: 20px; padding-right: 20px}
 
 </style>
 {% endblock additionalStyles %}
@@ -22,63 +97,107 @@
 {% endif %}
 
 {% with item=episode|default:segment|default:source %}
-<div class="container px-5 py-4">
+<div class="container-fluid px-5 py-4">
 
    <div class="d-flex align-items-center">
-   <h1 class="">{{item.name}}</h1>
+      <h1 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h1>
 
-   <button hx-get="{{target_url}}"
-      hx-trigger="click"
-      hx-target="#genericModalBody"
-      hx-target-error="#error-box"
-      data-bs-toggle="modal"
-      data-bs-target="#genericModal"
-      class="btn btn-primary ms-auto"
-      >Add an example</button>
+      <button hx-get="{{target_url}}"
+         hx-trigger="click"
+         hx-target="#genericModalBody"
+         hx-target-error="#error-box"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+         class="btn btn-primary ms-auto">
+         Add a citation
+      </button>
    </div>
+
+   <h4>{{episode.source.name}} ({{episode.source.released_year}})</h4>
+
+
+   <div class="d-flex justify-content-center p-xxl-4 mt-5">
+      <div id="#film-strip" class="swiper film-strip">
+         <div class="swiper-wrapper">
+            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc in citations %}
+               {% if episode %}
+                  {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
+               {% elif segment %}
+                  {% url 'session_segment_cite_edit' citation_id=cit_id segment_id=segment.id lang_id=lang_id as edit_url %}   
+               {% elif source %}
+                  {% url 'session_single_cite_edit' citation_id=cit_id source_id=source.id lang_id=lang_id as edit_url %}
+               {% endif %}
+            <div class="swiper-slide film-square">
+               <div class="film-strip-top">
+                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+               <div class="film-strip-middle">
+                  <h4 class="text-word">{{w_name}}</h4>
+                  <img src="https://picsum.photos/178/100" alt="">
+                  <p class="text-example">{{ex_desc}}</p>                  
+               </div>
+               <div class="film-strip-middle-lower d-flex justify-content-between">
+                  <p class="text-time">{{time}}</p>
+                  <div>
+                     <a hx-get="{{edit_url}}"
+                        hx-trigger="click"
+                        hx-target="#genericModalBody"
+                        hx-target-error="#error-box"
+                        data-bs-toggle="modal"
+                        data-bs-target="#genericModal">
+                        <i class="fa-solid fa-pen-to-square text-muted"></i>
+                     </a>
+                     <a href="">
+                        <i class="fa-solid fa-square-arrow-up-right px-3 text-muted"></i>
+                     </a>
+                  </div>
+               </div>
+               <div class="film-strip-bottom">
+                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+            </div>
+            {% endfor %}
+            <div class="swiper-slide film-square">
+               <div class="film-strip-top">
+                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+               <div class="film-strip-middle"></div>
+               <div class="film-strip-middle-lower d-flex justify-content-between"></div>
+               <div class="film-strip-bottom">
+                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+            </div>
+         </div>
+         <div class="pagination-fix"></div>
+         <div class="swiper-pagination"></div>
+      </div>
+   </div>
+
 
    <div class="mt-5">
-      {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc in citations %}
-      
-      {% if episode %}
-         {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
-      {% elif segment %}
-         {% url 'session_segment_cite_edit' citation_id=cit_id segment_id=segment.id lang_id=lang_id as edit_url %}   
-      {% elif source %}
-         {% url 'session_single_cite_edit' citation_id=cit_id source_id=source.id lang_id=lang_id as edit_url %}
-      {% endif %}
-
-      <a hx-get="{{edit_url}}"
-         hx-trigger="click"
-         hx-target="#genericModalBody"
-         hx-target-error="#error-box"
-         data-bs-toggle="modal"
-         data-bs-target="#genericModal"
-      >Edit citation</a>
-      <div>{{cit_id}}</div>
-      <div>{{time}}</div>
-      <div>{{w_id}}</div>
-      <div>{{w_name}}</div>
-      <div>{{d_id}}</div>
-      <div>{{d_desc}}</div>
-      <div>{{ex_id}}</div>
-      <div>{{ex_desc}}</div>
-      <a hx-get="{% url 'citation_delete' lang_id=lang_id citation_id=cit_id %}"
-         hx-trigger="click"
-         hx-target="#genericModalBody"
-         hx-target-error="#error-box"
-         data-bs-toggle="modal"
-         data-bs-target="#genericModal"
-      >Remove citation</a>
-      <div class="mb-4"></div>
-      {% endfor %}
    </div>
+
 </div>
 {% endwith %}
 
 {% endblock innerbody %}
 
 {% block additionalScripts %}
+<script src="{% static 'swiper/swiper-bundle.min.js' %}"></script>
+<script>
+   
+   var swiper = new Swiper('.swiper', {
+      slidesPerView: 3,
+      spaceBetween: 0,
+      pagination: {
+         el: '.swiper-pagination',
+         clickable: true,
+         renderBullet: function (index, className) {
+            return '<span class="' + className + '">' + (index + 1) + '</span>';
+         },
+      },
+   });
+</script>
 <script>
    const defn_ajax_url = "{{defn_ajax_url}}";
 

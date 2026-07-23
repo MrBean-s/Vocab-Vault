@@ -13,3 +13,7 @@ def split(value, sep=None):
     if sep:
         return value.split(sep)
     return value.split()
+
+@register.filter(name='times') 
+def times(number):
+    return range(number)
