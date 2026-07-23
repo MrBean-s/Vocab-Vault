@@ -866,7 +866,8 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
       'segment_id': segment_id,
       'form': form,
       'path': request.path,
-      'is_edit': citation is not None
+      'is_edit': citation is not None,
+      'citation_id': citation_id
    })
 
 
