@@ -608,10 +608,8 @@ class CitationFormDetailsPage(forms.Form):
    source=forms.ModelChoiceField(
       widget=forms.Select(attrs={
          'placeholder': "Select a source...",
-         'class': 'tom-select',
+         'class': 'select2',
          'required': 'true',
-         'data-clear-options': 'true',
-         'data-preload': 'true',
       }),
       queryset=Source.objects.none(),
       required=True
@@ -620,9 +618,8 @@ class CitationFormDetailsPage(forms.Form):
    episode=forms.ModelChoiceField(
       widget=forms.Select(attrs={
          'placeholder': "Select an episode...",
-         'class': 'tom-select',
+         'class': 'select2',
          'required': 'true',
-         'data-preload': 'true'
       }),
       empty_label="Select an episode",
       queryset=Episode.objects.none()
@@ -647,11 +644,11 @@ class CitationFormDetailsPage(forms.Form):
    def __init__(self, *args, **kwargs):
       lang_id = kwargs.pop('lang_id', None)
       super().__init__(*args, **kwargs)
-      if lang_id:
-         self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
-      
+
       source_id = None
       if self.is_bound:
+         if lang_id:
+            self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
          source_id = self.data.get(f'{self.prefix}-source')
       elif 'source' in self.initial:
          source_id = self.initial.get('source')

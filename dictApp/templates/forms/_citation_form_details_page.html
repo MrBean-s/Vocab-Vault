@@ -9,12 +9,14 @@
    <div class="mb-3">
       <label class="form-label" for="{{form.source.id_for_label}}">{{form.source.label}}</label>
       {{form.source}}
+      <div id="{{form.source.id_for_label}}-dropdownParent"></div>
       {{form.source.errors}}
    </div>
 
    <div class="mb-3 section-hide" hidden>
       <label class="form-label" for="{{form.episode.id_for_label}}">{{form.episode.label}}</label>
       {{form.episode}}
+      <div id="{{form.episode.id_for_label}}-dropdownParent"></div>
       {{form.episode.errors}}
    </div>
 

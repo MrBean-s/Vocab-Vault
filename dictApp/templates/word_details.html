@@ -243,49 +243,70 @@ const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstra
 function initLinkWordForm() {
    document.getElementById('genericModalTitle').textContent = 'Link the word to a related item';
 }
+
 function prepareCitationFormWizard() {
    document.getElementById('genericModalTitle').textContent = 'Create a citation for this example';
-   const sourceSelect = document.getElementById('id_src-ep-source');
-   const episodeSelect = document.getElementById('id_src-ep-episode');
-   const sourceTs = sourceSelect.tomselect;
-   const episodeTs = episodeSelect.tomselect;
 
-   //loaded this way so I can attach category to the Ts options
+   const $sourceSelect = $('#id_src-ep-source');
+   const $episodeSelect = $('#id_src-ep-episode');
+   const $episodeSection = $episodeSelect.closest('.section-hide');
+   const sourceDataMap = {};
+
    fetch("{% url 'get_sources' lang_id=lang_id %}")
       .then(response => response.json())
       .then(data => {
-         sourceTs.addOptions(data.results); //has 'category'
-         sourceTs.refreshOptions(true);
-      });
+         data.results.forEach(item => { sourceDataMap[item.value] = item; });
+
+         $sourceSelect.empty();
+         data.results.forEach(item => {
+            $sourceSelect.append(new Option(item.text, item.value));
+         });
+
+         $sourceSelect.trigger('change.select2');
+         $sourceSelect.val(null).trigger('change');
+      })
+      .catch(err => console.error('Failed to load sources:', err));
+
+   $sourceSelect.on('select2:select', async function () {
+      const sourceId = $sourceSelect.val();
+      const source = sourceDataMap[sourceId];
    
-   sourceTs.on('change', async (value) => {
-      const option = sourceTs.options[value];
-      if (option && (option.category === 'MOV' || option.category === 'SON')) {
-         episodeSelect.toggleAttribute('required', false);
-         episodeTs.clear();
-         episodeTs.clearOptions();
-         episodeSelect.closest('.section-hide').hidden = true;
+      if (source.category === 'MOV' || source.category === 'SON') {
+         $episodeSection.prop('hidden', true);
+         $episodeSelect.prop('required', false);
+         clearEpisodeSelect();
       } else {
-         episodeSelect.toggleAttribute('required', true);
-         episodeSelect.closest('.section-hide').hidden = false;
-         await loadEpisodesOrSegments(value, episodeTs);
-         episodeTs.refreshOptions(true);
+         await loadEpisodesOrSegments(sourceId);
+         $episodeSection.prop('hidden', false);
+         $episodeSelect.prop('required', true);
       }
-    });
+   });
 
-    async function loadEpisodesOrSegments(sourceId, targetSelect, is_episode = true) {
-        let url = `{% url 'search_episodes_or_segments' source_id=999999 %}`.replace('999999', sourceId);
-        url += is_episode ? '?search_episodes=true' : '?search_episodes=false';
-        if (sourceId === '') return; 
+   function clearEpisodeSelect() {
+      $episodeSelect.empty();
+      $episodeSelect.trigger('change.select2');
+   }
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            const data = await response.json();
-            targetSelect.clear(); targetSelect.clearOptions();
-            if (data.results.length > 0) { targetSelect.addOptions(data.results);}
-        } catch (err) { console.error('Fetch error:', err); }
-    }
+   async function loadEpisodesOrSegments(sourceId, isEpisode = true) {
+      let url = `{% url 'search_episodes_or_segments' source_id=999999 %}`.replace('999999', sourceId);
+      url += isEpisode ? '?search_episodes=true' : '?search_episodes=false';
+
+      if (!sourceId) { clearEpisodeSelect(); return; }
+
+      try {
+         const response = await fetch(url);
+         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+         const data = await response.json();
+
+         $episodeSelect.empty();
+         if (data.results.length > 0) {
+            data.results.forEach(item => {
+               $episodeSelect.append(new Option(item.text, item.value));
+            });
+         }
+         $episodeSelect.trigger('change.select2');
+      } catch (err) { console.error('Fetch error:', err); }
+   }
 }
 
 </script>

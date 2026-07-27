@@ -13,7 +13,6 @@
       <link rel="stylesheet" href="{% static 'select2/select2-bootstrap-5-theme.min.css' %}">
       <link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
       <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
-      <link rel="stylesheet" href="{% static 'tomselect/tom-select.css' %}">
       <style>
          :root {
             --bg-body:         #101827;
@@ -272,7 +271,6 @@
       <script src="{% static 'htmx/htmx.min.js' %}"></script>
       <script src="{% static 'jquery/jquery-4.0.0.min.js' %}"></script>
       <script src="{% static 'select2/select2-4.1.0.min.js' %}"></script>
-      <script src="{% static 'tomselect/tom-select.complete.min.js' %}"></script>
    {% endblock scripts %}
 
    {# right-side is defined in sidebar.css #}
@@ -368,7 +366,6 @@
 
          $el.select2(params);
 
-
          if ($el.data('isMultiple') && $el.data('hasSelection') === undefined)
             $el.val(['-999']).trigger('change'); //-999: 'ALL' option
 
@@ -393,24 +390,6 @@
          });
       }
 
-      const prepareTomSelect = function(elementId) {
-         let select = document.getElementById(elementId);
-         console.log(elementId);
-
-         let params = {}
-         params.refreshThrottle = select.dataset.refreshThrottle || 50;
-         params.preload = select.dataset.preload === "true" || false;
-
-         let selectTs = new TomSelect(`#${elementId}`, params);
-
-         if (select.dataset.clearOptions) {
-            selectTs.clear();
-            selectTs.clearOptions();
-         }
-         if (select.dataset.triggerSearch) selectTs.search("");
-
-      }
-
       const initSelect2InsideModals = function() {
          const container = document.getElementById('genericModalBody');
 
@@ -418,9 +397,6 @@
             if (!$(this).data('select2')) {
                prepareSelect2(this.id);
             }
-         });
-         container.querySelectorAll('select.tom-select:not(.custom-tom-select)').forEach(function(element) {
-            prepareTomSelect(element.id);
          });
       }
 
