@@ -128,11 +128,20 @@ class Example(models.Model):
       null=False)
 
    def to_json(self):
+      citation = getattr(self, 'citation', None)
+
       return {
+         "id": self.id,
          "description": self.description,
          "explanation": self.explanation or "",
          "created": self.created.strftime("%Y-%m-%d %H:%M:%S"),
-         "part_of_speech": self.part_of_speech.name if self.part_of_speech else ""
+         "part_of_speech": self.part_of_speech.name if self.part_of_speech else "",
+         "citation": {
+            "id": citation.id if citation else "",
+            "source_id": citation.source_id if citation else "",
+            "episode_id": citation.episode_id if citation else "",
+            "segment_id": citation.segment_id if citation else "",
+         } if citation else None
       }
 
 
@@ -160,20 +169,25 @@ class Source(models.Model):
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True, blank=True)
    language = models.ForeignKey(Language, on_delete=models.PROTECT, null=False)
 
+   def __str__(self):
+      return f'{self.name} ({self.released_year})'
 
 class Episode(models.Model):
    season_number = models.IntegerField(null=True, blank=True)
    episode_number = models.IntegerField(null=False, blank=False)
    name = models.CharField(max_length=255)
 
-   source = models.ForeignKey(Source, on_delete=models.CASCADE)
+   source = models.ForeignKey(Source, on_delete=models.CASCADE, related_name="episodes")
 
    class Meta:
       unique_together = ('source', 'season_number', 'episode_number')
    
    def __str__(self):
-      return f'S{self.season_number}E{self.episode_number} - {self.name}'
-
+      if self.season_number and self.episode_number:
+         return f'S{self.season_number}E{self.episode_number} - {self.name}'
+      elif self.episode_number:
+         return f'E{self.episode_number} - {self.name}'
+      return self.name
 
 class Segment(models.Model):
    class SegmentType(models.TextChoices):
@@ -191,7 +205,7 @@ class Segment(models.Model):
    name = models.TextField(null=False, blank=False)
    number = models.IntegerField(null=False, blank=False)
 
-   source = models.ForeignKey(Source, on_delete=models.CASCADE)
+   source = models.ForeignKey(Source, on_delete=models.CASCADE, related_name="segments")
 
    class Meta:
       unique_together = ('segment_type', 'name', 'number')
@@ -203,7 +217,7 @@ class Citation(models.Model):
    custom_audio = models.FileField(upload_to = 'audio/', null=True, blank=True)
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
 
-   example = models.ForeignKey(Example, null=False, on_delete=models.CASCADE)
+   example = models.OneToOneField(Example, on_delete=models.CASCADE, related_name="citation")
    source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT)
    episode = models.ForeignKey(Episode, null=True,  on_delete=models.PROTECT)
    segment = models.ForeignKey(Segment, null=True,  on_delete=models.PROTECT)

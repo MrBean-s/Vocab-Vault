@@ -391,7 +391,7 @@ class SourceForm(forms.ModelForm):
    source_category = forms.ChoiceField(
       choices=Source.SourceCategory.choices,
       required=True,
-      initial="OTH",
+      initial="TVS",
       widget=forms.Select(attrs={'class': 'form-select'}),
       label="Category"
    )
@@ -531,6 +531,12 @@ class CitationForm(forms.Form):
       required=True
    )
 
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      label='Screenshot'
+   )
+
    def __init__(self, *args, **kwargs):
       ajax_url = kwargs.pop('ajax_url', None)
       initial_word_id = kwargs.pop('initial_word_id', None)
@@ -567,7 +573,7 @@ class CitationForm(forms.Form):
          raise forms.ValidationError(f"Please enter a new definition description")
       
       return cleaned_data
-      
+
 
 class CitationDelete(forms.Form):
    delete_example = forms.BooleanField(
@@ -587,4 +593,69 @@ class CitationDelete(forms.Form):
       citation = Citation.objects.get(pk=self.citation_id)
       if delete_example:
          citation.example.delete()
+      if citation.image:
+         img = citation.image
+         storage = img.file.storage
+         if storage.exists(img.file.name):
+            storage.delete(img.file.name)
+         img.delete()
+
       citation.delete()
+
+
+
+class CitationFormDetailsPage(forms.Form):
+   source=forms.ModelChoiceField(
+      widget=forms.Select(attrs={
+         'placeholder': "Select a source...",
+         'class': 'tom-select',
+         'required': 'true',
+         'data-clear-options': 'true',
+         'data-preload': 'true',
+      }),
+      queryset=Source.objects.none(),
+      required=True
+   )
+
+   episode=forms.ModelChoiceField(
+      widget=forms.Select(attrs={
+         'placeholder': "Select an episode...",
+         'class': 'tom-select',
+         'required': 'true',
+         'data-preload': 'true'
+      }),
+      empty_label="Select an episode",
+      queryset=Episode.objects.none()
+   )
+
+   spotted_at = forms.DurationField(
+      label="Spotted at:",
+      widget=forms.TextInput(attrs={
+         'placeholder': 'HH:MM:SS',
+         'class': 'form-control w-100',
+         'style': 'width: auto'
+      }),
+      required=True
+   )
+
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      label='Screenshot'
+   )
+
+   def __init__(self, *args, **kwargs):
+      lang_id = kwargs.pop('lang_id', None)
+      super().__init__(*args, **kwargs)
+      if lang_id:
+         self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
+      
+      source_id = None
+      if self.is_bound:
+         source_id = self.data.get(f'{self.prefix}-source')
+      elif 'source' in self.initial:
+         source_id = self.initial.get('source')
+      
+      if source_id:
+         source = Source.objects.get(pk=source_id)
+         self.fields['episode'].queryset = source.episodes.all()

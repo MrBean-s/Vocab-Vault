@@ -11,6 +11,7 @@ urlpatterns = [
    path("lang/add-to-set/", views.add_lang_to_set, name="lang_add_set"),
    path("lang/<int:lang_id>/add-to-set/", views.add_lang_to_set_with_id, name="lang_add_set_with_id"),
    path("lang/<int:lang_id>/remove-from-set/", views.remove_lang_from_set, name="lang_remove_set"),
+   path("lang/<int:lang_id>/get-sources/", views.get_sources, name="get_sources"),
    path("languages/", views.languages, name="languages"),
 
    path("generic/confirm-delete/", views.generic_confirm_delete, name="generic_confirm_delete"),
@@ -28,6 +29,7 @@ urlpatterns = [
    path("lang/<int:lang_id>/search/", views.search, name="search"),
    path("lang/<int:lang_id>/search_word/", views.word_only_search, name="search_word"),
    path("search/definitions/", views.search_definitions, name="search_definitions"),
+   path("source/<int:source_id>/search_episodes_or_segments/", views.search_episodes_or_segments, name="search_episodes_or_segments"),
 
    path("countries/", views.countries, name="countries"),
    path("country/<int:cty_id>/delete/", views.delete_country, name="country_delete"),
@@ -53,7 +55,7 @@ urlpatterns = [
    path("sources/<int:source_id>/segment/<int:segment_id>/delete/", views.segment_delete, name="segment_delete"),
    path("lang/<int:lang_id>/segment/<int:segment_id>/play-session/", views.play_session, name="play_session_segment"),
 
-   path("example/<int:ex_id>/cite/", views.example_cite, name="example_cite"),
+   path("lang/<int:lang_id>/example/<int:example_id>/cite/", views.example_cite, name="example_cite"),
    path("lang/<int:lang_id>/citation/<int:citation_id>/remove/", views.citation_delete, name="citation_delete"),
 
    path("lang/<int:lang_id>/source/<int:source_id>/session/cite/", views.play_session_cite,   name="session_source_cite"),
@@ -63,6 +65,5 @@ urlpatterns = [
    path("lang/<int:lang_id>/source/<int:source_id>/session/citation/<int:citation_id>/edit/", views.play_session_cite,  name="session_source_cite_edit"),
    path("lang/<int:lang_id>/episode/<int:episode_id>/session/citation/<int:citation_id>/edit/", views.play_session_cite, name="session_episode_cite_edit"),
    path("lang/<int:lang_id>/segment/<int:segment_id>/session/citation/<int:citation_id>/edit/", views.play_session_cite, name="session_segment_cite_edit"),
-
 
 ]

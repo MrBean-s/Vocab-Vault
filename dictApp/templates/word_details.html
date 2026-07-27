@@ -65,6 +65,7 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 20px 10px;
    }
+
 </style>
 {% endblock additionalStyles %}
 
@@ -130,9 +131,7 @@
                   hx-target="#genericModalBody"
                   hx-target-error="#error-box"
                   data-bs-toggle="modal"
-                  data-bs-target="#genericModal"
-                  >
-                  
+                  data-bs-target="#genericModal">
             {% endif %}
 
             <div class="mb-4 def-description">
@@ -162,9 +161,32 @@
                         <div class="ex-explanation d-inline ps-3 text-secondary">({{ex.explanation}})</div>
                      {% endif %}
 
-                     <i class="fa-solid fa-clapperboard d-inline ps-3 text-muted" title="Add Source"
+                     {% if not ex.citation %}
+                     <a hx-get="{% url 'example_cite' lang_id=lang_id example_id=ex.id %}"
+                        hx-trigger="click"
+                        hx-target="#genericModalBody"
+                        hx-target-error="#error-box"
+                        data-bs-toggle="modal"
+                        data-bs-target="#genericModal">
+                        <i class="fa-solid fa-clapperboard d-inline ps-3 text-muted" title="Add Source"
                         data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip"
                         data-bs-title="Add a citation"></i>
+                     </a>
+                     {% else %}
+                        {% if ex.citation.episode_id %}
+                           {% url 'play_session_episode' episode_id=ex.citation.episode_id lang_id=lang_id as session_url %}
+                        {% elif ex.citation.segment_id %}
+                           {% url 'play_session_segment' segment_id=ex.citation.segment_id lang_id=lang_id as session_url %}   
+                        {% elif ex.citation.source_id %}
+                           {% url 'play_session_source' source_id=ex.citation.source_id lang_id=lang_id as session_url %}
+                        {% endif %}
+                        <a href="{{session_url}}">
+                           <i class="fa-solid fa-square-arrow-up-right px-3 text-muted"></i>
+                        </a>
+                     {% endif %}
+
+
+                     
                   </div>
                   
                {% endfor %}
@@ -221,5 +243,50 @@ const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstra
 function initLinkWordForm() {
    document.getElementById('genericModalTitle').textContent = 'Link the word to a related item';
 }
+function prepareCitationFormWizard() {
+   document.getElementById('genericModalTitle').textContent = 'Create a citation for this example';
+   const sourceSelect = document.getElementById('id_src-ep-source');
+   const episodeSelect = document.getElementById('id_src-ep-episode');
+   const sourceTs = sourceSelect.tomselect;
+   const episodeTs = episodeSelect.tomselect;
+
+   //loaded this way so I can attach category to the Ts options
+   fetch("{% url 'get_sources' lang_id=lang_id %}")
+      .then(response => response.json())
+      .then(data => {
+         sourceTs.addOptions(data.results); //has 'category'
+         sourceTs.refreshOptions(true);
+      });
+   
+   sourceTs.on('change', async (value) => {
+      const option = sourceTs.options[value];
+      if (option && (option.category === 'MOV' || option.category === 'SON')) {
+         episodeSelect.toggleAttribute('required', false);
+         episodeTs.clear();
+         episodeTs.clearOptions();
+         episodeSelect.closest('.section-hide').hidden = true;
+      } else {
+         episodeSelect.toggleAttribute('required', true);
+         episodeSelect.closest('.section-hide').hidden = false;
+         await loadEpisodesOrSegments(value, episodeTs);
+         episodeTs.refreshOptions(true);
+      }
+    });
+
+    async function loadEpisodesOrSegments(sourceId, targetSelect, is_episode = true) {
+        let url = `{% url 'search_episodes_or_segments' source_id=999999 %}`.replace('999999', sourceId);
+        url += is_episode ? '?search_episodes=true' : '?search_episodes=false';
+        if (sourceId === '') return; 
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+            targetSelect.clear(); targetSelect.clearOptions();
+            if (data.results.length > 0) { targetSelect.addOptions(data.results);}
+        } catch (err) { console.error('Fetch error:', err); }
+    }
+}
+
 </script>
 {% endblock additionalScripts %}

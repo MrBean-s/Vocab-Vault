@@ -1,7 +1,8 @@
 <form hx-post="{{path}}"
    hx-target="#genericModalBody"
    hx-swap="innerHTML"
-   hx-target-error="#genericModalBody">
+   hx-target-error="#genericModalBody"
+   enctype="multipart/form-data">
    {% csrf_token %}
    <div class="form-content" style="min-height: 350px">
       <div class="mb-4">
@@ -33,6 +34,12 @@
          <label class="form-label" for="{{form.example.id_for_label}}">{{form.example.label}}</label>
          {{form.example}}
          {{form.example.errors}}
+
+         <div class="mb-4"></div>
+
+         <label class="form-label" for="{{form.image_file.id_for_label}}">{{form.image_file.label}}</label>
+         {{form.image_file}}
+         {{form.image_file.errors}}
       </div>
    </div>
    {% if form.non_field_errors %}

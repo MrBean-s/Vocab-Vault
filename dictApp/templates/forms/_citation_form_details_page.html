@@ -1,0 +1,45 @@
+<form id="citationFormDetailsPage"
+   method="POST"
+   hx-post="{% url 'example_cite' lang_id=lang_id example_id=example_id %}"
+   hx-target="#genericModalBody"
+   hx-swap="innerHTML"
+   hx-target-error="#genericModalBody"
+   enctype="multipart/form-data">
+   {% csrf_token %}
+   <div class="mb-3">
+      <label class="form-label" for="{{form.source.id_for_label}}">{{form.source.label}}</label>
+      {{form.source}}
+      {{form.source.errors}}
+   </div>
+
+   <div class="mb-3 section-hide" hidden>
+      <label class="form-label" for="{{form.episode.id_for_label}}">{{form.episode.label}}</label>
+      {{form.episode}}
+      {{form.episode.errors}}
+   </div>
+
+   <div class="d-flex gap-5 mb-3">
+      <div class="w-50">
+         <label class="form-label" for="form.spotted_at.id_for_label">{{form.spotted_at.label}}</label>
+         {{form.spotted_at}}
+         {{form.spotted_at.errors}}
+      </div>
+      <div class="w-50">
+         <label class="form-label" for="form.image_file.id_for_label">{{form.image_file.label}}</label>
+         {{form.image_file}}
+         {{form.image_file.errors}}
+      </div>
+   </div>
+   
+   {% if form.non_field_errors %}
+      {% for error in form.non_field_errros %}
+      <div class="text-danger">{{error}}</div>
+      {% endfor %}
+   {% endif %}
+
+   <div class="d-flex justify-content-end gap-3 mt-5">
+      <button class="btn btn-primary" type="submit" id="submit">Save</button>
+   </div>
+</form>
+
+<div data-modal-init="prepareCitationFormWizard"></div>

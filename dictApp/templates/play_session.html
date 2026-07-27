@@ -29,9 +29,9 @@
    }
    
    .film-square {
-      min-width: 324px;
-      max-width: 324px;
-      width: 324px;
+      min-width: 400px;
+      max-width: 400px;
+      width: 400px;
       height: 100%;
    }
    
@@ -67,9 +67,17 @@
       padding: 18px;
    }
    
-   .film-strip-middle img {
+   .img-wrapper {
+      width: 100%;
+      height: 200px !important;
+      background: black;
+      display: flex;
+      justify-content: center;
+   }
+   .img-wrapper img{
       width: auto;
-      height: 144px !important;
+      max-width: 100%;
+      height: 200px !important;
    }
    
    .film-strip-middle-lower {
@@ -100,7 +108,7 @@
       margin-top: 18px;
       font-style: italic;
       font-size: 0.99rem;
-      height: 135px;
+      height: 79px;
       overflow-y: auto;
    }
    
@@ -143,7 +151,7 @@
       <h2 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h2>
 
       <button hx-get="{{target_url}}"
-         hx-trigger="click"
+         hx-trigger="mouseup"
          hx-target="#genericModalBody"
          hx-target-error="#error-box"
          data-bs-toggle="modal"
@@ -160,7 +168,7 @@
    <div class="d-flex justify-content-center">
       <div id="#film-strip" class="swiper film-strip">
          <div class="swiper-wrapper">
-            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc in citations %}
+            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id in citations %}
                {% if episode %}
                   {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
                {% elif segment %}
@@ -170,11 +178,16 @@
                {% endif %}
             <div class="swiper-slide film-square">
                <div class="film-strip-top">
-                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
                </div>
                <div class="film-strip-middle">
                   <div class="text-word">{{w_name}}</div>
-                  <img src="https://picsum.photos/178/100" alt="">
+                  {% if img_path %}
+                  <div class="img-wrapper"
+                     data-url="{% url 'show_image' img_id=img_id %}">
+                     <img src="{{MEDIA_URL}}{{img_path}}" alt="{{img_path}}">
+                  </div>
+                  {% endif %}
                   <div class="text-example">{{ex_desc}}</div> 
                </div>
                <div class="film-strip-middle-lower d-flex justify-content-between">
@@ -194,18 +207,18 @@
                   </div>
                </div>
                <div class="film-strip-bottom">
-                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
                </div>
             </div>
             {% endfor %}
             <div class="swiper-slide film-square">
                <div class="film-strip-top">
-                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
                </div>
                <div class="film-strip-middle"></div>
                <div class="film-strip-middle-lower d-flex justify-content-between"></div>
                <div class="film-strip-bottom">
-                  {% for i in 8|times %}<div class="film-strip-cut"></div>{% endfor %}
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
                </div>
             </div>
          </div>
@@ -237,6 +250,21 @@
             return '<span class="' + className + '">' + (index + 1) + '</span>';
          },
       },
+      preventClicks: true,
+      preventClicksPropagation: true,
+   });
+   
+   // htmx + data-bs-toggle="modal" causes an bug using swipper
+   document.querySelectorAll('.img-wrapper').forEach(wrapper => {
+      wrapper.addEventListener('click', async () => {
+         const response = await fetch(wrapper.dataset.url);
+         if (!response.ok) { throw new Error(`HTTP ${response.status}`);}
+
+         const html = await response.text();
+         document.getElementById('genericModalBody').innerHTML = html;
+
+         bootstrap.Modal.getOrCreateInstance( document.getElementById('genericModal')).show();
+      });
    });
 </script>
 <script>
@@ -254,9 +282,7 @@
 
       
       const $initialId = $wordInput.data('initialId');
-      console.log($initialId);
       if ($initialId != "None") {
-         console.log('passed');
          $wordInput.append(
             $('<option>', {
                value: $initialId,

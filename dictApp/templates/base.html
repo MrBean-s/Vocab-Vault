@@ -13,6 +13,7 @@
       <link rel="stylesheet" href="{% static 'select2/select2-bootstrap-5-theme.min.css' %}">
       <link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
       <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
+      <link rel="stylesheet" href="{% static 'tomselect/tom-select.css' %}">
       <style>
          :root {
             --bg-body:         #101827;
@@ -102,12 +103,12 @@
          [class*=" add-"] i, [class^="add-"] i { color: var(--bg-success) }
          [class*=" remove-"] i, [class^="remove-"] i { color: var(--bg-danger) }
          
-         textarea:not([readonly]):not(.select2-search__field), input:not([readonly]):not([type=checkbox]) {
+         textarea:not([readonly]):not(.select2-search__field), input:not([readonly]):not([type=checkbox]):not(.ts-control input) {
             background-color: var(--bg-elevated) !important;
             border: 0 !important;
             color: var(--text-main) !important;
          }
-         input:focus:not([type=checkbox]), textarea:focus:not(.select2-search__field) {
+         input:focus:not([type=checkbox]):not(.ts-control input), textarea:focus:not(.select2-search__field) {
             box-shadow: rgba(6, 90, 222, 0.7) 3px 3px !important;
          }
 
@@ -136,7 +137,7 @@
          input[type=number] { -moz-appearance: textfield; }
 
          .select-wrapper { position: relative }
-         .select2-dropdown { 
+         .select2-dropdown, .ts-dropdown { 
             background-color: var(--bg-surface) !important;
             border: 1px solid var(--border-color) !important;
             border-radius: 0 !important
@@ -165,7 +166,7 @@
          .select2-selection__rendered { color: white !important}
          .select2-selection::focus { box-shadow: none !important; }
          .select2-results__option--selected { background: var(--select-selected) !important; }
-         .select2-results__option--highlighted.select2-results__option--selectable { 
+         .select2-results__option--highlighted.select2-results__option--selectable, .ts-dropdown .active { 
             background-color: var(--select-hover) !important;
             color: white !important;
          }
@@ -219,6 +220,28 @@
             flex-direction: column;
             justify-content: space-between;
          }
+
+         .ts-control, .ts-wrapper.single.input-active .ts-control, .full .ts-control {
+            background-color: var(--select-input);
+            border: 0;
+            border-bottom: 1px solid var(--accent-blue);
+            font-size: 1rem;
+            padding: .375rem 2.25rem .375rem .75rem;
+            line-height: 1.5;
+            border-radius: var(--bs-border-radius);
+         }
+         .ts-control input { 
+            background-color: var(--select-input) !important;
+            color: var(--text-muted);
+            font-size: 1rem;
+         }
+         .ts-dropdown .option {
+            padding: .375rem .75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+         }
+         .no-results { font-size: 1rem;}
       </style>
    {% endblock styles %}
    {% block sidebarStyle %}
@@ -249,6 +272,7 @@
       <script src="{% static 'htmx/htmx.min.js' %}"></script>
       <script src="{% static 'jquery/jquery-4.0.0.min.js' %}"></script>
       <script src="{% static 'select2/select2-4.1.0.min.js' %}"></script>
+      <script src="{% static 'tomselect/tom-select.complete.min.js' %}"></script>
    {% endblock scripts %}
 
    {# right-side is defined in sidebar.css #}
@@ -369,6 +393,24 @@
          });
       }
 
+      const prepareTomSelect = function(elementId) {
+         let select = document.getElementById(elementId);
+         console.log(elementId);
+
+         let params = {}
+         params.refreshThrottle = select.dataset.refreshThrottle || 50;
+         params.preload = select.dataset.preload === "true" || false;
+
+         let selectTs = new TomSelect(`#${elementId}`, params);
+
+         if (select.dataset.clearOptions) {
+            selectTs.clear();
+            selectTs.clearOptions();
+         }
+         if (select.dataset.triggerSearch) selectTs.search("");
+
+      }
+
       const initSelect2InsideModals = function() {
          const container = document.getElementById('genericModalBody');
 
@@ -376,6 +418,9 @@
             if (!$(this).data('select2')) {
                prepareSelect2(this.id);
             }
+         });
+         container.querySelectorAll('select.tom-select:not(.custom-tom-select)').forEach(function(element) {
+            prepareTomSelect(element.id);
          });
       }
 

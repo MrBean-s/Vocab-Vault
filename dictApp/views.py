@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from collections import defaultdict
 from django.urls import reverse
 from itertools import groupby
+from django.conf import settings
 
 
 def start_screen(request):
@@ -87,10 +88,9 @@ def add_lang_to_set(request):
          language.save()
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': '/'})
-      else:
-         print('not valid')
-      return redirect('start_screen')
-   form = LanguageAddSetForm()
+         return redirect('start_screen')
+   else:
+      form = LanguageAddSetForm()
    return render(request, 'forms/_add_language.html', {'form': form})
 
 def add_lang_to_set_with_id(request, lang_id):
@@ -712,11 +712,6 @@ def segment_delete(request):
    return redirect()
 
 
-def example_cite(request):
-
-   return redirect()
-
-
 def citation_delete(request, lang_id, citation_id):
    citation = get_object_or_404(Citation, pk=citation_id)
    
@@ -755,12 +750,14 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
       .values_list(
          'id',
          'spotted_at',
-         'example__definition__word__id',
+         'example__definition__word_id',
          'example__definition__word__name',
-         'example__definition__id',
+         'example__definition_id',
          'example__definition__description',
-         'example__id',
+         'example_id',
          'example__description',
+         'image__file',
+         'image_id'
       )
    )
 
@@ -781,7 +778,8 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
       "episode": episode,
       "segment": segment,
       'defn_ajax_url': defn_ajax_url,
-      'citations': qs
+      'citations': qs,
+      "MEDIA_URL": settings.MEDIA_URL,
    })
 
 
@@ -799,7 +797,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
    initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description } if citation else {}
 
    if request.method == "POST":
-      form = CitationForm(request.POST, ajax_url=ajax_url, initial=initial_data)
+      form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data)
       if form.is_valid():
          word_val = form.cleaned_data['word']
          new_def = form.cleaned_data['definition_input']
@@ -820,17 +818,29 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          example.definition = definition
          example.save()
 
+         image_file = form.cleaned_data.get('image_file')
+         spotted_at = form.cleaned_data['spotted_at']
+
          if not citation:
-            Citation.objects.create(
-               spotted_at=form.cleaned_data['spotted_at'],
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
                example=example,
                source=source,
                episode=episode,
                segment=segment
             )
          else:
-            citation.spotted_at=form.cleaned_data['spotted_at']
-            citation.save()
+            citation.spotted_at=spotted_at
+            old_img = citation.image
+            if old_img and image_file:
+               storage = old_img.file.storage
+               if storage.exists(old_img.file.name):
+                  storage.delete(old_img.file.name)
+               old_img.delete()
+         
+         if image_file:
+            citation.image = Image.objects.create(file=image_file)
+         citation.save()
 
          if source:
             redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source_id})
@@ -889,3 +899,72 @@ def search_definitions(request):
    }
 
    return JsonResponse(results)
+
+def search_episodes_or_segments(request, source_id):
+   search_episodes = request.GET.get('search_episodes', '')
+
+   if search_episodes == '':
+      return HttpResponseBadRequest('The search episode option is missing')
+   
+   source = get_object_or_404(
+      Source.objects.prefetch_related('episodes', 'segments'),
+      pk=source_id
+   )
+
+   if search_episodes:
+      results = { 'results': [ { 'value': ep.id, 'text': str(ep) } for ep in source.episodes.all() ] }
+   else:
+      results = { 'results': [ { 'value': seg.id, 'text': str(seg) } for seg in source.segments.all() ] }
+
+   return JsonResponse(results)
+
+
+def get_sources(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   data = { 
+      'results': [
+         {'value': src.id, 'text': str(src), 'category': src.source_category}
+         for src in Source.objects.filter(language_id=lang_id)
+      ]
+   }
+   return JsonResponse(data)
+
+def example_cite(request, lang_id, example_id):
+
+   example = get_object_or_404(Example, pk=example_id)
+
+   if request.method == 'POST':
+      form = CitationFormDetailsPage(request.POST, request.FILES, prefix="src-ep", lang_id=lang_id)
+      
+      if form.is_valid():
+         source = form.cleaned_data['source']
+         episode = form.cleaned_data.get('episode')
+         spotted_at = form.cleaned_data['spotted_at']
+
+         citation = Citation.objects.create(
+            spotted_at=spotted_at,
+            example=example,
+            source=source if not episode else None,
+            episode=episode,
+         )
+
+         image_file = form.cleaned_data.get('image_file')
+         if image_file:
+            citation.image = Image.objects.create(file=image_file)
+            citation.save()
+
+         if episode:
+            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode.id})
+         elif source:
+            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source.id})         
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': redirect_url})
+   else:
+      form = CitationFormDetailsPage(prefix="src-ep", lang_id=lang_id)
+
+   return render(request, 'forms/_citation_form_details_page.html', {
+      'form': form,
+      'lang_id': lang_id,
+      'example_id': example_id
+   })
