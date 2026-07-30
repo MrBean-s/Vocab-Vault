@@ -667,7 +667,7 @@ def episode_add_edit(request, source_id, episode_id=None):
          episode.save()
          
          if request.META.get('HTTP_HX_REQUEST'):
-            return HttpResponse(headers={'HX-Redirect': f'/lang/{source.language_id}/source/{source_id}/episodes/'})
+            return HttpResponse(headers={'HX-Refresh': 'true'})
          return redirect('episodes', source_id=source_id)
    else:
       form = EpisodeForm(instance=episode)
@@ -686,7 +686,7 @@ def episode_delete(request, source_id, episode_id):
    source = get_object_or_404(Source, pk=source_id)
    try:
       episode.delete()
-      messages.success(request, "Language deleted.")
+      messages.success(request, "Episode deleted.")
    except ProtectedError:
       messages.error(request, "Remove all citations before deleting the episode") 
    
@@ -694,22 +694,54 @@ def episode_delete(request, source_id, episode_id):
 
 
 def segments(request, lang_id, source_id):
-   source = get_object_or_404(Source, pk=source_id)
-   segments = Segment.objects.filter(source_id=source_id)
+   source = get_object_or_404(
+      Source.objects.prefetch_related('segments'),
+      pk=source_id
+   )
 
+   categorized = {}
+   for seg in source.segments.all():
+      categorized.setdefault(seg.segment_type, []).append({'id': seg.id, 'number': seg.number, 'name': seg.name})
+   
    return render(request, 'segments.html', {
       'lang_id': lang_id,
       'source_id': source_id,
-      'segments': segments
+      'source': source,
+      'segments': categorized
    })
 
 
-def segment_add_edit(request):
-   return redirect()
+def segment_add_edit(request, source_id, segment_id=None):
+   source = get_object_or_404(Source, pk=source_id)
+   segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+   if request.method == 'POST':
+      form = SegmentForm(request.POST, instance=segment, source=source, source_category=source.source_category)
+      if form.is_valid():
+         form.save()
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Refresh': 'true'})
+         return redirect('episodes', source_id=source_id)
+   else:
+      form = SegmentForm(instance=segment, source=source, source_category=source.source_category)
+   
+   return render(request, 'forms/_segment_form.html', {
+      'form': form,
+      'source_id': source_id,
+      'is_edit': segment is not None,
+      'segment': segment,
+   })
 
 
-def segment_delete(request):
-   return redirect()
+def segment_delete(request, source_id, segment_id):
+   segment = get_object_or_404(Segment, pk=segment_id)
+   source = get_object_or_404(Source, pk=source_id)
+   try:
+      segment.delete()
+      messages.success(request, "Segment deleted.")
+   except ProtectedError:
+      messages.error(request, "Remove all citations before deleting the segment")
+   
+   return redirect('segments', lang_id=source.language_id, source_id=source_id)
 
 
 def citation_delete(request, lang_id, citation_id):
@@ -760,19 +792,23 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
          'image_id'
       )
    )
+   obj = episode or segment or source
+   temp_src = getattr(obj, 'source', obj)
+   qs = qs.filter(**{('source' if obj == source else obj.__class__.__name__.lower()): obj})
 
-   if episode:
-      qs = qs.filter(episode=episode)
-   elif segment:
-      qs = qs.filter(episode=episode)
-   else:
-      qs = qs.filter(source=source)
-      
-
+   if temp_src.source_category in ['MOV', 'TVS']:
+      template = 'play_session_film.html'
+   if temp_src.source_category in ['ALB', 'SON', 'ABK', 'POD']:
+      template = 'play_session_sound.html'
+   if temp_src.source_category in ['BOK']:
+      template = 'play_session_book.html'
+   # if temp_src.source_category in ['GAM', 'OTH']
+      # template = 'play_session_timeline.html'
+   
    if not any([source, episode, segment]):
       return HttpResponseBadRequest('At least one source is required')
 
-   return render(request, 'play_session.html', {
+   return render(request, template, {
       "lang_id": lang_id,
       "source": source,
       "episode": episode,
@@ -794,10 +830,11 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
    if not any([source, episode, segment]):
       return HttpResponseBadRequest('At least one source is required')
    
+   can_add_img = bool(episode or (source and source.source_category == 'MOV'))
    initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description } if citation else {}
 
    if request.method == "POST":
-      form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data)
+      form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data, can_add_img=can_add_img)
       if form.is_valid():
          word_val = form.cleaned_data['word']
          new_def = form.cleaned_data['definition_input']
@@ -863,11 +900,10 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             initial_word_id=citation.example.definition.word_id,
             initial_word=citation.example.definition.word.name,
             initial_defn_id=citation.example.definition_id,
+            can_add_img=can_add_img
          )
       else:
-         form = CitationForm(ajax_url=ajax_url)
-
-
+         form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img)
       
    return render(request, 'forms/_citation_form.html', {
       'lang_id': lang_id,

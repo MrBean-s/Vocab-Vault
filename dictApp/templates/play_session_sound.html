@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+
+{% block additionalStyles %}
+<link rel="stylesheet" href="{% static 'swiper/swiper-bundle.min.css' %}">
+<style>
+   .unselectable {
+      cursor: not-allowed;
+      display: none;
+   }
+
+   .waveform-container {
+      background: 
+         radial-gradient(circle at 0% 0%, rgba(58, 84, 201, 0.25), transparent 50%),
+         radial-gradient(ellipse at 100% 100%, rgba(58, 84, 201, 0.25), transparent 50%),
+         #000;
+      height: 616px;
+      width: 100%;
+      padding-left: 27px;
+      position: relative;
+      padding-right: 63px;
+   }
+   
+   .waveform-container::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: -18px;
+      background: var(--bg-body);
+      height: 45px;
+      width: calc(100% + 27px);
+   }
+   
+   .wave-square {
+      min-width: 270px;
+      max-width: 270px;
+      width: 270px;
+      height: 100%;
+      display: flex;
+   }
+   
+   .swiper-pagination-bullet {
+      width: 23px;
+      height: 23px;
+      text-align: center;
+      line-height: 23px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      opacity: 1;
+      background: var(--bg-elevated);
+   }
+   
+   .swiper-pagination-bullet-active {
+      color: var(--text-main);
+      background: var(--accent-purple);
+   }
+   
+   .text-example {
+      font-style: italic;
+      font-size: 0.99rem;
+      height: 79px;
+      overflow-y: auto;
+   }
+   
+   .text-word {
+      line-height: 1;
+      font-size: 1.17rem;
+      font-weight: bold;
+      min-height: 36px;
+      max-height: 36px;
+      overflow-y: auto;
+   }
+   
+   .text-time {
+      line-height: 1;
+      font-weight: bold;
+      font-size: 1.35rem;
+   }
+
+   .container-custom {
+      padding: 0 100px;
+   }
+
+   .waveform {
+      /* margin-top: calc(((616px - 45px) * 0.5) - 32px); */
+      margin-top: 253.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 64px;
+      position: relative;
+   }
+
+   .waveform-card, .waveform-card {
+      position: absolute;
+      height: 200px;
+      width: 300px;
+      /* border: 1px solid var(--border-color) !important; */
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: #1b213b;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+   }
+   
+   .waveform-card-even {
+      top: 100px;
+   }
+   .waveform-card-odd {
+      bottom: 100px;
+   }
+
+
+   .waveform span {
+      width: 4px;
+      height: calc(var(--h, 0.5) * 100%);
+      background-color: var(--accent-purple);
+      border-radius: 2px;
+      min-height: 2px;
+   }
+
+</style>
+{% endblock additionalStyles %}
+
+{% block innerbody %}
+
+{% if episode %}
+   {% url 'session_episode_cite' episode_id=episode.id lang_id=lang_id as target_url %}
+{% elif segment %}
+   {% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id as target_url %}   
+{% elif source %}
+   {% url 'session_source_cite' source_id=source.id lang_id=lang_id as target_url %}
+{% endif %}
+
+{% with item=episode|default:segment|default:source %}
+<div class="container-fluid container-custom py-5" style="user-select: none;">
+
+   <div class="d-flex align-items-center">
+      <h2 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h2>
+
+      <button hx-get="{{target_url}}"
+         hx-trigger="click"
+         hx-target="#genericModalBody"
+         hx-target-error="#error-box"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+         class="btn btn-primary ms-auto">
+         Add a citation
+      </button>
+   </div>
+
+   {% if episode %}
+      <a href="{% url 'episodes' lang_id=lang_id source_id=episode.source.id %}" class="fs-4">
+         {{episode.source.name}}
+         {% if episode.source.released_year %}({{episode.source.released_year}}){% endif %}
+      </a>
+   {% endif %}
+
+   <div style="min-height: 80px"></div>
+
+   <div class="d-flex justify-content-center position-relative">
+
+      <div id="waveform" class="swiper waveform-container">
+         <div class="swiper-wrapper">
+            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id in citations %}
+               {% if episode %}
+                  {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
+               {% elif segment %}
+                  {% url 'session_segment_cite_edit' citation_id=cit_id segment_id=segment.id lang_id=lang_id as edit_url %}   
+               {% elif source %}
+                  {% url 'session_source_cite_edit' citation_id=cit_id source_id=source.id lang_id=lang_id as edit_url %}
+               {% endif %}
+            <div class="swiper-slide wave-square">
+               <div class="waveform">
+                  <span class="h-20"></span><span class="h-30"></span><span class="h-40"></span><span class="h-50"></span><span class="h-40"></span>
+                  <span class="h-30"></span><span class="h-60"></span><span class="h-60"></span><span class="h-50"></span><span class="h-40"></span>
+                  <span class="h-50"></span><span class="h-60"></span><span class="h-70"></span><span class="h-100"></span><span class="h-70"></span>
+                  <span class="h-60"></span><span class="h-50"></span><span class="h-70"></span><span class="h-60"></span><span class="h-90"></span>
+                  <span class="h-100"></span><span class="h-80"></span><span class="h-60"></span><span class="h-70"></span><span class="h-40"></span>
+                  <span class="h-30"></span><span class="h-20"></span>
+                  <div class="waveform-card waveform-card-{%if forloop.counter|divisibleby:'2'%}even{%else%}odd{%endif%}">
+                     <div class="text-word">{{w_name}}</div>
+                     <div class="text-example">{{ex_desc}}</div> 
+                     <div class="d-flex justify-content-between align-items-end">
+                        <p class="text-time m-0">{{time}}</p>
+                        <div>
+                           <a hx-get="{{edit_url}}"
+                              hx-trigger="click"
+                              hx-target="#genericModalBody"
+                              hx-target-error="#error-box"
+                              data-bs-toggle="modal"
+                              data-bs-target="#genericModal">
+                              <i class="fa-solid fa-pen-to-square text-muted"></i>
+                           </a>
+                           <a href="{% url 'word_details' lang_id=lang_id word_id=w_id %}">
+                              <i class="fa-solid fa-square-arrow-up-right px-3 text-muted"></i>
+                           </a>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+            </div>
+            {% endfor %}
+         </div>
+         <div class="pagination-fix"></div>
+         <div class="swiper-pagination"></div>
+      </div>
+   </div>
+
+
+
+   <div class="mt-5">
+   </div>
+
+</div>
+{% endwith %}
+
+{% endblock innerbody %}
+
+{% block additionalScripts %}
+<script src="{% static 'swiper/swiper-bundle.min.js' %}"></script>
+<script>
+   
+   var swiper = new Swiper('#waveform', {
+      // cssMode: true, // remove animations
+      spaceBetween: 0,
+      pagination: {
+         el: '.swiper-pagination',
+         clickable: true,
+         dynamicBullets: true,
+      },
+      keyboard: true,
+      preventClicks: true,
+      preventClicksPropagation: true,
+      // navigation: {
+      //    nextEl: '.custom-next-btn',
+      //    prevEl: '.custom-prev-btn',
+      // },
+      slidesPerView: 'auto',
+      
+      // centeredSlides: true,
+      // effect: 'coverflow',
+      // coverflowEffect: {
+      //    rotate: 50,
+      //    stretch: 0,
+      //    depth: 100,
+      //    modifier: 1,
+      //    slideShadows: true,
+      // },
+   });
+   console.log(swiper);
+   
+   function htmxTriggerAndShow(target, trigger) {
+      htmx.trigger(target, trigger);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show();
+   }
+   
+</script>
+<script>
+   
+   var swiper = new Swiper('.swiper', {
+      // cssMode: true, // remove animations
+      spaceBetween: 0,
+      pagination: {
+         el: '.swiper-pagination',
+         clickable: true,
+         dynamicBullets: true,
+      },
+      keyboard: true,
+      preventClicks: true,
+      preventClicksPropagation: true,
+      navigation: {
+         nextEl: '.custom-next-btn',
+         prevEl: '.custom-prev-btn',
+      },
+      slidesPerView: 'auto',
+      
+      // centeredSlides: true,
+      // effect: 'coverflow',
+      // coverflowEffect: {
+      //    rotate: 50,
+      //    stretch: 0,
+      //    depth: 100,
+      //    modifier: 1,
+      //    slideShadows: true,
+      // },
+   });
+   
+   function htmxTriggerAndShow(target, trigger) {
+      htmx.trigger(target, trigger);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show();
+   }
+
+</script>
+<script>
+   const defn_ajax_url = "{{defn_ajax_url}}";
+
+
+   //called from base.html htmx:afterSettle which looks for data-modal-init="prepareSelect2CitationForm" inside the _citation_form swapped content
+   //(ノಠ益ಠ)ノ彡┻━┻
+   function prepareSelect2CitationForm() {
+      $('#genericModalTitle').text('Create a citation');
+
+      const $wordInput = $('#id_word');
+      const $defSelect = $('#id_definition_select');
+      const $defInput = $('#id_definition_input');
+
+      
+      const $initialId = $wordInput.data('initialId');
+      if ($initialId != "None") {
+         $wordInput.append(
+            $('<option>', {
+               value: $initialId,
+               text: $wordInput.data('initialWord')
+            })
+         ).trigger('change');
+         if ($defSelect.data('initialId')){
+            loadDefinitions($initialId).then(() => {
+               $defSelect.val($defSelect.data('initialId')).trigger('change');
+            });
+         }
+      } else {
+         $wordInput.append($('<option></option>')) //select2.select not fire when use remote source and createTag  #5386
+      }
+      
+
+      function showDefinitionField(useSelect) {
+         $defSelect.prop('disabled', !useSelect);
+         $defInput.prop('disabled', useSelect);
+         if (!useSelect) $defInput.val('');
+         $defSelect.closest('.row-wrapper').toggleClass('unselectable', !useSelect);
+         $defInput.closest('.row-wrapper').toggleClass('unselectable', useSelect);
+      }
+
+      async function loadDefinitions(wordId) {
+         const url = `${defn_ajax_url}?word_id=${wordId}`;
+         try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+            $defSelect.empty();
+            if (data.results.length > 0) {
+               data.results.forEach(item => {
+                  $('<option>', { value: item.id, text: item.text}).appendTo($defSelect);
+               });
+               $('<option>', { value: -1, text: 'New definition'}).appendTo($defSelect);
+               showDefinitionField(true);
+            } else {
+               showDefinitionField(false);
+            }
+         } catch (err) {
+            console.error('Fetch error:', err);
+         }
+      }
+
+
+      $wordInput.on('select2:select', async function(e) {
+         var wordId = parseInt($(this).val(), 10);
+
+         if (Number.isNaN(wordId)) {
+            showDefinitionField(false);
+         } else {
+            await loadDefinitions(wordId);
+            $defInput.val('');
+         }
+         
+         $('#id_example').closest('.row-wrapper').removeClass('unselectable');
+      });
+
+      $defSelect.on('change', function() {
+         if ($(this).val() == '-1') {
+            $defInput.closest('.row-wrapper').removeClass('unselectable');
+            $defInput.prop('disabled', false);
+         } else {
+            showDefinitionField(true);
+         }
+      });
+
+      $defSelect.prop('disabled', true);
+      $defInput.prop('disabled', true);
+   }
+</script>
+{% endblock additionalScripts %}

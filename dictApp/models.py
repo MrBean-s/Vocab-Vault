@@ -156,9 +156,11 @@ class Source(models.Model):
       TVSHOW = 'TVS', 'TVSHOW'
       SONG = 'SON', 'SONG'
       ALBUM = 'ALB', 'ALBUM'
-      GAME = 'GAM', 'GAME'
+      # GAME = 'GAM', 'GAME'
       BOOK = 'BOK', 'BOOK'
-      OTHER = 'OTH', 'OTHER'
+      ABOOK = 'ABK', 'AUDIO BOOK'
+      PODCAST = 'POD', 'PODCAST'
+      # OTHER = 'OTH', 'OTHER'
 
    source_category = models.CharField(
       max_length=3,
@@ -191,9 +193,12 @@ class Episode(models.Model):
 
 class Segment(models.Model):
    class SegmentType(models.TextChoices):
+      PROLOGUE = 'PRL', 'PROLOGUE'
       CHAPTER = 'CHP', 'CHAPTER'
+      EPILOGUE = 'EPL', 'EPILOGUE'
       TRACK = 'TRK', 'TRACK'
       MISSION = 'MIS', 'MISSION'
+      ACT = 'ACT', 'ACT'
    
    segment_type = models.CharField(
       max_length=3,

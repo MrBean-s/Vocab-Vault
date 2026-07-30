@@ -11,6 +11,7 @@
       <link rel="stylesheet" href="{% static 'css/base.css' %}">
       <link rel="stylesheet" href="{% static 'select2/select2-4.1.0.min.css' %}">
       <link rel="stylesheet" href="{% static 'select2/select2-bootstrap-5-theme.min.css' %}">
+      <link rel="stylesheet" href="{% static 'toastr/toastr.min.css' %}">
       <link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
       <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
       <style>
@@ -97,6 +98,8 @@
          .text-danger { color: var(--text-danger) !important; }
          .text-accent-orange { color: var(--accent-orange) }
          .text-accent-blue { color: var(--accent-blue) }
+         .text-accent-gold { color: var(--accent-gold) }
+
 
          
          [class*=" add-"] i, [class^="add-"] i { color: var(--bg-success) }
@@ -220,27 +223,40 @@
             justify-content: space-between;
          }
 
-         .ts-control, .ts-wrapper.single.input-active .ts-control, .full .ts-control {
-            background-color: var(--select-input);
-            border: 0;
-            border-bottom: 1px solid var(--accent-blue);
-            font-size: 1rem;
-            padding: .375rem 2.25rem .375rem .75rem;
-            line-height: 1.5;
-            border-radius: var(--bs-border-radius);
+         .action-text { font-size: calc(1vw + 0.5em);}
+
+         #toast-container > div {
+            box-shadow: 0 0 12px #000;
+            opacity: 1;
+            width: 500px;
          }
-         .ts-control input { 
-            background-color: var(--select-input) !important;
-            color: var(--text-muted);
-            font-size: 1rem;
+         .toast-message {
+            min-height: 40px;
+            display: flex;
+            align-items: center;
          }
-         .ts-dropdown .option {
-            padding: .375rem .75rem;
-            font-size: 1rem;
-            font-weight: 400;
-            line-height: 1.5;
+         
+         #genericModal.hidden { display: none !important; }
+         .loader.hidden { display: none !important; }
+
+         /* https://css-loaders.com/spinner/ The Spinner #13 */
+         .loader {
+            width: 50px;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background: 
+               radial-gradient(farthest-side,#ffa516 94%,#0000) top/8px 8px no-repeat,
+               conic-gradient(#0000 30%,#ffa516);
+            -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);
+            animation: l13 1s infinite linear;
+            position: fixed;
+            top: calc(50% - 25px);
+            left: calc(50% - 25px);
+            z-index: 9999;
          }
-         .no-results { font-size: 1rem;}
+         @keyframes l13{ 
+            100%{transform: rotate(1turn)}
+         }
       </style>
    {% endblock styles %}
    {% block sidebarStyle %}
@@ -251,14 +267,9 @@
 </head>
 <body>
    {% if messages %}
-         {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}
-               alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-               {{ message }}
-               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
-               </button>
-            </div>
-        {% endfor %}
+      {% for message in messages %}
+         <div class="message" data-msg-type="{{ message.tags }}" hidden>{{ message }}</div>
+      {% endfor %}
    {% endif %}
 
    {% block sidebar %}
@@ -271,6 +282,7 @@
       <script src="{% static 'htmx/htmx.min.js' %}"></script>
       <script src="{% static 'jquery/jquery-4.0.0.min.js' %}"></script>
       <script src="{% static 'select2/select2-4.1.0.min.js' %}"></script>
+      <script src="{% static 'toastr/toastr.min.js' %}"></script>
    {% endblock scripts %}
 
    {# right-side is defined in sidebar.css #}
@@ -284,22 +296,23 @@
    {% block additionalModals %}
    {% endblock additionalModals %}
 
-   <script>
-      document.getElementById('genericModal').addEventListener('hidden.bs.modal', function () {
-         document.getElementById('genericModalTitle').textContent = '';
-         document.getElementById('genericModalBody').innerHTML = `
-            <div class="text-center">
-               <div class="spinner-border" role="status"></div>
-            </div>`;
-         const buttons = document.getElementById('genericModalButtons');
-         if (buttons) textContent = '';
-      });
-   </script>
 
    {% block additionalScripts %}
    {% endblock additionalScripts %}
 
    <p id="error-box" class="text-danger position-fixed top-0 start-50"></p>
+   <div id="form-loader" class="loader hidden"></div>
+
+   <script>
+      document.getElementById('genericModal').addEventListener('hidden.bs.modal', function () {
+         document.getElementById('genericModalTitle').textContent = '';
+         document.getElementById('genericModalBody').innerHTML = ``;
+         document.getElementById('genericModal').classList.add('hidden');
+         const buttons = document.getElementById('genericModalButtons');
+         if (buttons) textContent = '';
+      });
+   </script>
+
    <script>
       document.body.addEventListener('htmx:targetError', function(evt) {
          document.getElementById('error-box').textContent = 'Target not found: ' + evt.detail.target;
@@ -373,21 +386,23 @@
             var denied = $(this).data('denyOpen');
             if (denied == true) { e.preventDefault(); }
          });
-
-         $el.on('select2:select', function(e) {
-            var id = e.params.data.id;
-            var $el = $(this);
-            if (id == "-999") {
-               $el.val(['-999']).trigger('change');
-            } else {
-               var selected = $el.val();
-               var all_index = selected.indexOf('-999');
-               if (all_index !== -1) {
-                  selected.splice(all_index, 1);
-                  $el.val(selected).trigger('change');
+         
+         if ($el.data('isMultiple')) {
+            $el.on('select2:select', function(e) {
+               var id = e.params.data.id;
+               var $el = $(this);
+               if (id == "-999") {
+                  $el.val(['-999']).trigger('change');
+               } else {
+                  var selected = $el.val();
+                  var all_index = selected.indexOf('-999');
+                  if (all_index !== -1) {
+                     selected.splice(all_index, 1);
+                     $el.val(selected).trigger('change');
+                  }
                }
-            }
-         });
+            });
+         }
       }
 
       const initSelect2InsideModals = function() {
@@ -400,23 +415,54 @@
          });
       }
 
+      document.body.addEventListener('htmx:beforeSwap', function(evt) {
+         //pending - condition to see if the modal is open
+         if (evt.detail.target.id === 'genericModalBody') {
+            document.getElementById('form-loader').classList.remove('hidden');
+            document.getElementById('genericModal').classList.add('hidden');
+         }
+      });
+
       // htmx event triggered after loading, and after the dom has loaded
       // runs after each hx-swap-oob as well
       document.body.addEventListener('htmx:afterSettle', function(evt) {
          if (evt.detail.target.id === 'genericModalBody') {
-            initSelect2InsideModals();
+            requestAnimationFrame(function() {
+               setTimeout(function() {
+                  var modalBody = document.getElementById('genericModalBody');
+                  
+                  initSelect2InsideModals();
 
-            //search if theres a function inside and execute it
-            //like <div data-modal-init="functionName"></div>
-            var modalBody = document.getElementById('genericModalBody');
-            var marker = modalBody.querySelector('[data-modal-init]');
-            if (marker) {
-               var fnName = marker.getAttribute('data-modal-init');
-               if (typeof window[fnName] === 'function') {
-                  window[fnName]();
-               }
-            }
+                  //search if theres a function inside and execute it
+                  //like <div data-modal-init="functionName"></div>
+                  var marker = modalBody.querySelector('[data-modal-init]');
+                  if (marker) {
+                     var fnName = marker.getAttribute('data-modal-init');
+                     if (typeof window[fnName] === 'function') {
+                        window[fnName]();
+                     }
+                  }
+                  document.getElementById('form-loader').classList.add('hidden');
+                  setTimeout(function() {
+                     document.getElementById('genericModal').classList.remove('hidden');
+                  }, 50);
+               }, 10);
+            });
          }
+      });
+
+      $(function(){
+         $('.message').each(function(){
+            var $this = $(this);
+            var msgText = $this.text()
+            var msgType = $this.data('msgType');
+            toastr.options = {
+               "closeButton": true, "progressBar": true, "positionClass": "toast-top-right", "onclick": null,
+               "showDuration": "300", "hideDuration": "1000", "timeOut": "5000", "extendedTimeOut": "1000",
+               "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+            }
+            if (typeof toastr[msgType] === 'function') { toastr[msgType](msgText); }
+         });
       });
    </script>
 

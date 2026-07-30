@@ -37,9 +37,11 @@
 
          <div class="mb-4"></div>
 
-         <label class="form-label" for="{{form.image_file.id_for_label}}">{{form.image_file.label}}</label>
-         {{form.image_file}}
-         {{form.image_file.errors}}
+         {% if form.image_file %}
+            <label class="form-label" for="{{form.image_file.id_for_label}}">{{form.image_file.label}}</label>
+            {{form.image_file}}
+            {{form.image_file.errors}}
+         {% endif %}
       </div>
    </div>
    {% if form.non_field_errors %}

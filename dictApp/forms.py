@@ -542,6 +542,7 @@ class CitationForm(forms.Form):
       initial_word_id = kwargs.pop('initial_word_id', None)
       initial_word    = kwargs.pop('initial_word', None)
       initial_defn_id = kwargs.pop('initial_defn_id', None)
+      can_add_img     = kwargs.pop('can_add_img', None)
       super().__init__(*args, **kwargs)
 
       word_widget = self.fields['word'].widget
@@ -549,6 +550,9 @@ class CitationForm(forms.Form):
       word_widget.attrs['data-initial-id'] = initial_word_id
       word_widget.attrs['data-initial-word'] = initial_word
       self.fields['definition_select'].widget.attrs['data-initial-id'] = initial_defn_id
+
+      if not can_add_img:
+         del self.fields['image_file']
 
       # # when validation fails the same word is selected
       # if self.is_bound and 'word' in self.data:
@@ -622,7 +626,8 @@ class CitationFormDetailsPage(forms.Form):
          'required': 'true',
       }),
       empty_label="Select an episode",
-      queryset=Episode.objects.none()
+      queryset=Episode.objects.none(),
+      required=False
    )
 
    spotted_at = forms.DurationField(
@@ -656,3 +661,69 @@ class CitationFormDetailsPage(forms.Form):
       if source_id:
          source = Source.objects.get(pk=source_id)
          self.fields['episode'].queryset = source.episodes.all()
+
+
+class SegmentForm(forms.ModelForm):
+
+   class Meta:
+      model=Segment
+      fields=['segment_type', 'number', 'name']
+      widgets = {
+         'segment_type': forms.Select(attrs={'class': 'select2'}),
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+         'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '#'}),
+      }
+      labels = {
+         'name': 'Segment name',
+      }
+
+   def __init__(self, *args, **kwargs):
+      self.source = kwargs.pop('source', None)
+      source_category = kwargs.pop('source_category', None)
+      super().__init__(*args, **kwargs)
+      if source_category == 'ALB':
+         self.fields['segment_type'].choices = [
+            (Segment.SegmentType.TRACK.value, Segment.SegmentType.TRACK.label)
+         ]
+      elif source_category == 'BOK' or source_category == 'ABK':
+         self.fields['segment_type'].choices = [
+            (Segment.SegmentType.PROLOGUE.value, Segment.SegmentType.PROLOGUE.label),
+            (Segment.SegmentType.CHAPTER.value, Segment.SegmentType.CHAPTER.label),
+            (Segment.SegmentType.EPILOGUE.value, Segment.SegmentType.EPILOGUE.label),
+         ]
+         self.fields['number'].required = False
+         self.fields['name'].required = False
+
+   
+   def clean(self):
+      cleaned_data = super().clean()
+      segment_type = cleaned_data.get('segment_type')
+      name = cleaned_data.get('name')
+      number = cleaned_data.get('number')
+
+      if segment_type in ['PRL', 'EPL']:
+         qs = Segment.objects.filter(source=self.source, segment_type=segment_type)
+
+         if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+      
+         if qs.exists():
+            name = 'Prologue' if segment_type == 'PRL' else 'Epilogue'
+            raise forms.ValidationError(f'A {name} already exists for this source.')
+      
+      if not name:
+         cleaned_data['name'] = 'Prologue' if segment_type == 'PRL' else 'Epilogue'
+      
+      if not number:
+         cleaned_data['number'] = "1"
+      
+      return cleaned_data
+
+   def save(self, commit=True):
+      segment = super().save(commit=False)
+      segment.source = self.source
+
+      if commit:
+         segment.save()
+
+      return segment

@@ -58,8 +58,10 @@
       margin-right: 27px;
    }
    
-   .film-strip-middle {
+   .film-strip-middle, .film-strip-middle-lower, .film-strip-additional {
       background: #0c101e;
+   }
+   .film-strip-middle {
       height: 387px;
       margin-right: 18px;
       display: flex;
@@ -81,11 +83,9 @@
    }
    
    .film-strip-middle-lower {
-      background: #0c101e;
       height: 45px;
       margin-right: 18px;
-      padding-left: 18px;
-      padding-right: 18px;
+      padding: 0 18px;
    }
    
    .swiper-pagination-bullet {
@@ -129,7 +129,32 @@
    .container-custom {
       padding: 0 100px;
    }
+
+   .film-strip-additional{
+      height: 432px;
+      padding: 18px;
+      display: flex;
+      margin-right: 18px;
+   }
    
+   .text-additional {
+      font-size: 1.5rem;
+      font-weight: bold;
+   }
+
+   .custom-prev-btn {
+      position: absolute;
+      top: calc((531px - 16px)/2);
+      left: -60px;
+      z-index: 3;
+   }
+   
+   .custom-next-btn {
+      position: absolute;
+      top: calc((531px - 16px)/2);
+      right: -60px;
+      z-index: 3;
+   }
 
 </style>
 {% endblock additionalStyles %}
@@ -141,11 +166,11 @@
 {% elif segment %}
    {% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id as target_url %}   
 {% elif source %}
-   {% url 'session_single_cite' source_id=source.id lang_id=lang_id as target_url %}
+   {% url 'session_source_cite' source_id=source.id lang_id=lang_id as target_url %}
 {% endif %}
 
 {% with item=episode|default:segment|default:source %}
-<div class="container-fluid container-custom py-5">
+<div class="container-fluid container-custom py-5" style="user-select: none;">
 
    <div class="d-flex align-items-center">
       <h2 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h2>
@@ -161,11 +186,23 @@
       </button>
    </div>
 
-   <h4>{{episode.source.name}} ({{episode.source.released_year}})</h4>
+   {% if episode %}
+      <a href="{% url 'episodes' lang_id=lang_id source_id=episode.source.id %}" class="fs-4">
+         {{episode.source.name}}
+         {% if episode.source.released_year %}({{episode.source.released_year}}){% endif %}
+      </a>
+   {% endif %}
 
    <div style="min-height: 80px"></div>
 
-   <div class="d-flex justify-content-center">
+   <div class="d-flex justify-content-center position-relative">
+      <div class="custom-prev-btn">
+         <i class="fa-solid fa-chevron-left fs-2"></i>
+      </div>
+      <div class="custom-next-btn">
+         <i class="fa-solid fa-chevron-right fs-2"></i>
+      </div>
+
       <div id="#film-strip" class="swiper film-strip">
          <div class="swiper-wrapper">
             {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id in citations %}
@@ -174,7 +211,7 @@
                {% elif segment %}
                   {% url 'session_segment_cite_edit' citation_id=cit_id segment_id=segment.id lang_id=lang_id as edit_url %}   
                {% elif source %}
-                  {% url 'session_single_cite_edit' citation_id=cit_id source_id=source.id lang_id=lang_id as edit_url %}
+                  {% url 'session_source_cite_edit' citation_id=cit_id source_id=source.id lang_id=lang_id as edit_url %}
                {% endif %}
             <div class="swiper-slide film-square">
                <div class="film-strip-top">
@@ -184,7 +221,10 @@
                   <div class="text-word">{{w_name}}</div>
                   {% if img_path %}
                   <div class="img-wrapper"
-                     data-url="{% url 'show_image' img_id=img_id %}">
+                     hx-get="{% url 'show_image' img_id=img_id %}"
+                     hx-trigger="manualTrigger"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box">
                      <img src="{{MEDIA_URL}}{{img_path}}" alt="{{img_path}}">
                   </div>
                   {% endif %}
@@ -215,8 +255,18 @@
                <div class="film-strip-top">
                   {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
                </div>
-               <div class="film-strip-middle"></div>
-               <div class="film-strip-middle-lower d-flex justify-content-between"></div>
+               <div class="film-strip-additional">
+                  <a id="addCitationLast"
+                     hx-get="{{target_url}}"
+                     hx-trigger="manualTrigger"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     class="w-100 h-100 d-flex justify-content-center align-items-center text-decoration-none position-relative"
+                     style="cursor: pointer;">
+                     <span class="position-absolute text-additional" style="top: 30%">Add a citation</span>
+                     <i class="fa-solid fa-circle-plus fs-2 text-accent-gold"></i>
+                  </a>
+               </div>
                <div class="film-strip-bottom">
                   {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
                </div>
@@ -241,31 +291,45 @@
 <script>
    
    var swiper = new Swiper('.swiper', {
-      slidesPerView: 3,
+      // cssMode: true, // remove animations
       spaceBetween: 0,
       pagination: {
          el: '.swiper-pagination',
          clickable: true,
-         renderBullet: function (index, className) {
-            return '<span class="' + className + '">' + (index + 1) + '</span>';
-         },
+         dynamicBullets: true,
       },
+      keyboard: true,
       preventClicks: true,
       preventClicksPropagation: true,
+      navigation: {
+         nextEl: '.custom-next-btn',
+         prevEl: '.custom-prev-btn',
+      },
+      slidesPerView: 'auto',
+      
+      // centeredSlides: true,
+      // effect: 'coverflow',
+      // coverflowEffect: {
+      //    rotate: 50,
+      //    stretch: 0,
+      //    depth: 100,
+      //    modifier: 1,
+      //    slideShadows: true,
+      // },
    });
+   
+   function htmxTriggerAndShow(target, trigger) {
+      htmx.trigger(target, trigger);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show();
+   }
    
    // htmx + data-bs-toggle="modal" causes an bug using swipper
    document.querySelectorAll('.img-wrapper').forEach(wrapper => {
-      wrapper.addEventListener('click', async () => {
-         const response = await fetch(wrapper.dataset.url);
-         if (!response.ok) { throw new Error(`HTTP ${response.status}`);}
-
-         const html = await response.text();
-         document.getElementById('genericModalBody').innerHTML = html;
-
-         bootstrap.Modal.getOrCreateInstance( document.getElementById('genericModal')).show();
-      });
+      wrapper.addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger'));
    });
+
+   document.getElementById('addCitationLast')
+      .addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger'));
 </script>
 <script>
    const defn_ajax_url = "{{defn_ajax_url}}";
@@ -353,6 +417,8 @@
 
       $defSelect.prop('disabled', true);
       $defInput.prop('disabled', true);
+
+      console.log('finished');
    }
 </script>
 {% endblock additionalScripts %}

@@ -7,14 +7,32 @@
    enctype="multipart/form-data">
    {% csrf_token %}
    <div class="mb-3">
-      <label class="form-label" for="{{form.source.id_for_label}}">{{form.source.label}}</label>
+      <div class="d-flex justify-content-between">
+         <label class="form-label" for="{{form.source.id_for_label}}">{{form.source.label}}</label>
+         <a class="anchor-not-href"
+            hx-get="{% url 'source_add' lang_id=lang_id %}"
+            hx-target="#genericModalBody"
+            hx-target-error="#error-box"
+            hx-trigger="click">
+            Create a new source
+         </a>
+      </div>
       {{form.source}}
       <div id="{{form.source.id_for_label}}-dropdownParent"></div>
       {{form.source.errors}}
    </div>
 
    <div class="mb-3 section-hide" hidden>
-      <label class="form-label" for="{{form.episode.id_for_label}}">{{form.episode.label}}</label>
+      <div class="d-flex justify-content-between">
+         <label class="form-label" for="{{form.episode.id_for_label}}">{{form.episode.label}}</label>
+         <a id="new-episode-a" class="anchor-not-href"
+            hx-get="{% url 'episode_add' source_id=999999 %}"
+            hx-target="#genericModalBody"
+            hx-target-error="#error-box"
+            hx-trigger="click">
+            Create a new episode
+         </a>
+      </div>
       {{form.episode}}
       <div id="{{form.episode.id_for_label}}-dropdownParent"></div>
       {{form.episode.errors}}

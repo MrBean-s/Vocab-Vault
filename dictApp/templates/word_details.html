@@ -279,6 +279,10 @@ function prepareCitationFormWizard() {
          await loadEpisodesOrSegments(sourceId);
          $episodeSection.prop('hidden', false);
          $episodeSelect.prop('required', true);
+         var $el = $('#new-episode-a');
+         var newEpUrl = $el.attr('hx-get').replace(/\d+/g, sourceId);
+         $el.attr('hx-get', newEpUrl);
+         htmx.process($el[0]);
       }
    });
 
@@ -307,6 +311,14 @@ function prepareCitationFormWizard() {
          $episodeSelect.trigger('change.select2');
       } catch (err) { console.error('Fetch error:', err); }
    }
+}
+
+function initSourceForm() {
+   document.getElementById('genericModalTitle').textContent = 'Create/Edit a source';
+}
+
+function initEpisodeForm() {
+   document.getElementById('genericModalTitle').textContent = 'Add/Edit an episode';
 }
 
 </script>

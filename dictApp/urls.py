@@ -40,7 +40,7 @@ urlpatterns = [
    path("lang/<int:lang_id>/source/add/", views.sources_add_edit, name="source_add"),
    path("lang/<int:lang_id>/source/<int:source_id>/edit/", views.sources_add_edit, name="source_edit"), 
    path("lang/<int:lang_id>/source/<int:source_id>/delete/", views.source_delete, name="source_delete"),
-   path("lang/<int:lang_id>/source/<int:source_id>/", views.sources_add_edit, name="source_add"),
+   # path("lang/<int:lang_id>/source/<int:source_id>/", views.sources_add_edit, name="source_add"), #???
 
    path("lang/<int:lang_id>/source/<int:source_id>/episodes/", views.episodes, name="episodes"),
    path("source/<int:source_id>/episode/add/", views.episode_add_edit, name="episode_add"),
