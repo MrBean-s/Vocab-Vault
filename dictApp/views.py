@@ -605,8 +605,10 @@ def sources_add_edit(request, lang_id, source_id=None):
          source.language = language
          source.save()
 
+         action = 'edited' if source_id else 'created'
+         messages.success(request, f"Source {action}")
          if request.META.get('HTTP_HX_REQUEST'):
-            return HttpResponse(headers={'HX-Redirect': f'/lang/{lang_id}/sources/'})
+            return HttpResponse(headers={'HX-Refresh': 'true'})
          return redirect('sources', lang_id=lang_id)
    else:
       form = SourceForm(instance=source)
@@ -666,6 +668,9 @@ def episode_add_edit(request, source_id, episode_id=None):
          episode.source = source
          episode.save()
          
+         action = 'edited' if episode_id else 'created'
+         messages.success(request, f"Episode {action}")
+         
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Refresh': 'true'})
          return redirect('episodes', source_id=source_id)
@@ -718,6 +723,9 @@ def segment_add_edit(request, source_id, segment_id=None):
       form = SegmentForm(request.POST, instance=segment, source=source, source_category=source.source_category)
       if form.is_valid():
          form.save()
+         action = 'edited' if segment_id else 'created'
+         messages.success(request, f"Segment {action}")
+
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Refresh': 'true'})
          return redirect('episodes', source_id=source_id)
