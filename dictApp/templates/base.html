@@ -431,11 +431,11 @@
       }
 
       document.body.addEventListener('htmx:beforeSwap', function(evt) {
+         console.log(document.getElementById('genericModal'));
          if (evt.detail.target.id === 'genericModalBody') {
-            if (document.querySelector('#genericModal.show') === null){
-               document.getElementById('genericModal').classList.add('hidden');
-            }             
-            document.getElementById('form-loader').classList.remove('hidden');
+            if (document.querySelector('#genericModal.hidden') !== null){
+               document.getElementById('form-loader').classList.remove('hidden');
+            }
          } else if (evt.detail.target.id === 'genericModalImgContent') {
             document.getElementById('genericModalImg').classList.add('hidden');
             document.getElementById('form-loader').classList.remove('hidden');

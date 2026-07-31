@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load custom_filters %}
 {% block additionalStyles %}
 <style>
    .tv-grid {
@@ -11,7 +11,7 @@
 
    .source-card {
       max-width: 174px;
-      height: 360px;
+      height: 340px;
       display: flex; flex-direction: column;
       /* border: 1px solid white; */
       
@@ -24,25 +24,52 @@
       border-radius: 0.5rem;
       display: flex;
       align-items: center;
+      justify-content: center;
    }
 
-   .source-card img {
-      width: 100%;
-      height: 100%;
+   .img-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
    }
 
-   .content-wrapper {
-      height: 99px;
-      padding-top: 5px;
+   .source-title {font-size: 0.875rem; height: 50px; max-height: 50px; overflow-y: scroll; line-height: 1.3rem; margin-top: 10px}
+   /* .buttons-row { height: 40px; margin-top: 9px; background: rgba(0, 0, 0, 0.85); border-radius: 1rem; padding: 5px} */
+   .row-icon-sm { font-size: 0.875rem; }
+   .section-title { margin: 30px 0; font-size: 2rem; font-weight: bold}
+
+   .show-poster { position: relative;}
+
+   .album-grid { display: grid; grid-template-columns: repeat(6, 1fr); column-gap: 20px; row-gap: 20px;}
+   .album-cover { 
+      width: 174px; height: 174px; background: black; position: relative;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+   }
+   .album-overlay, .show-overlay {
+      cursor: pointer;
+      opacity: 0;
+      transition: .2s ease;
+      width: 100%; height: 100%;
+      position: absolute;
+      top: 0;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      padding: 10px;
+      backdrop-filter: blur(12px); 
+      -webkit-backdrop-filter: blur(12px);
+      background-color: rgba(0, 0, 0, 0.85);
+  }
+  .album-cover:hover .album-overlay, .show-poster:hover .show-overlay {
+      opacity: 1;
    }
+   .show-overlay { border-radius: 0.35rem; }
+   .album-year { font-size: 0.8rem; color: var(--text-muted) }
+   .album-name { font-size: 1rem; font-weight: bold;}
+   .album-author { font-size: 0.9rem; font-style: italic; color: var(--text-muted)}
 
-   .source-title {font-size: 0.875rem; height: 45px; max-height: 45px; overflow-y: scroll; line-height: 1.3rem;}
-   .buttons-row { height: 40px; margin-top: 9px; background: var(--bg-sidebar-pill); border-radius: 1rem; padding: 5px}
-   .row-icon-sm { font-size: 0.875rem; }
-   .section-title { margin: 30px 0; font-size: 2rem; font-weight: bold}
+   
 </style>
 {% endblock additionalStyles %}
 
@@ -74,42 +101,23 @@
       {% if stitle == "Movie" or stitle == "TV Show" %}
          <div class="tv-grid">
             {% for source in sources %}
-            {% with cat=source.source_category %}
-               {% if cat == 'TVS' %}
+               {% if source.source_category == 'TVS' %}
                   {% url 'episodes' lang_id=lang_id source_id=source.id as href_url %}
-               {% elif cat in 'MOV,SON,POD' %}
+               {% elif source.source_category in 'MOV' %}
                   {% url 'play_session_source' lang_id=lang_id source_id=source.id as href_url %}
-               {% else %}
-                  {% url 'segments' lang_id=lang_id source_id=source.id as href_url %}
                {% endif %}
-            <div class="mb-4 source-card">
-               <div class="img-wrapper">
-                  
-                     
-                  {% if source.image and source.image.file %}
-                  <a href="{{href_url}}">
-                     <img src="{{ source.image.file.url }}" alt="Image" style="max-width: 100%; height: auto">
-                  </a>
-                  {% endif %}
-               </div>
-               <div class="content-wrapper">
-                  <div class="source-title">
-                     {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+            <div class="source-card">
+               <div class="show-poster">
+                  <div class="img-wrapper" >
+                     {% if source.image and source.image.file %}
+                        <img src="{{ source.image.file.url }}" alt="Image">
+                     {% endif %}
                   </div>
-                  <div class="buttons-row d-flex justify-content-between align-items-center">
-                     <div>
-                        <a style="cursor: pointer"
-                           hx-get="{% url 'source_edit' lang_id=lang_id source_id=source.id %}"
-                           hx-trigger="click"
-                           hx-target="#genericModalBody"
-                           hx-target-error="#error-box"
-                           data-bs-toggle="modal"
-                           data-bs-target="#genericModal">
-                           
-                           <i class="fa-regular fa-pen-to-square row-icon-sm text-muted"></i>
-                        </a>
+                  <div class="overlay show-overlay" data-url="{{href_url}}">
+                     <div class="d-flex gap-3 justify-content-end">
                         {% if source.image and source.image.file %}
                         <a class="ps-2" style="cursor: pointer"
+                           onclick="event.stopPropagation();"
                            hx-get="{% url 'show_image' img_id=source.image_id %}"
                            hx-trigger="click"
                            hx-target="#genericModalImgContent"
@@ -118,18 +126,55 @@
                            data-bs-target="#genericModalImg">
                            <i class="fa-regular fa-eye row-icon-sm text-muted"></i>
                         </a>
-                        {% endif %}
+                        {%endif%}
+                        <a style="cursor: pointer"
+                           onclick="event.stopPropagation();"
+                           hx-get="{% url 'source_edit' lang_id=lang_id source_id=source.id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalBody"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModal">
+                           <i class="fa-regular fa-pen-to-square row-icon-sm text-muted"></i>
+                        </a>
                      </div>
-                     <a href="{{href_url}}" class="d-flex align-items-center text-decoration-none">
-                        <span class="fa-stack row-icon-sm" style="width: 2em">
-                           <i class="fa-solid fa-circle fa-stack-1x" style="color: white;"></i>
-                           <i class="fa-solid fa-circle-arrow-right fa-stack-2x" style="color: var(--bg-primary);"></i>
-                        </span>
-                     </a>
+                     <span class="text-center album-name">Check this source</span>
+                     <div></div>
                   </div>
                </div>
+               <div class="source-title">
+                  {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+               </div>
             </div>
-            {% endwith %}
+            {% endfor %}
+         </div>
+      {% elif stitle == 'Album' %}
+         <div class="album-grid">
+            {% for source in sources %}
+               <div class="album-cover">
+                  <img src="{{ source.image.file.url }}" alt="Image" style="max-width: 100%; height: auto">
+                  <div class="overlay album-overlay" data-url="{% url 'segments' lang_id=lang_id source_id=source.id %}">
+                     <span class="ms-auto">
+                        <a style="cursor: pointer"
+                           onclick="event.stopPropagation();"
+                           hx-get="{% url 'source_edit' lang_id=lang_id source_id=source.id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalBody"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModal">
+                           <i class="fa-regular fa-pen-to-square row-icon-sm text-muted"></i>
+                        </a>
+                     </span>
+                     <span>
+                        {% if source.related_year %}
+                        <div class="album-year">({{source.released_year}})</div>
+                        {% endif %}
+                        <div class="album-name">{{source.name}}</div>
+                        <div class="album-author">{{source.author}}</div>
+                     </span>
+                  </div>
+               </div>
             {% endfor %}
          </div>
       {% endif %}
@@ -156,5 +201,12 @@
 function initSourceForm() {
    document.getElementById('genericModalTitle').textContent = 'Create/Edit a source';
 }
+
+document.querySelectorAll('.overlay').forEach((el) => {
+   el.addEventListener('click', (e) => {
+      const url = e.currentTarget.dataset.url;
+      window.location.href = url;
+   });
+});
 </script>
 {% endblock additionalScripts %}
