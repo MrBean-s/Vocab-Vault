@@ -152,14 +152,14 @@ class Source(models.Model):
    author = models.CharField(max_length=255, null=True, blank=True)
 
    class SourceCategory(models.TextChoices):
-      MOVIE = 'MOV', 'MOVIE'
-      TVSHOW = 'TVS', 'TVSHOW'
-      SONG = 'SON', 'SONG'
-      ALBUM = 'ALB', 'ALBUM'
+      MOVIE = 'MOV', 'Movie'
+      TVSHOW = 'TVS', 'TV Show'
+      SONG = 'SON', 'Song'
+      ALBUM = 'ALB', 'Album'
       # GAME = 'GAM', 'GAME'
-      BOOK = 'BOK', 'BOOK'
-      ABOOK = 'ABK', 'AUDIO BOOK'
-      PODCAST = 'POD', 'PODCAST'
+      BOOK = 'BOK', 'Book'
+      ABOOK = 'ABK', 'Audio Book'
+      PODCAST = 'POD', 'Podcast'
       # OTHER = 'OTH', 'OTHER'
 
    source_category = models.CharField(

@@ -208,10 +208,10 @@
                            class="curr-image"
                            hx-get="{% url 'show_image' img_id=def_form.instance.image.id %}"
                            hx-trigger="click"
-                           hx-target="#genericModalBody"
+                           hx-target="#genericModalImgContent"
                            hx-target-error="#error-box"
                            data-bs-toggle="modal"
-                           data-bs-target="#genericModal">
+                           data-bs-target="#genericModalImg">
                      </div>
                      {% else %}
                      <div class="image-placeholder">

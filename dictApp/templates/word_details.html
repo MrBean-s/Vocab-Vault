@@ -128,10 +128,10 @@
                <img class="desc-image ms-5" src="{{ def.image_path }}" alt="{{ lan.name }}"
                   hx-get="{% url 'show_image' img_id=def.image_id %}"
                   hx-trigger="click"
-                  hx-target="#genericModalBody"
+                  hx-target="#genericModalImgContent"
                   hx-target-error="#error-box"
                   data-bs-toggle="modal"
-                  data-bs-target="#genericModal">
+                  data-bs-target="#genericModalImg">
             {% endif %}
 
             <div class="mb-4 def-description">

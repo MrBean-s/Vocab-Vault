@@ -2,26 +2,52 @@
 
 {% block additionalStyles %}
 <style>
-   .source-card { height: 261px; display: flex; flex-direction: column;}
-   .source-grid {
+   .tv-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       column-gap: 20px;
+      row-gap: 40px;
    }
-   .source-card img {
+
+   .source-card {
       max-width: 174px;
-      max-height: 261px;
+      height: 360px;
+      display: flex; flex-direction: column;
+      /* border: 1px solid white; */
+      
    }
+
    .img-wrapper { 
       background-color: black;
-      border-radius: 0.5rem 0 0 0.5rem;
       overflow: hidden;
+      height: 261px;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
    }
+
+   .source-card img {
+      width: 100%;
+      height: 100%;
+   }
+
+   .content-wrapper {
+      height: 99px;
+      padding-top: 5px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+   }
+
+   .source-title {font-size: 0.875rem; height: 45px; max-height: 45px; overflow-y: scroll; line-height: 1.3rem;}
+   .buttons-row { height: 40px; margin-top: 9px; background: var(--bg-sidebar-pill); border-radius: 1rem; padding: 5px}
+   .row-icon-sm { font-size: 0.875rem; }
+   .section-title { margin: 30px 0; font-size: 2rem; font-weight: bold}
 </style>
 {% endblock additionalStyles %}
 
 {% block innerbody %}
-<div class="container-fluid px-5">
+<div class="container">
    <div class="d-flex justify-content-center my-5 gap-5">
       <h2 class="m-0">My Sources</h2>
       <button class="btn btn-important"
@@ -41,59 +67,74 @@
          <option value=""></option>
       </select>
    </div>
-
-   <div class="source-grid">
-      {% for source in sources %}
-
-      <div class="custom-card mb-4 source-card">
-         <div class="d-flex" style="flex: 1">
-            <div class="w-35 d-flex flex-column justify-content-center img-wrapper">
-               {% if source.image and source.image.file %}
-               <img src="{{ source.image.file.url }}" alt="Image" style="max-width: 100%; height: auto"
-                  hx-get="{% url 'show_image' img_id=source.image_id %}"
-                  hx-trigger="click"
-                  hx-target="#genericModalBody"
-                  hx-target-error="#error-box"
-                  data-bs-toggle="modal"
-                  data-bs-target="#genericModal">
+   
+   {% for stitle, sources in sections.items %}
+      <div class="section-title">{{stitle}}s</div>
+      
+      {% if stitle == "Movie" or stitle == "TV Show" %}
+         <div class="tv-grid">
+            {% for source in sources %}
+            {% with cat=source.source_category %}
+               {% if cat == 'TVS' %}
+                  {% url 'episodes' lang_id=lang_id source_id=source.id as href_url %}
+               {% elif cat in 'MOV,SON,POD' %}
+                  {% url 'play_session_source' lang_id=lang_id source_id=source.id as href_url %}
+               {% else %}
+                  {% url 'segments' lang_id=lang_id source_id=source.id as href_url %}
                {% endif %}
-            </div>
-            <div class="w-65 d-flex flex-column justify-content-between px-4 py-3">
-               <div>
-                  <h5>{{source.name}}</h5>
-                  <h6>{% if source.short_name %}{{source.short_name}} - {% endif %}{{source.released_year}}</h6>
-                  <p class="m-0 mt-4">Seasons - 5</p>
-                  <p class="m-0">Episodes - 5</p>
-                  <p class="m-0">Citations - 285</p>
-               </div>
-               <div class="d-flex justify-content-between align-items-center">
-                  <a href=""
-                     hx-get="{% url 'source_edit' lang_id=lang_id source_id=source.id %}"
-                     hx-trigger="click"
-                     hx-target="#genericModalBody"
-                     hx-target-error="#error-box"
-                     data-bs-toggle="modal"
-                     data-bs-target="#genericModal">
+            <div class="mb-4 source-card">
+               <div class="img-wrapper">
+                  
                      
-                     <i class="fa-regular fa-pen-to-square fs-5"></i>
+                  {% if source.image and source.image.file %}
+                  <a href="{{href_url}}">
+                     <img src="{{ source.image.file.url }}" alt="Image" style="max-width: 100%; height: auto">
                   </a>
-                  {% with cat=source.source_category %}
-                     {% if cat == 'TVS' %}
-                        <a href="{% url 'episodes' lang_id=lang_id source_id=source.id %}">
-                     {% elif cat == 'MOV' or cat == 'SON' or cat == 'POD' %}
-                        <a href="{% url 'play_session_source' lang_id=lang_id source_id=source.id %}">
-                     {% else %}
-                        <a href="{% url 'segments' lang_id=lang_id source_id=source.id %}">
-                     {% endif %}
-                  {% endwith %}
-                     <i class="fa-solid fa-circle-arrow-right fs-4" style="color: var(--bg-primary)"></i>
-                  </a>
+                  {% endif %}
+               </div>
+               <div class="content-wrapper">
+                  <div class="source-title">
+                     {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+                  </div>
+                  <div class="buttons-row d-flex justify-content-between align-items-center">
+                     <div>
+                        <a style="cursor: pointer"
+                           hx-get="{% url 'source_edit' lang_id=lang_id source_id=source.id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalBody"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModal">
+                           
+                           <i class="fa-regular fa-pen-to-square row-icon-sm text-muted"></i>
+                        </a>
+                        {% if source.image and source.image.file %}
+                        <a class="ps-2" style="cursor: pointer"
+                           hx-get="{% url 'show_image' img_id=source.image_id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalImgContent"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModalImg">
+                           <i class="fa-regular fa-eye row-icon-sm text-muted"></i>
+                        </a>
+                        {% endif %}
+                     </div>
+                     <a href="{{href_url}}" class="d-flex align-items-center text-decoration-none">
+                        <span class="fa-stack row-icon-sm" style="width: 2em">
+                           <i class="fa-solid fa-circle fa-stack-1x" style="color: white;"></i>
+                           <i class="fa-solid fa-circle-arrow-right fa-stack-2x" style="color: var(--bg-primary);"></i>
+                        </span>
+                     </a>
+                  </div>
                </div>
             </div>
+            {% endwith %}
+            {% endfor %}
          </div>
-      </div>
-
-      {% endfor %}
+      {% endif %}
+      {% if not forloop.last %}<hr>{% endif %}
+   {% endfor %}
      
 </div>
 

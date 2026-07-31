@@ -1,11 +1,10 @@
-<div class="image-wrapper d-flex justify-content-center">
-   {% if image.file %}
-      <img src="{{image.file.url}}" alt="Not found" class="img-fluid" style="max-height: 70vh;">
-   {% else %}
-      <img src="" alt="No img file" class="img-fluid">
-   {% endif %}
-</div>
+<button type="button" class="btn-close-custom position-absolute" data-bs-dismiss="modal"
+   aria-label="Close"></button>
 
-<div class="mt-5 d-flex justify-content-end gap-3">
-   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+<div class="modal-img-wrapper d-flex justify-content-center">
+   {% if image.file %}
+      <img src="{{image.file.url}}" alt="Not found" style="max-height: 70vh; height: 70vh;">
+   {% else %}
+      <img src="" alt="No img file">
+   {% endif %}
 </div>

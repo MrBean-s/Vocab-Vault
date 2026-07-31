@@ -223,7 +223,7 @@
                   <div class="img-wrapper"
                      hx-get="{% url 'show_image' img_id=img_id %}"
                      hx-trigger="manualTrigger"
-                     hx-target="#genericModalBody"
+                     hx-target="#genericModalImgContent"
                      hx-target-error="#error-box">
                      <img src="{{MEDIA_URL}}{{img_path}}" alt="{{img_path}}">
                   </div>
@@ -318,18 +318,18 @@
       // },
    });
    
-   function htmxTriggerAndShow(target, trigger) {
+   function htmxTriggerAndShow(target, trigger, modalId) {
       htmx.trigger(target, trigger);
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById(modalId)).show();
    }
    
    // htmx + data-bs-toggle="modal" causes an bug using swipper
    document.querySelectorAll('.img-wrapper').forEach(wrapper => {
-      wrapper.addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger'));
+      wrapper.addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger', 'genericModalImg'));
    });
 
    document.getElementById('addCitationLast')
-      .addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger'));
+      .addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger', 'genericModal'));
 </script>
 <script>
    const defn_ajax_url = "{{defn_ajax_url}}";

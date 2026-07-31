@@ -236,7 +236,7 @@
             align-items: center;
          }
          
-         #genericModal.hidden { display: none !important; }
+         #genericModal.hidden, #genericModalImg.hidden { display: none !important; }
          .loader.hidden { display: none !important; }
 
          /* https://css-loaders.com/spinner/ The Spinner #13 */
@@ -292,6 +292,7 @@
    </div>
 
    {% include 'modals/generic_modal.html' %}
+   {% include 'modals/generic_modal_img.html' %}
 
    {% block additionalModals %}
    {% endblock additionalModals %}
@@ -310,6 +311,10 @@
          document.getElementById('genericModal').classList.add('hidden');
          const buttons = document.getElementById('genericModalButtons');
          if (buttons) textContent = '';
+      });
+      document.getElementById('genericModalImg').addEventListener('hidden.bs.modal', function () {
+         document.getElementById('genericModalImgContent').innerHTML = '';
+         document.getElementById('genericModalImg').classList.add('hidden');
       });
    </script>
 
@@ -415,17 +420,31 @@
          });
       }
 
+      function awaitImageLoad(imgElement) {
+         if (imgElement.complete && imgElement.naturalWidth !== 0) {
+            return Promise.resolve();
+         }
+         return new Promise((resolve, reject) => {
+            imgElement.onload = () => resolve();
+            imgElement.onerror = () => reject(new Error('Image failed to load'));
+         });
+      }
+
       document.body.addEventListener('htmx:beforeSwap', function(evt) {
-         //pending - condition to see if the modal is open
          if (evt.detail.target.id === 'genericModalBody') {
+            if (document.querySelector('#genericModal.show') === null){
+               document.getElementById('genericModal').classList.add('hidden');
+            }             
             document.getElementById('form-loader').classList.remove('hidden');
-            document.getElementById('genericModal').classList.add('hidden');
+         } else if (evt.detail.target.id === 'genericModalImgContent') {
+            document.getElementById('genericModalImg').classList.add('hidden');
+            document.getElementById('form-loader').classList.remove('hidden');
          }
       });
 
       // htmx event triggered after loading, and after the dom has loaded
       // runs after each hx-swap-oob as well
-      document.body.addEventListener('htmx:afterSettle', function(evt) {
+      document.body.addEventListener('htmx:afterSettle', async function(evt) {
          if (evt.detail.target.id === 'genericModalBody') {
             requestAnimationFrame(function() {
                setTimeout(function() {
@@ -448,6 +467,19 @@
                   }, 50);
                }, 10);
             });
+         }
+         if (evt.detail.target.id === 'genericModalImgContent') {
+            const img = evt.detail.target.querySelector('img');
+            if (img) {
+               try {
+                  await awaitImageLoad(img);
+               } catch (error) {
+                  console.error('Could not load image:', error);
+               }
+            }
+         
+            document.getElementById('form-loader').classList.add('hidden');
+            document.getElementById('genericModalImg').classList.remove('hidden');
          }
       });
 
