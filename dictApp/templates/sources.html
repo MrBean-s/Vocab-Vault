@@ -11,7 +11,7 @@
 
    .source-card {
       max-width: 174px;
-      height: 340px;
+      height: 261px;
       display: flex; flex-direction: column;
       /* border: 1px solid white; */
       
@@ -32,21 +32,20 @@
       max-height: 100%;
    }
 
-   .source-title {font-size: 0.875rem; height: 50px; max-height: 50px; overflow-y: scroll; line-height: 1.3rem; margin-top: 10px}
-   /* .buttons-row { height: 40px; margin-top: 9px; background: rgba(0, 0, 0, 0.85); border-radius: 1rem; padding: 5px} */
-   .row-icon-sm { font-size: 0.875rem; }
-   .section-title { margin: 30px 0; font-size: 2rem; font-weight: bold}
+   .icon-sm { font-size: 0.875rem; }
+   .section { padding-bottom: 30px; border-bottom: 1px solid var(--border-color)}
+   .section-title { padding-top: 20px; margin-bottom: 30px; font-size: 2rem; font-weight: bold}
 
-   .show-poster { position: relative;}
+   .show-poster, .book-cover { position: relative;}
 
-   .album-grid { display: grid; grid-template-columns: repeat(6, 1fr); column-gap: 20px; row-gap: 20px;}
+   .album-grid, .book-grid { display: grid; grid-template-columns: repeat(6, 1fr); column-gap: 20px; row-gap: 20px;}
    .album-cover { 
       width: 174px; height: 174px; background: black; position: relative;
       -webkit-user-select: none;
       -ms-user-select: none;
       user-select: none;
    }
-   .album-overlay, .show-overlay {
+   .album-overlay, .show-overlay, .book-overlay {
       cursor: pointer;
       opacity: 0;
       transition: .2s ease;
@@ -61,15 +60,46 @@
       -webkit-backdrop-filter: blur(12px);
       background-color: rgba(0, 0, 0, 0.85);
   }
-  .album-cover:hover .album-overlay, .show-poster:hover .show-overlay {
+  .album-cover:hover .album-overlay, .show-poster:hover .show-overlay, .book-cover:hover .book-overlay {
       opacity: 1;
    }
    .show-overlay { border-radius: 0.35rem; }
    .album-year { font-size: 0.8rem; color: var(--text-muted) }
-   .album-name { font-size: 1rem; font-weight: bold;}
-   .album-author { font-size: 0.9rem; font-style: italic; color: var(--text-muted)}
+   .show-name, .album-name, .book-name { font-size: 1rem; font-weight: bold;}
+   .show-author, .album-author, .book-author { font-size: 0.9rem; font-style: italic; color: var(--text-muted)}
 
-   
+   .book-img-wrapper { 
+      overflow: hidden;
+      height: 250px;
+      width: 172px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+   }
+   .book-img-wrapper img {
+      height: 100%; width: 100%; object-fit: contain;
+   }
+   .track-container {
+      background:
+         radial-gradient(circle at 0% 140%, rgba(51, 253, 172, 0.2), transparent 38%),
+         radial-gradient(circle at 30% -40%, rgba(51, 192, 253, 0.2), transparent 38%),
+         radial-gradient(circle at 70% 140%, rgba(95, 51, 253, 0.2), transparent 38%),
+         radial-gradient(circle at 100% -40%, rgba(253, 51, 155, 0.2), transparent 38%),
+         #000;
+      padding: 20px 30px;
+      border-radius: 0.5rem;
+   }
+
+   .track-description {
+      color: var(--text-main);
+      padding: 5px 10px;
+   }
+   .track { cursor: pointer}
+   .track:hover {
+      background: rgba(214, 214, 214, 0.2);
+      backdrop-filter: blur(8px);           /* Blurs image/content behind row */
+      -webkit-backdrop-filter: blur(8px);
+   }
 </style>
 {% endblock additionalStyles %}
 
@@ -96,6 +126,7 @@
    </div>
    
    {% for stitle, sources in sections.items %}
+   <div class="section">
       <div class="section-title">{{stitle}}s</div>
       
       {% if stitle == "Movie" or stitle == "TV Show" %}
@@ -124,7 +155,7 @@
                            hx-target-error="#error-box"
                            data-bs-toggle="modal"
                            data-bs-target="#genericModalImg">
-                           <i class="fa-regular fa-eye row-icon-sm text-muted"></i>
+                           <i class="fa-regular fa-eye icon-sm text-muted"></i>
                         </a>
                         {%endif%}
                         <a style="cursor: pointer"
@@ -135,15 +166,76 @@
                            hx-target-error="#error-box"
                            data-bs-toggle="modal"
                            data-bs-target="#genericModal">
-                           <i class="fa-regular fa-pen-to-square row-icon-sm text-muted"></i>
+                           <i class="fa-regular fa-pen-to-square icon-sm text-muted"></i>
                         </a>
                      </div>
-                     <span class="text-center album-name">Check this source</span>
-                     <div></div>
+                     {% if source.author %}
+                     <div class="pb-2">
+                        <span class="text-center show-name">
+                           {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+                        </span>
+                        <div class="show-author">{{source.author}}</div>
+                     </div>
+                     {% else %}
+                        <span class="text-center show-name">
+                           {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+                        </span>
+                        <div></div>
+                     {% endif %}
                   </div>
                </div>
-               <div class="source-title">
-                  {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+            </div>
+            {% endfor %}
+         </div>
+      {% elif stitle == 'Book' %}
+         <div class="book-grid">
+            {% for source in sources %}
+            <div class="source-card">
+               <div class="book-cover">
+                  <div class="book-img-wrapper">
+                     {% if source.image and source.image.file %}
+                        <img src="{{ source.image.file.url }}" alt="Image">
+                     {% endif %}
+                  </div>
+                  <div class="overlay book-overlay" data-url="{% url 'segments' lang_id=lang_id source_id=source.id %}">
+                     <div class="d-flex gap-3 justify-content-end">
+                        {% if source.image and source.image.file %}
+                        <a class="ps-2" style="cursor: pointer"
+                           onclick="event.stopPropagation();"
+                           hx-get="{% url 'show_image' img_id=source.image_id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalImgContent"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModalImg">
+                           <i class="fa-regular fa-eye icon-sm text-muted"></i>
+                        </a>
+                        {%endif%}
+                        <a style="cursor: pointer"
+                           onclick="event.stopPropagation();"
+                           hx-get="{% url 'source_edit' lang_id=lang_id source_id=source.id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalBody"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModal">
+                           <i class="fa-regular fa-pen-to-square icon-sm text-muted"></i>
+                        </a>
+                     </div>
+                    {% if source.author %}
+                     <div class="pb-2">
+                        <span class="text-center book-name">
+                           {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+                        </span>
+                        <div class="book-author">{{source.author}}</div>
+                     </div>
+                     {% else %}
+                        <span class="text-center book-name">
+                           {{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}
+                        </span>
+                        <div></div>
+                     {% endif %}
+                  </div>
                </div>
             </div>
             {% endfor %}
@@ -163,7 +255,7 @@
                            hx-target-error="#error-box"
                            data-bs-toggle="modal"
                            data-bs-target="#genericModal">
-                           <i class="fa-regular fa-pen-to-square row-icon-sm text-muted"></i>
+                           <i class="fa-regular fa-pen-to-square icon-sm text-muted"></i>
                         </a>
                      </span>
                      <span>
@@ -178,21 +270,57 @@
             {% endfor %}
          </div>
       {% endif %}
-      {% if not forloop.last %}<hr>{% endif %}
+      {% if not forloop.last %}{% endif %}
+   </div>
    {% endfor %}
-     
+   
+   <div class="section border-0">
+      <div class="section-title">Audio Sources</div>
+      <div class="track-container">
+         <div class="track-description row mb-3">
+            <span class="col-1"><b>#</b></span><span class="col-3"><b>Author</b></span>
+            <span class="col-5"><b>Name</b></span><span class="col-3"><b>Category</b></span>
+         </div>
+         {% for source in audio_sources %}
+         <div class="track" data-url="{% url 'play_session_source' lang_id=lang_id source_id=source.id %}"
+            {% if not forloop.last %}style="border-bottom: 1px solid var(--border-strong);"{% endif %}
+         >
+            <div class="track-description row">
+               <span class="col-1">{{forloop.counter}}.</span>
+               <span class="col-3">{% if source.author %}{{source.author}} {% endif %}</span>
+               <span class="col-5">{{source.name}}</span>
+               <div class="col-2">{{source.get_source_category_display}}</div>
+               <div class="col-1">
+                  <a style="cursor: pointer; display: inline-block; width: 100%; text-align: end;"
+                     onclick="event.stopPropagation();"
+                     hx-get="{% url 'source_edit' lang_id=lang_id source_id=source.id %}"
+                     hx-trigger="click"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal">
+                     <i class="fa-regular fa-pen-to-square icon-sm text-muted"></i>
+                  </a>
+               </div>
+            </div>
+         </div>
+         {% endfor %}
+      </div>
+   </div>
+   <button class="btn btn-secondary d-block mx-auto my-5"
+      hx-get="{% url 'source_add' lang_id=lang_id %}"
+      hx-trigger="click"
+      hx-target="#genericModalBody"
+      hx-target-error="#error-box"
+      data-bs-toggle="modal"
+      data-bs-target="#genericModal"
+      >
+      Add source
+   </button>
+
 </div>
 
-<button class="btn btn-secondary d-block mx-auto mt-5"
-   hx-get="{% url 'source_add' lang_id=lang_id %}"
-   hx-trigger="click"
-   hx-target="#genericModalBody"
-   hx-target-error="#error-box"
-   data-bs-toggle="modal"
-   data-bs-target="#genericModal"
-   >
-   Add source
-</button>
+
 
 {% endblock innerbody %}
 
@@ -202,7 +330,7 @@ function initSourceForm() {
    document.getElementById('genericModalTitle').textContent = 'Create/Edit a source';
 }
 
-document.querySelectorAll('.overlay').forEach((el) => {
+document.querySelectorAll('.overlay, .track').forEach((el) => {
    el.addEventListener('click', (e) => {
       const url = e.currentTarget.dataset.url;
       window.location.href = url;

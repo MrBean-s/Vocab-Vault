@@ -586,18 +586,18 @@ def unlink_word(request, lang_id, word_id, rel_word_id):
 
 def sources(request, lang_id):
 
-   all_sources = Source.objects.filter(
+   section_sources = Source.objects.filter(
       language_id=lang_id,
-      source_category__in=['BOK', 'ABK', 'MOV', 'TVS', 'SON', 'POD', 'ALB']
+      source_category__in=['BOK', 'MOV', 'TVS', 'ALB']
    ).order_by('-source_category')
 
-   CATEGORY_ORDER = ['TVS', 'MOV', 'BOK', 'ABK', 'ALB', 'SON', 'POD']
-
+   CATEGORY_ORDER = ['TVS', 'MOV', 'BOK', 'ALB']
+   
    #to preserve insertion order
    category_labels = dict(Source.SourceCategory.choices)
    sections = {category_labels[code]: [] for code in CATEGORY_ORDER if code in category_labels}
 
-   for source in all_sources:
+   for source in section_sources:
       label = source.get_source_category_display()
       if label in sections:
          sections[label].append(source)
@@ -605,10 +605,15 @@ def sources(request, lang_id):
    sections = {label: sources for label, sources in sections.items() if sources}
 
    print(sections)
+   audio_sources = Source.objects.filter(
+      language_id=lang_id,
+      source_category__in=['ABK', 'SON', 'POD']
+   ).order_by('-source_category')
 
    return render(request, 'sources.html', {
       'lang_id': lang_id,
       'sections' : sections,
+      'audio_sources': audio_sources
    })
 
 def sources_add_edit(request, lang_id, source_id=None):
