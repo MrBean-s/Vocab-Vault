@@ -105,25 +105,25 @@
 
 {% block innerbody %}
 <div class="container">
-   <div class="d-flex justify-content-center my-5 gap-5">
+   <div class="d-flex justify-content-between my-5 gap-5">
       <h2 class="m-0">My Sources</h2>
-      <button class="btn btn-important"
-         hx-get="{% url 'source_add' lang_id=lang_id %}"
-         hx-trigger="click"
-         hx-target="#genericModalBody"
-         hx-target-error="#error-box"
-         data-bs-toggle="modal"
-         data-bs-target="#genericModal">
-            Add source
+      <div class="d-flex gap-5 w-75 justify-content-end">
+         <div id="search-row" class="d-flex gap-3">
+            <input type="text" placeholder="Search..." class="form-control">
+            <button class="btn btn-primary">search</button>
+         </div>
+         <button class="btn btn-important"
+            hx-get="{% url 'source_add' lang_id=lang_id %}"
+            hx-trigger="click"
+            hx-target="#genericModalBody"
+            hx-target-error="#error-box"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal">
+               Add source
          </button>
+      </div>
    </div>
-   <div id="search-row" class="d-flex gap-4 w-60 mx-auto mb-5">
-      <input type="text" placeholder="Search..." class="form-control">
-      <select name="source-category" id="id_source_category" class="form-select" style="max-width: 300px;">
-         <option value="">--Select an option---</option>
-         <option value=""></option>
-      </select>
-   </div>
+   
    
    {% for stitle, sources in sections.items %}
    <div class="section">
@@ -307,17 +307,17 @@
          {% endfor %}
       </div>
    </div>
-   <button class="btn btn-secondary d-block mx-auto my-5"
-      hx-get="{% url 'source_add' lang_id=lang_id %}"
-      hx-trigger="click"
-      hx-target="#genericModalBody"
-      hx-target-error="#error-box"
-      data-bs-toggle="modal"
-      data-bs-target="#genericModal"
-      >
-      Add source
-   </button>
-
+   <div class="d-flex justify-content-center">
+      <a class="my-5 anchor-not-href"
+         hx-get="{% url 'source_add' lang_id=lang_id %}"
+         hx-trigger="click"
+         hx-target="#genericModalBody"
+         hx-target-error="#error-box"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal">
+         Add a new source
+      </a>
+   </div>
 </div>
 
 

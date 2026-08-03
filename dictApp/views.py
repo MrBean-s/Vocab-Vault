@@ -728,8 +728,8 @@ def segments(request, lang_id, source_id):
    )
 
    categorized = {}
-   for seg in source.segments.all():
-      categorized.setdefault(seg.segment_type, []).append({'id': seg.id, 'number': seg.number, 'name': seg.name})
+   for seg in source.segments.all().order_by('-segment_type'):
+      categorized.setdefault(seg.get_segment_type_display(), []).append({'id': seg.id, 'number': seg.number, 'name': seg.name})
    
    return render(request, 'segments.html', {
       'lang_id': lang_id,
@@ -806,6 +806,10 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
    source = get_object_or_404(Source, pk=source_id) if source_id else None
    episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
    segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+   
+   if not any([source, episode, segment]):
+      return HttpResponseBadRequest('At least one source is required')
+
    defn_ajax_url = reverse('search_definitions')
 
    qs = ( 
@@ -820,25 +824,50 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
          'example_id',
          'example__description',
          'image__file',
-         'image_id'
+         'image_id',
+         'page'
       )
    )
+
    obj = episode or segment or source
    temp_src = getattr(obj, 'source', obj)
    qs = qs.filter(**{('source' if obj == source else obj.__class__.__name__.lower()): obj})
 
+   spreads = [] # for books only
+
    if temp_src.source_category in ['MOV', 'TVS']:
       template = 'play_session_film.html'
-   if temp_src.source_category in ['ALB', 'SON', 'ABK', 'POD']:
+   elif temp_src.source_category in ['ALB', 'SON', 'ABK', 'POD']:
       template = 'play_session_sound.html'
-   if temp_src.source_category in ['BOK']:
+   elif temp_src.source_category in ['BOK']:
       template = 'play_session_book.html'
-   # if temp_src.source_category in ['GAM', 'OTH']
+      
+      citations_per_page = 4
+      first_left_page_count = 3
+
+      flat_citations = list(qs)
+
+      # First spread: title + 3 citations
+      left_first = flat_citations[:first_left_page_count]
+      right_first = flat_citations[first_left_page_count:first_left_page_count + citations_per_page]
+      spreads.append({'left': left_first, 'right': right_first, 'chapter_title': segment.name,})
+
+
+      remaining = flat_citations[first_left_page_count + citations_per_page:]
+
+      for i in range(0, len(remaining), citations_per_page * 2):
+         left_page = remaining[i:i + citations_per_page]
+         right_page = remaining[i + citations_per_page:i + citations_per_page * 2]
+         if left_page or right_page:
+            spreads.append({
+               'left': left_page or [],
+               'right': right_page or [],
+               'chapter_title': None,
+            })
+   
+   # elif temp_src.source_category in ['GAM', 'OTH']
       # template = 'play_session_timeline.html'
    
-   if not any([source, episode, segment]):
-      return HttpResponseBadRequest('At least one source is required')
-
    return render(request, template, {
       "lang_id": lang_id,
       "source": source,
@@ -847,6 +876,7 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
       'defn_ajax_url': defn_ajax_url,
       'citations': qs,
       "MEDIA_URL": settings.MEDIA_URL,
+      'spreads': spreads if spreads else None
    })
 
 
@@ -862,10 +892,12 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
       return HttpResponseBadRequest('At least one source is required')
    
    can_add_img = bool(episode or (source and source.source_category == 'MOV'))
-   initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description } if citation else {}
+   is_book = bool(segment and segment.source.source_category == 'BOK')
+   
+   initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description, 'page': citation.page } if citation else {}
 
    if request.method == "POST":
-      form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data, can_add_img=can_add_img)
+      form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data, can_add_img=can_add_img, is_book=is_book)
       if form.is_valid():
          word_val = form.cleaned_data['word']
          new_def = form.cleaned_data['definition_input']
@@ -908,6 +940,9 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          
          if image_file:
             citation.image = Image.objects.create(file=image_file)
+         
+         page = form.cleaned_data.get('page')
+         citation.page = page
          citation.save()
 
          if source:
@@ -931,11 +966,12 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             initial_word_id=citation.example.definition.word_id,
             initial_word=citation.example.definition.word.name,
             initial_defn_id=citation.example.definition_id,
-            can_add_img=can_add_img
+            can_add_img=can_add_img,
+            is_book=is_book
          )
       else:
-         form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img)
-      
+         form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img, is_book=is_book)
+
    return render(request, 'forms/_citation_form.html', {
       'lang_id': lang_id,
       'source_id': source_id,

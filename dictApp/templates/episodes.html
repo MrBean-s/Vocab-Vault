@@ -1,12 +1,16 @@
 {% extends 'base.html' %}
-
+{% block additionalStyles %}
+<style>
+   .episode { padding: 20px 25px;  }
+</style>
+{% endblock %}
 
 {% block innerbody %}
 
-<div class="container px-5 py-4">
+<div class="container py-5">
    
    <div class="d-flex align-items-center">
-      <h1 class="m-0">{{source.name}}</h1>
+      <h2 class="m-0">{{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}</h2>
       
       <button class="btn btn-primary ms-auto"
          hx-get="{% url 'episode_add' source_id=source.id%}"
@@ -18,27 +22,33 @@
          Add an episode
       </button>
    </div>
-
-   <div id="episode-list" class="my-5">
+   <a href="{% url 'sources' lang_id=lang_id%}" class="fs-5">
+      All sources
+   </a>
+   <div class="my-5">‎</div>
+   <div class="episodes-wrapper custom-card">
       {% for season, episode_list in grouped_by_season.items %}
-         <h3 class="my-4">Season {{season}}</h3>
-         {% for ep in episode_list %}
-            <div class="episode mb-3 fs-5">
-               <a href="{% url 'play_session_episode' lang_id=lang_id episode_id=ep.id %}">
-                  S{{ep.season_number}}E{{ep.episode_number|stringformat:"02d"}} - {{ep.name}}
-               </a>
-               <a hx-get="{% url 'episode_edit' source_id=source.id episode_id=ep.id %}"
-                  hx-trigger="click"
-                  hx-target="#genericModalBody"
-                  hx-target-error="#error-box"
-                  data-bs-toggle="modal"
-                  data-bs-target="#genericModal"
-                  style="cursor: pointer;"
-                  class="ms-3">
-                  <i class="fa-regular fa-pen-to-square" style="font-size: 0.8rem;"></i>
-               </a>
-            </div>
-         {% endfor %}
+         <div class="episode">
+            <h5 class="mb-3">Season {{season}}</h5>
+            {% for ep in episode_list %}
+               <div class="mb-3 fs-5">
+                  <span class="ms-4 pe-2">E{{ep.episode_number|stringformat:"02d"}}.</span>
+                  <a href="{% url 'play_session_episode' lang_id=lang_id episode_id=ep.id %}">
+                     {{ep.name}}
+                  </a>
+                  <a hx-get="{% url 'episode_edit' source_id=source.id episode_id=ep.id %}"
+                     hx-trigger="click"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal"
+                     style="cursor: pointer;"
+                     class="ms-3">
+                     <i class="fa-regular fa-pen-to-square" style="font-size: 0.8rem;"></i>
+                  </a>
+               </div>
+            {% endfor %}
+         </div>
       {% endfor %}
    </div>
 </div>

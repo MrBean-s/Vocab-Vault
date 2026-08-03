@@ -537,12 +537,23 @@ class CitationForm(forms.Form):
       label='Screenshot'
    )
 
+   page = forms.IntegerField(
+      label='Page',
+      required=True,
+      widget=forms.NumberInput(attrs={
+         'class': 'form-control d-inline',
+         'style': 'width: auto',
+         'placeholder': '#'
+      })
+   )
+
    def __init__(self, *args, **kwargs):
       ajax_url = kwargs.pop('ajax_url', None)
       initial_word_id = kwargs.pop('initial_word_id', None)
       initial_word    = kwargs.pop('initial_word', None)
       initial_defn_id = kwargs.pop('initial_defn_id', None)
       can_add_img     = kwargs.pop('can_add_img', None)
+      is_book = kwargs.pop('is_book', None)
       super().__init__(*args, **kwargs)
 
       word_widget = self.fields['word'].widget
@@ -553,7 +564,11 @@ class CitationForm(forms.Form):
 
       if not can_add_img:
          del self.fields['image_file']
-
+      if is_book:
+         self.fields['spotted_at'].required = False
+      else:
+         del self.fields['page']
+         
       # # when validation fails the same word is selected
       # if self.is_bound and 'word' in self.data:
       #    submitted_id = self.data.get('word')

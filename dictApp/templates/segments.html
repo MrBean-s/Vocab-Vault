@@ -1,9 +1,15 @@
 {% extends 'base.html' %}
 
+{% block additionalStyles %}
+<style>
+   .segment { padding: 20px 25px;  }
+</style>
+{% endblock %}
+
 {% block innerbody %}
-<div class="container px-5 my-4">
+<div class="container py-5">
    <div class="d-flex align-items-center">
-      <h1 class="m-0 d-inline">{{source.name}}</h1>
+      <h2 class="m-0 d-inline">{{source.name}}</h2>
       
       <button 
          hx-get="{% url 'segment_add' source_id=source_id%}"
@@ -16,27 +22,35 @@
          Add a segment
       </button>
    </div>
-   <h5 class="my-5">Segments</h5>
-   {% for segment_type, seg_list in segments.items %}
-      <h5>{{segment_type}}</h5>
-      {% for seg in seg_list %}
-         <div class="segment mb-3 fs-5">
-            <a href="{% url 'play_session_segment' lang_id=lang_id segment_id=seg.id %}">
-               {{seg.number}} - {{seg.name}}
-            </a>
-            <a hx-get="{% url 'segment_edit' source_id=source.id segment_id=seg.id %}"
-               hx-trigger="click"
-               hx-target="#genericModalBody"
-               hx-target-error="#error-box"
-               data-bs-toggle="modal"
-               data-bs-target="#genericModal"
-               style="cursor: pointer;"
-               class="ms-3">
-               <i class="fa-regular fa-pen-to-square" style="font-size: 0.8rem;"></i>
-            </a>
+   <a href="{% url 'sources' lang_id=lang_id%}" class="fs-5">
+      All sources
+   </a>
+   <div class="my-5">‎</div>
+   <div class="segments-wrapper custom-card">
+      {% for segment_type, seg_list in segments.items %}
+         <div class="segment">
+            <h5 class="mb-3">{{segment_type|title}}</h5>
+            {% for seg in seg_list %}
+               <div class="mb-3 fs-5">
+                  <span class="ms-4 pe-2">{{seg.number}}.</span>
+                  <a href="{% url 'play_session_segment' lang_id=lang_id segment_id=seg.id %}">
+                     {{seg.name}}
+                  </a>
+                  <a hx-get="{% url 'segment_edit' source_id=source.id segment_id=seg.id %}"
+                     hx-trigger="click"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal"
+                     style="cursor: pointer;"
+                     class="ms-3">
+                     <i class="fa-regular fa-pen-to-square" style="font-size: 0.8rem;"></i>
+                  </a>
+               </div>
+            {% endfor %}
          </div>
       {% endfor %}
-   {% endfor %}
+   </div>
 </div>
 {% for seg in segments %}
    <div>{{seg.name}} {{seg.number}}</div>

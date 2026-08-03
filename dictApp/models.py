@@ -144,6 +144,8 @@ class Example(models.Model):
          } if citation else None
       }
 
+   def __str__(self):
+      return self.description
 
 class Source(models.Model):
    released_year = models.IntegerField(null=True, blank=True)
@@ -221,6 +223,7 @@ class Citation(models.Model):
    spotted_at = models.DurationField(null=True, blank=True)
    custom_audio = models.FileField(upload_to = 'audio/', null=True, blank=True)
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
+   page = models.IntegerField(null=True, blank=True)
 
    example = models.OneToOneField(Example, on_delete=models.CASCADE, related_name="citation")
    source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT)

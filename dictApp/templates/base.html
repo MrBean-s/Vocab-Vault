@@ -22,6 +22,7 @@
             --bg-deep:         #0a0e17;
             --bg-dark:         #0f1423;
             --bg-surface:      #141d2f;
+            /* --bg-surface:      #162134; */
             --bg-elevated:     #223454;
             --bg-table-header: #141f2f;
             --bg-table-odd:    #1b2536;
@@ -85,7 +86,7 @@
          .btn-important:hover { background-color: var(--bg-primary); font-weight: 700}
          .btn-success { background-color: var(--bg-success) !important; }
          .btn-muted { background-color: var(--bg-muted) !important;}
-         .btn-transparent { background-color: transparent !important;}
+         .btn-transparent { background-color: transparent !important; border: none !important}
          .btn-primary { background: var(--bg-primary) !important; border: none !important; }
          .btn-danger { background: var(--bg-danger) !important }
 
@@ -118,8 +119,8 @@
 
          .custom-card { 
             background-color: var(--bg-surface);
-            /*border: 1px solid var(--border-color);*/
-            /*box-shadow: var(--shadow-card);*/
+            border: 1px solid var(--border-color);
+            /* box-shadow: var(--shadow-card); */
             border-radius: 0.5rem;
             color: var(--text-main);
          }
@@ -208,7 +209,9 @@
          .anchor-btn-important { background-color: var(--bg-important); color: black}
          .anchor-btn-important:hover { background-color: var(--bg-primary);}
 
-         .anchor-not-href { cursor: pointer; text-decoration: underline; color: var(--accent-blue); }
+         .anchor-not-href, .anchor-not-href-icon { cursor: pointer; color: var(--accent-blue); }
+         .anchor-not-href { text-decoration: underline; }
+         .anchor-not-href-icon { text-decoration: none; }
 
          /*to hide selects not initialized */
          select.select2 {
@@ -433,9 +436,8 @@
       document.body.addEventListener('htmx:beforeSwap', function(evt) {
          console.log(document.getElementById('genericModal'));
          if (evt.detail.target.id === 'genericModalBody') {
-            if (document.querySelector('#genericModal.hidden') !== null){
-               document.getElementById('form-loader').classList.remove('hidden');
-            }
+            document.getElementById('genericModal').classList.add('hidden');
+            document.getElementById('form-loader').classList.remove('hidden');
          } else if (evt.detail.target.id === 'genericModalImgContent') {
             document.getElementById('genericModalImg').classList.add('hidden');
             document.getElementById('form-loader').classList.remove('hidden');
@@ -461,8 +463,8 @@
                         window[fnName]();
                      }
                   }
-                  document.getElementById('form-loader').classList.add('hidden');
                   setTimeout(function() {
+                     document.getElementById('form-loader').classList.add('hidden');
                      document.getElementById('genericModal').classList.remove('hidden');
                   }, 50);
                }, 10);

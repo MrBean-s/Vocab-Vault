@@ -187,10 +187,12 @@
    </div>
 
    {% if episode %}
-      <a href="{% url 'episodes' lang_id=lang_id source_id=episode.source.id %}" class="fs-4">
+      <a href="{% url 'episodes' lang_id=lang_id source_id=episode.source.id %}" class="fs-5">
          {{episode.source.name}}
          {% if episode.source.released_year %}({{episode.source.released_year}}){% endif %}
       </a>
+   {% else %}
+      <a href="{% url 'sources' lang_id=lang_id %}" class="fs-5">All sources</a>
    {% endif %}
 
    <div style="min-height: 80px"></div>
@@ -205,7 +207,7 @@
 
       <div id="#film-strip" class="swiper film-strip">
          <div class="swiper-wrapper">
-            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id in citations %}
+            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id, page_n in citations %}
                {% if episode %}
                   {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
                {% elif segment %}

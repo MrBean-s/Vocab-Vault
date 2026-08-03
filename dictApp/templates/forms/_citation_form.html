@@ -5,11 +5,19 @@
    enctype="multipart/form-data">
    {% csrf_token %}
    <div class="form-content" style="min-height: 350px">
-      <div class="mb-4">
+      <div id="timestampSect" class="mb-4">
          <label class="pe-4" for="{{form.spotted_at.id_for_label}}">{{form.spotted_at.label}}</label>
          {{form.spotted_at}}
          {{form.spotted_at.errors}}
       </div>
+
+      {% if form.page %}
+         <div class="mb-4">
+            <label class="pe-4" for="{{form.page.id_for_label}}">{{form.page.label}}</label>
+            {{form.page}}
+            {{form.page.errors}}
+         </div>
+      {% endif %}
 
       <div class="mb-4">
          <label class="form-label" for="{{form.word.id_for_label}}">{{form.word.label}}</label>

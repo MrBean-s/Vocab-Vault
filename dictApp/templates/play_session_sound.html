@@ -11,27 +11,23 @@
    }
 
    .waveform-container {
-      background: 
-         radial-gradient(circle at 0% 0%, rgba(58, 84, 201, 0.25), transparent 50%),
-         radial-gradient(ellipse at 100% 100%, rgba(58, 84, 201, 0.25), transparent 50%),
+      background:
+         radial-gradient(circle at 0% 100%, rgba(51, 253, 172, 0.2), rgba(51, 253, 172, 0) 38%),
+         radial-gradient(circle at 30% 0%, rgba(51, 192, 253, 0.2), rgba(51, 192, 253, 0) 38%),
+         radial-gradient(circle at 70% 100%, rgba(95, 51, 253, 0.2), rgba(95, 51, 253, 0) 38%),
+         radial-gradient(circle at 100% 0%, rgba(253, 51, 155, 0.2), rgba(253, 51, 155, 0) 38%),
          #000;
-      height: 616px;
+      height: 661px;
       width: 100%;
       padding-left: 27px;
-      position: relative;
       padding-right: 63px;
-   }
+      position: relative;
+      border-radius: 10px;
    
-   .waveform-container::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: -18px;
-      background: var(--bg-body);
-      height: 45px;
-      width: calc(100% + 27px);
+   /* Force GPU compositing layer to eliminate sub-pixel rounding cuts */
+   transform: translateZ(0);
    }
-   
+
    .wave-square {
       min-width: 270px;
       max-width: 270px;
@@ -59,7 +55,7 @@
    .text-example {
       font-style: italic;
       font-size: 0.99rem;
-      height: 79px;
+      height: 90px;
       overflow-y: auto;
    }
    
@@ -83,8 +79,7 @@
    }
 
    .waveform {
-      /* margin-top: calc(((616px - 45px) * 0.5) - 32px); */
-      margin-top: 253.5px;
+      margin-top: 290px;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -99,7 +94,9 @@
       /* border: 1px solid var(--border-color) !important; */
       padding: 12px 18px;
       border-radius: 10px;
-      background: #1b213b;
+      background: #4a4f638e;
+      backdrop-filter: blur(8px);           /* Blurs image/content behind row */
+      -webkit-backdrop-filter: blur(8px);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -126,15 +123,13 @@
 
 {% block innerbody %}
 
-{% if episode %}
-   {% url 'session_episode_cite' episode_id=episode.id lang_id=lang_id as target_url %}
-{% elif segment %}
+{% if segment %}
    {% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id as target_url %}   
 {% elif source %}
    {% url 'session_source_cite' source_id=source.id lang_id=lang_id as target_url %}
 {% endif %}
 
-{% with item=episode|default:segment|default:source %}
+{% with item=segment|default:source %}
 <div class="container-fluid container-custom py-5" style="user-select: none;">
 
    <div class="d-flex align-items-center">
@@ -151,6 +146,16 @@
       </button>
    </div>
 
+   {% if segment %}
+      <a href="{% url 'segments' lang_id=lang_id source_id=segment.source.id %}" class="fs-5">
+         {{segment.source.name}}
+      </a>
+   {% else %}
+      <a href="{% url 'sources' lang_id=lang_id %}" class="fs-5">
+         All Sources
+      </a>
+   {% endif %}
+
    {% if episode %}
       <a href="{% url 'episodes' lang_id=lang_id source_id=episode.source.id %}" class="fs-4">
          {{episode.source.name}}
@@ -164,7 +169,7 @@
 
       <div id="waveform" class="swiper waveform-container">
          <div class="swiper-wrapper">
-            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id in citations %}
+            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id, page_n in citations %}
                {% if episode %}
                   {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
                {% elif segment %}
@@ -184,20 +189,21 @@
                      <div class="text-word">{{w_name}}</div>
                      <div class="text-example">{{ex_desc}}</div> 
                      <div class="d-flex justify-content-between align-items-end">
-                        <p class="text-time m-0">{{time}}</p>
                         <div>
                            <a hx-get="{{edit_url}}"
                               hx-trigger="click"
                               hx-target="#genericModalBody"
                               hx-target-error="#error-box"
                               data-bs-toggle="modal"
-                              data-bs-target="#genericModal">
+                              data-bs-target="#genericModal"
+                              class="anchor-not-href-icon">
                               <i class="fa-solid fa-pen-to-square text-muted"></i>
                            </a>
                            <a href="{% url 'word_details' lang_id=lang_id word_id=w_id %}">
                               <i class="fa-solid fa-square-arrow-up-right px-3 text-muted"></i>
                            </a>
                         </div>
+                        <p class="text-time m-0">{{time}}</p>
                      </div>
                   </div>
                </div>
@@ -205,7 +211,6 @@
             </div>
             {% endfor %}
          </div>
-         <div class="pagination-fix"></div>
          <div class="swiper-pagination"></div>
       </div>
    </div>
@@ -225,7 +230,6 @@
 <script>
    
    var swiper = new Swiper('#waveform', {
-      // cssMode: true, // remove animations
       spaceBetween: 0,
       pagination: {
          el: '.swiper-pagination',
