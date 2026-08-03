@@ -1,9 +1,9 @@
 <div class="d-flex flex-column justify-content-between" style="flex: 1 1 auto;">
-   <h4 class="mb-5 pt-3">Are you sure you want to delete the <strong>{{ type }} "{{ name }}"</strong>?</h4>
-   <form method="post" action="{{ delete_url }}">
+   <h4 class="mb-5 pt-3">Are you sure you want to unlink the <strong>word "{{ rel_word.name }}"</strong>?</h4>
+   <form method="post" action="{{ form_url }}">
       {% csrf_token %}
       <div class="mt-5 d-flex justify-content-end gap-3">
-         <button type="submit" class="btn btn-danger">Yes, delete</button>
+         <button type="submit" class="btn btn-danger">Yes, unlink</button>
          <button type="button" class="btn text-light" data-bs-dismiss="modal">Cancel</button>
       </div>
    </form>

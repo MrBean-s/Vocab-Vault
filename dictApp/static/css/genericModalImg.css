@@ -1,0 +1,24 @@
+.btn-close-custom {
+   top: 10px; right: 10px;
+   width: 34px;
+   height: 34px;
+   border-radius: 50%;
+   border: 2px solid white;
+   background: black;
+   position: relative;
+   padding: 0;
+}
+.btn-close-custom::before,
+.btn-close-custom::after {
+   content: "";
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 16px;
+   height: 2px;
+   background-color: white;
+}
+
+.btn-close-custom::before { transform: translate(-50%, -50%) rotate(45deg);}
+
+.btn-close-custom::after { transform: translate(-50%, -50%) rotate(-45deg);}

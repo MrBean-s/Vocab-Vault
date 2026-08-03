@@ -65,6 +65,7 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 20px 10px;
    }
+
 </style>
 {% endblock additionalStyles %}
 
@@ -89,7 +90,7 @@
             </div>
             <div class="top-bar-right col my-auto">
                <div class="d-flex justify-content-end">
-                  <a href="{% url 'word_edit' lang_id=lang_id word_id=context.id %}" class="anchor-btn anchor-btn-secondary">Edit</a>
+                  <a href="{% url 'word_edit' lang_id=lang_id word_id=context.id %}" class="anchor-btn anchor-btn-secondary px-4">Edit</a>
                </div>
             </div>
          </div>
@@ -127,12 +128,10 @@
                <img class="desc-image ms-5" src="{{ def.image_path }}" alt="{{ lan.name }}"
                   hx-get="{% url 'show_image' img_id=def.image_id %}"
                   hx-trigger="click"
-                  hx-target="#genericModalBody"
+                  hx-target="#genericModalImgContent"
                   hx-target-error="#error-box"
                   data-bs-toggle="modal"
-                  data-bs-target="#genericModal"
-                  >
-                  
+                  data-bs-target="#genericModalImg">
             {% endif %}
 
             <div class="mb-4 def-description">
@@ -162,9 +161,32 @@
                         <div class="ex-explanation d-inline ps-3 text-secondary">({{ex.explanation}})</div>
                      {% endif %}
 
-                     <i class="fa-solid fa-clapperboard d-inline ps-3 text-muted" title="Add Source"
+                     {% if not ex.citation %}
+                     <a hx-get="{% url 'example_cite' lang_id=lang_id example_id=ex.id %}"
+                        hx-trigger="click"
+                        hx-target="#genericModalBody"
+                        hx-target-error="#error-box"
+                        data-bs-toggle="modal"
+                        data-bs-target="#genericModal">
+                        <i class="fa-solid fa-clapperboard d-inline ps-3 text-muted" title="Add Source"
                         data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip"
                         data-bs-title="Add a citation"></i>
+                     </a>
+                     {% else %}
+                        {% if ex.citation.episode_id %}
+                           {% url 'play_session_episode' episode_id=ex.citation.episode_id lang_id=lang_id as session_url %}
+                        {% elif ex.citation.segment_id %}
+                           {% url 'play_session_segment' segment_id=ex.citation.segment_id lang_id=lang_id as session_url %}   
+                        {% elif ex.citation.source_id %}
+                           {% url 'play_session_source' source_id=ex.citation.source_id lang_id=lang_id as session_url %}
+                        {% endif %}
+                        <a href="{{session_url}}">
+                           <i class="fa-solid fa-square-arrow-up-right px-3 text-muted"></i>
+                        </a>
+                     {% endif %}
+
+
+                     
                   </div>
                   
                {% endfor %}
@@ -175,13 +197,22 @@
 
          <div class="mb-3">Related words:</div>
          <div id="related-grid" class="px-5">
-            {% for word in related_words %}
+            {% for rel_word in related_words %}
             <div class="grid-item">
-               <a href="{% url 'word_details' lang_id=lang_id word_id=word.id %}">
-                  {{word.name}}
+               <a href="{% url 'word_details' lang_id=lang_id word_id=rel_word.id%}">
+                  {{rel_word.name}}
                </a>
                <span class="px-1">-</span>
-               <span class="text-muted">{{word.relation}}</span>
+               <span class="text-muted">{{rel_word.relation}}</span>
+               <a hx-get="{% url 'link_word_edit' lang_id=lang_id word_id=context.id rel_word_id=rel_word.id %}"
+                  hx-trigger="click"
+                  hx-target="#genericModalBody"
+                  hx-target-error="#error-box"
+                  data-bs-toggle="modal"
+                  data-bs-target="#genericModal"
+                  style="cursor: pointer;">
+                  <i class="fa-regular fa-pen-to-square" style="font-size: 0.8rem;"></i>
+               </a>
             </div>
             {% endfor %}
             <div class="grid-item">
@@ -208,5 +239,87 @@
 <script>
 const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+function initLinkWordForm() {
+   document.getElementById('genericModalTitle').textContent = 'Link the word to a related item';
+}
+
+function prepareCitationFormWizard() {
+   document.getElementById('genericModalTitle').textContent = 'Create a citation for this example';
+
+   const $sourceSelect = $('#id_src-ep-source');
+   const $episodeSelect = $('#id_src-ep-episode');
+   const $episodeSection = $episodeSelect.closest('.section-hide');
+   const sourceDataMap = {};
+
+   fetch("{% url 'get_sources' lang_id=lang_id %}")
+      .then(response => response.json())
+      .then(data => {
+         data.results.forEach(item => { sourceDataMap[item.value] = item; });
+
+         $sourceSelect.empty();
+         data.results.forEach(item => {
+            $sourceSelect.append(new Option(item.text, item.value));
+         });
+
+         $sourceSelect.trigger('change.select2');
+         $sourceSelect.val(null).trigger('change');
+      })
+      .catch(err => console.error('Failed to load sources:', err));
+
+   $sourceSelect.on('select2:select', async function () {
+      const sourceId = $sourceSelect.val();
+      const source = sourceDataMap[sourceId];
+   
+      if (source.category === 'MOV' || source.category === 'SON') {
+         $episodeSection.prop('hidden', true);
+         $episodeSelect.prop('required', false);
+         clearEpisodeSelect();
+      } else {
+         await loadEpisodesOrSegments(sourceId);
+         $episodeSection.prop('hidden', false);
+         $episodeSelect.prop('required', true);
+         var $el = $('#new-episode-a');
+         var newEpUrl = $el.attr('hx-get').replace(/\d+/g, sourceId);
+         $el.attr('hx-get', newEpUrl);
+         htmx.process($el[0]);
+      }
+   });
+
+   function clearEpisodeSelect() {
+      $episodeSelect.empty();
+      $episodeSelect.trigger('change.select2');
+   }
+
+   async function loadEpisodesOrSegments(sourceId, isEpisode = true) {
+      let url = `{% url 'search_episodes_or_segments' source_id=999999 %}`.replace('999999', sourceId);
+      url += isEpisode ? '?search_episodes=true' : '?search_episodes=false';
+
+      if (!sourceId) { clearEpisodeSelect(); return; }
+
+      try {
+         const response = await fetch(url);
+         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+         const data = await response.json();
+
+         $episodeSelect.empty();
+         if (data.results.length > 0) {
+            data.results.forEach(item => {
+               $episodeSelect.append(new Option(item.text, item.value));
+            });
+         }
+         $episodeSelect.trigger('change.select2');
+      } catch (err) { console.error('Fetch error:', err); }
+   }
+}
+
+function initSourceForm() {
+   document.getElementById('genericModalTitle').textContent = 'Create/Edit a source';
+}
+
+function initEpisodeForm() {
+   document.getElementById('genericModalTitle').textContent = 'Add/Edit an episode';
+}
+
 </script>
 {% endblock additionalScripts %}

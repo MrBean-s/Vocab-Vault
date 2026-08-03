@@ -13,3 +13,14 @@ def split(value, sep=None):
     if sep:
         return value.split(sep)
     return value.split()
+
+@register.filter(name='times') 
+def times(number):
+    return range(number)
+
+@register.filter
+def divide(value, arg):
+   try:
+      return float(value) / float(arg)
+   except (ValueError, ZeroDivisionError):
+      return None

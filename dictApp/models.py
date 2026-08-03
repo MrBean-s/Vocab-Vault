@@ -38,7 +38,7 @@ class Word(models.Model):
 
 
 class Definition(models.Model):
-   description = models.TextField()
+   description = models.TextField(null=True, blank=True, db_index=True)
    origin = models.TextField(default = '', null=True, blank=True)
 
    word = models.ForeignKey(Word, related_name="definitions", on_delete=models.CASCADE, null=False)
@@ -50,11 +50,40 @@ class Definition(models.Model):
       RARE = 'RAR', 'RARE'
       NEVER = 'NVR', 'NEVER'
 
+   class TopicCategory(models.TextChoices):
+      SPORTS         = 'SPT', 'Sports'
+      MONEY          = 'MNY', 'Money & Finance'
+      MEDICINE       = 'MED', 'Medicine & Health'
+      FOOD           = 'FOD', 'Food & Cooking'
+      TECHNOLOGY     = 'TEC', 'Technology'
+      SCIENCE        = 'SCI', 'Science'
+      ART            = 'ART', 'Art & Literature'
+      MUSIC          = 'MUS', 'Music'
+      POLITICS       = 'POL', 'Politics & Government'
+      LAW            = 'LAW', 'Law & Legal'
+      RELIGION       = 'REL', 'Religion & Philosophy'
+      EDUCATION      = 'EDU', 'Education'
+      NATURE         = 'NAT', 'Nature & Animals'
+      TRAVEL         = 'TRV', 'Travel & Geography'
+      FASHION        = 'FAS', 'Fashion & Beauty'
+      MILITARY       = 'MIL', 'Military & War'
+      SLANG          = 'SLG', 'Slang & Informal'
+      TABOO          = 'TAB', 'Taboo / Swear Words'
+      WORK           = 'WRK', 'Work & Business'
+      FAMILY         = 'FAM', 'Family & Relationships'
+   
    forgetting_frequency = models.CharField(
       max_length=3,
       choices = ForgettingFrequency.choices,
       null=True,
       blank=True
+   )
+
+   topic_category = models.CharField(
+      max_length=3,
+      choices=TopicCategory.choices,
+      null=True, blank=True,
+      help_text='Topic domain of this relation'
    )
 
    def to_json(self, all_lang_countries_ids=None):
@@ -91,7 +120,6 @@ class Definition(models.Model):
 class Example(models.Model):
    description = models.TextField()
    explanation = models.TextField(null=True, blank=True)
-   custom_audio = models.FileField(upload_to = 'audio/', null=True, blank=True)
    created = models.DateTimeField(auto_now_add=True)
 
    part_of_speech = models.ForeignKey('PartOfSpeech', on_delete=models.PROTECT, null=True,
@@ -100,71 +128,115 @@ class Example(models.Model):
       null=False)
 
    def to_json(self):
+      citation = getattr(self, 'citation', None)
+
       return {
+         "id": self.id,
          "description": self.description,
          "explanation": self.explanation or "",
          "created": self.created.strftime("%Y-%m-%d %H:%M:%S"),
-         "part_of_speech": self.part_of_speech.name if self.part_of_speech else ""
+         "part_of_speech": self.part_of_speech.name if self.part_of_speech else "",
+         "citation": {
+            "id": citation.id if citation else "",
+            "source_id": citation.source_id if citation else "",
+            "episode_id": citation.episode_id if citation else "",
+            "segment_id": citation.segment_id if citation else "",
+         } if citation else None
       }
 
-
+   def __str__(self):
+      return self.description
 
 class Source(models.Model):
-   released_year = models.IntegerField()
+   released_year = models.IntegerField(null=True, blank=True)
    name = models.TextField()
    short_name  = models.CharField(max_length=10, null=True, blank=True)
    author = models.CharField(max_length=255, null=True, blank=True)
 
    class SourceCategory(models.TextChoices):
-      MOVIE = 'MOV', 'MOVIE'
-      TVSHOW = 'TVS', 'TVSHOW'
-      SONG = 'SON', 'SONG'
-      GAME = 'GAM', 'GAME'
-      BOOK = 'BOK', 'BOOK'
-      OTHER = 'OTH', 'OTHER'
+      MOVIE = 'MOV', 'Movie'
+      TVSHOW = 'TVS', 'TV Show'
+      SONG = 'SON', 'Song'
+      ALBUM = 'ALB', 'Album'
+      # GAME = 'GAM', 'GAME'
+      BOOK = 'BOK', 'Book'
+      ABOOK = 'ABK', 'Audio Book'
+      PODCAST = 'POD', 'Podcast'
+      # OTHER = 'OTH', 'OTHER'
 
    source_category = models.CharField(
       max_length=3,
       choices = SourceCategory.choices,
-      null=True,
-      blank=True
-   )  
+      blank=False
+   )
 
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True, blank=True)
-   examples = models.ManyToManyField(
-      Example,
-      through='Citation',
-      related_name='sources'
-)  
+   language = models.ForeignKey(Language, on_delete=models.PROTECT, null=False)
 
+   def __str__(self):
+      return f'{self.name} ({self.released_year})'
 
 class Episode(models.Model):
    season_number = models.IntegerField(null=True, blank=True)
-   episode_number = models.IntegerField(null=True, blank=True)
-   episode_name = models.CharField()
+   episode_number = models.IntegerField(null=False, blank=False)
+   name = models.CharField(max_length=255)
 
-   source = models.ForeignKey(Source, on_delete=models.PROTECT)
+   source = models.ForeignKey(Source, on_delete=models.CASCADE, related_name="episodes")
 
    class Meta:
       unique_together = ('source', 'season_number', 'episode_number')
+   
+   def __str__(self):
+      if self.season_number and self.episode_number:
+         return f'S{self.season_number}E{self.episode_number} - {self.name}'
+      elif self.episode_number:
+         return f'E{self.episode_number} - {self.name}'
+      return self.name
+
+class Segment(models.Model):
+   class SegmentType(models.TextChoices):
+      PROLOGUE = 'PRL', 'PROLOGUE'
+      CHAPTER = 'CHP', 'CHAPTER'
+      EPILOGUE = 'EPL', 'EPILOGUE'
+      TRACK = 'TRK', 'TRACK'
+      MISSION = 'MIS', 'MISSION'
+      ACT = 'ACT', 'ACT'
+   
+   segment_type = models.CharField(
+      max_length=3,
+      choices=SegmentType.choices,
+      blank=False,
+      null=False
+   )
+
+   name = models.TextField(null=False, blank=False)
+   number = models.IntegerField(null=False, blank=False)
+
+   source = models.ForeignKey(Source, on_delete=models.CASCADE, related_name="segments")
+
+   class Meta:
+      unique_together = ('segment_type', 'name', 'number')
 
 
 class Citation(models.Model):
    added_at = models.DateTimeField(auto_now_add=True)
-   spotted_at = models.TimeField(null=True, blank=True)
+   spotted_at = models.DurationField(null=True, blank=True)
+   custom_audio = models.FileField(upload_to = 'audio/', null=True, blank=True)
+   image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
+   page = models.IntegerField(null=True, blank=True)
 
-   example = models.ForeignKey(Example, on_delete=models.PROTECT)
-   source = models.ForeignKey(Source, null=True, on_delete=models.PROTECT)
-   episode = models.ForeignKey(Episode, null=True, on_delete=models.PROTECT)
+   example = models.OneToOneField(Example, on_delete=models.CASCADE, related_name="citation")
+   source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT)
+   episode = models.ForeignKey(Episode, null=True,  on_delete=models.PROTECT)
+   segment = models.ForeignKey(Segment, null=True,  on_delete=models.PROTECT)
 
    class Meta:
       constraints = [
       models.CheckConstraint(
-         condition=Q(source__isnull=False) | Q(episode__isnull=False),
-         name='citation_source_or_episode_required'
+         condition=Q(source__isnull=False) | Q(episode__isnull=False) | Q(segment__isnull=False),
+         name='a_source_is_required'
       ) 
-   ]   
-   
+   ]
 
 
 class QuizAttempt(models.Model):
@@ -201,8 +273,10 @@ class PartOfSpeech(models.Model):
 class Country(models.Model):
    name = models.CharField(max_length=60)
    iso_code = models.CharField(max_length=5, unique=True)
-   languages = models.ManyToManyField(Language, through='CountryLanguage', related_name='countries')
    added_manually = models.BooleanField(default=False)
+
+   languages = models.ManyToManyField(Language, through='CountryLanguage', related_name='countries')
+   
 
    def __str__(self):
       return self.name
@@ -224,8 +298,11 @@ class WordRelation(models.Model):
    word_2 = models.ForeignKey(Word, on_delete=models.CASCADE, related_name='+')
 
    class RelationType(models.TextChoices):
-      SYNONYM = 'SYN', 'SYNONYM'
-      ANTONYM = 'ANT', 'ANTONYM'
+      SYNONYM = 'SYN', 'SIMILAR TO'
+      ANTONYM = 'ANT', 'OPPOSITE TO'
+      CONFUSED_WITH = 'CFW', 'CONFUSED WITH'
+      HOMOPHONE = 'HPM', 'SOUND ALIKE'
+      CATEGORY = 'CAT', 'SAME CATEGORY'
 
    relation_type = models.CharField(
       max_length=3,
@@ -236,3 +313,6 @@ class WordRelation(models.Model):
 
    class Meta:
       unique_together = ('word_1', 'word_2')
+   
+   def __str__(self):
+      return f"{self.word_1.name} - {self.word_2.name} - {self.relation_type}"

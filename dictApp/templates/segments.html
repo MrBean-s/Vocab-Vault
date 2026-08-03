@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block additionalStyles %}
+<style>
+   .segment { padding: 20px 25px;  }
+</style>
+{% endblock %}
+
+{% block innerbody %}
+<div class="container py-5">
+   <div class="d-flex align-items-center">
+      <h2 class="m-0 d-inline">{{source.name}}</h2>
+      
+      <button 
+         hx-get="{% url 'segment_add' source_id=source_id%}"
+         hx-target="#genericModalBody"
+         hx-target-error="#error-box"
+         hx-trigger="click"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+         class="btn btn-primary ms-auto">
+         Add a segment
+      </button>
+   </div>
+   <a href="{% url 'sources' lang_id=lang_id%}" class="fs-5">
+      All sources
+   </a>
+   <div class="my-5">‎</div>
+   <div class="segments-wrapper custom-card">
+      {% for segment_type, seg_list in segments.items %}
+         <div class="segment">
+            <h5 class="mb-3">{{segment_type|title}}</h5>
+            {% for seg in seg_list %}
+               <div class="mb-3 fs-5">
+                  <span class="ms-4 pe-2">{{seg.number}}.</span>
+                  <a href="{% url 'play_session_segment' lang_id=lang_id segment_id=seg.id %}">
+                     {{seg.name}}
+                  </a>
+                  <a hx-get="{% url 'segment_edit' source_id=source.id segment_id=seg.id %}"
+                     hx-trigger="click"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal"
+                     style="cursor: pointer;"
+                     class="ms-3">
+                     <i class="fa-regular fa-pen-to-square" style="font-size: 0.8rem;"></i>
+                  </a>
+               </div>
+            {% endfor %}
+         </div>
+      {% endfor %}
+   </div>
+</div>
+{% for seg in segments %}
+   <div>{{seg.name}} {{seg.number}}</div>
+{% endfor %}
+{% endblock%}
+
+{% block additionalScripts %}
+<script>
+   function prepareSegmentForm() {
+      $('#id_segment_type').on('select2:select change', function() {
+         var seg_type = $(this).val();
+         $('#numberSection').prop('hidden', (seg_type == 'PRL' || seg_type == 'EPL'));
+      }).trigger('change');
+   }
+</script>
+{% endblock additionalScripts %}

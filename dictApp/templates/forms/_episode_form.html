@@ -1,0 +1,57 @@
+{% if is_edit %}
+   {% url 'episode_edit' source_id=source_id episode_id=episode_id as target_url %}
+{% else %}
+   {% url 'episode_add' source_id=source_id as target_url %}
+{% endif %}
+
+<form method="POST"
+   hx-post="{{target_url}}"
+   hx-target="#genericModalBody"
+   hx-swap="innerHTML"
+   hx-target-error="#genericModalBody">
+   {% csrf_token %}
+   <div class="mb-3">
+      <label class="form-label" for="{{form.name.id_for_label}}">{{form.name.label}}</label>
+      {{form.name}}
+   </div>
+
+   <div class="d-flex gap-3">
+      <div>
+         <label class="form-label" for="{{form.season_number.id_for_label}}">{{form.season_number.label}}</label>
+         {{form.season_number}}
+      </div>
+
+      <div>
+         <label class="form-label" for="{{form.episode_number.id_for_label}}">{{form.episode_number.label}}</label>
+         {{form.episode_number}}
+      </div>
+
+   </div>
+
+   <div class="d-flex mt-5 justify-content-between">
+      {% if episode %}
+         <a href="" hx-get="{% url 'generic_confirm_delete' %}"
+            hx-vals='{"type": "Episode", "name": "{{ episode.name }}", "delete_url":"{% url 'episode_delete' episode_id=episode.id source_id=source_id %}"}'
+            hx-target="#genericModalBody"
+            hx-trigger="click">
+            <i class="fa-solid fa-trash fs-6 pe-2"></i>
+            Delete Episode
+         </a>
+      {% else %}
+      <div></div>
+      {% endif %}
+      <div class="d-flex gap-3">
+         <button type="button" data-bs-dismiss="modal" class="btn btn-secondary">Cancel</button>
+         <button type="submit" class="btn btn-primary">Submit</button>
+      </div>
+   </div>
+
+</form>
+
+{% if form.non_field_errors %}
+   {% for error in form.non_field_errors %}
+   <div class="text-danger">{{ error }}</div>
+   {% endfor %}
+{% endif %}
+
+<div data-modal-init="initEpisodeForm"></div>

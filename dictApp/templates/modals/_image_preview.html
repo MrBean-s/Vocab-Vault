@@ -1,0 +1,10 @@
+<button type="button" class="btn-close-custom position-absolute" data-bs-dismiss="modal"
+   aria-label="Close"></button>
+
+<div class="modal-img-wrapper d-flex justify-content-center">
+   {% if image.file %}
+      <img src="{{image.file.url}}" alt="Not found" style="max-height: 700px; height: 70vh;">
+   {% else %}
+      <img src="" alt="No img file">
+   {% endif %}
+</div>

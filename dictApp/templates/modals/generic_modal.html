@@ -1,20 +1,20 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/genericModal.css' %}">
 
-<div class="modal fade" id="genericModal" tabindex="-1" aria-labelledby="genericModalLabel"
+<div class="modal fade hidden" id="genericModal" tabindex="-1" aria-labelledby="genericModalLabel"
    aria-hidden="true">
    <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
       
          <div class="modal-header border-0">
-            <div id="genericModalTitle">
-            </div>
+            <h5 id="genericModalTitle" style="font-weight: 600;" class="modal-title">
+            </h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                aria-label="Close"></button>
          </div>
       
          <div id="genericModalBody" class="modal-body text-light position-relative">
-         </div>   
+         </div>
       </div>
    </div>
 </div>

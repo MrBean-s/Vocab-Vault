@@ -1,0 +1,81 @@
+<form hx-post="{{path}}"
+   hx-target="#genericModalBody"
+   hx-swap="innerHTML"
+   hx-target-error="#genericModalBody"
+   enctype="multipart/form-data">
+   {% csrf_token %}
+   <div class="form-content" style="min-height: 350px">
+      <div id="timestampSect" class="mb-4">
+         <label class="pe-4" for="{{form.spotted_at.id_for_label}}">{{form.spotted_at.label}}</label>
+         {{form.spotted_at}}
+         {{form.spotted_at.errors}}
+      </div>
+
+      {% if form.page %}
+         <div class="mb-4">
+            <label class="pe-4" for="{{form.page.id_for_label}}">{{form.page.label}}</label>
+            {{form.page}}
+            {{form.page.errors}}
+         </div>
+      {% endif %}
+
+      <div class="mb-4">
+         <label class="form-label" for="{{form.word.id_for_label}}">{{form.word.label}}</label>
+         {{form.word}}
+         {{form.word.errors}}
+         <div id="{{form.word.id_for_label}}-dropdownParent"></div>
+      </div>
+
+      <div class="mb-4 row-wrapper{% if not is_edit %} unselectable{% endif %}">
+         <label class="form-label" for="{{form.definition_select.id_for_label}}">{{form.definition_select.label}}</label>
+         {{form.definition_select}}
+         {{form.definition_select.errors}}
+      </div>
+
+      <div class="mb-4 row-wrapper {% if not is_edit %} unselectable{% endif %}">
+         <label class="form-label" for="{{form.definition_input.id_for_label}}">{{form.definition_input.label}}</label>
+         {{form.definition_input}}
+         {{form.definition_input.errors}}
+      </div>
+
+      <div class="mb-4 row-wrapper {% if not is_edit %} unselectable{% endif %}">
+         <label class="form-label" for="{{form.example.id_for_label}}">{{form.example.label}}</label>
+         {{form.example}}
+         {{form.example.errors}}
+
+         <div class="mb-4"></div>
+
+         {% if form.image_file %}
+            <label class="form-label" for="{{form.image_file.id_for_label}}">{{form.image_file.label}}</label>
+            {{form.image_file}}
+            {{form.image_file.errors}}
+         {% endif %}
+      </div>
+   </div>
+   {% if form.non_field_errors %}
+      {% for error in form.non_field_errros %}
+      <div class="text-danger">{{error}}</div>
+      {% endfor %}
+   {% endif %}
+   <div class="mt-5 d-flex justify-content-between">
+      {% if citation_id %}
+         <a class="anchor-not-href"
+            hx-get="{% url 'citation_delete' lang_id=lang_id citation_id=citation_id %}"
+            hx-target="#genericModalBody"
+            hx-target-error="#error-box"
+            hx-trigger="click">
+            Remove this citation
+         </a>
+      {% else %}<div></div>
+      {% endif %}
+      <div>
+         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+         <button type="submit" class="btn btn-primary ms-3">
+            Submit
+         </button>
+      </div>
+   </div>
+</form>
+
+<div data-modal-init="prepareSelect2CitationForm"></div>
+

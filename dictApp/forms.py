@@ -189,7 +189,7 @@ class ExampleForm(forms.ModelForm):
          'data-allow-open': 'true',
          'data-placeholder': 'Category',
          'data-width': '45%',
-         'data-remove-search': 'true'
+         'data-remove-search': 'true',
       }),
       required=False,
    )
@@ -313,9 +313,11 @@ class ModalSearchForm(forms.Form):
 
 class LanguageAddSetForm(forms.Form):
    language=forms.ModelChoiceField(
-      widget=forms.Select(attrs={'class': 'select2'}),
+      widget=forms.Select(attrs={
+         'class': 'select2',
+      }),
       empty_label="Search for a language",
-      queryset=Language.objects.all().order_by('name')
+      queryset=Language.objects.filter(in_user_set=False).order_by('name')
    )
 
 
@@ -334,7 +336,8 @@ class LinkWordForm(forms.Form):
          'class': 'select2 select2-ajax',
          'data-is-ajax': 'true',
          'data-width': "100%",
-         'data-placeholder': "Search for a word"
+         'data-placeholder': "Search for a word",
+         'data-min-input-len': '3'
       }),
       queryset=Word.objects.none()
    )
@@ -372,3 +375,370 @@ class LinkWordForm(forms.Form):
          if submitted_id:
             self.fields['word_2'].queryset = Word.objects.filter(pk=submitted_id)
 
+class RelationTypeForm(forms.Form):
+   relation_type = forms.ChoiceField(
+      choices=WordRelation.RelationType.choices,
+      required=False,
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )
+
+class SourceForm(forms.ModelForm):
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control img-input',})
+   )
+
+   source_category = forms.ChoiceField(
+      choices=Source.SourceCategory.choices,
+      required=True,
+      initial="TVS",
+      widget=forms.Select(attrs={'class': 'form-select'}),
+      label="Category"
+   )
+
+   class Meta:
+      model = Source
+      fields = ["released_year", "name", "short_name", "author", "source_category"]
+      widgets = {
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+         'released_year': forms.TextInput(attrs={'class': 'form-control'}),
+         'short_name': forms.TextInput(attrs={'class': 'form-control'}),
+         'author': forms.TextInput(attrs={'class': 'form-control'}),
+      }
+      labels = {'name': 'Source name'}
+
+   def clean(self):
+      cleaned_data = super().clean()
+      name = cleaned_data.get('name')
+      short_name = cleaned_data.get('short_name')
+      if name and short_name:
+         qs = Source.objects.filter(Q(name__iexact=name) | Q(short_name__iexact=short_name))
+
+         if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+         
+         if qs.exists():
+            raise forms.ValidationError("A show with that name or short_name already exist")
+      
+      return cleaned_data
+   
+   def save(self, commit=True):
+      source = super().save(commit=False)
+      image_file = self.cleaned_data.get('image_file')
+      
+      if image_file:
+         old_img = source.image
+
+         if source.pk and old_img:
+            storage = old_img.file.storage
+            if storage.exists(old_img.file.name):
+               storage.delete(old_img.file.name)
+            old_img.delete()
+
+         new_img = Image.objects.create(file=image_file)
+         source.image = new_img
+
+      if commit:
+         source.save()
+      
+      return source
+
+
+class EpisodeForm(forms.ModelForm):
+
+   class Meta:
+      model=Episode
+      fields=['season_number', 'episode_number', 'name']
+      widgets = {
+         'season_number': forms.NumberInput(attrs={'class': 'form-control'}),
+         'episode_number': forms.NumberInput(attrs={'class': 'form-control'}),
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+      }
+      labels = { 'name': 'Episode name'}
+
+   def clean(self):
+      cleaned_data = super().clean()
+
+      season_number = cleaned_data.get('season_number')
+      episode_number = cleaned_data.get('episode_number')
+      
+      source = self.instance.source
+
+      existing = Episode.objects.filter(
+         source=source,
+         season_number=season_number,
+         episode_number=episode_number
+      )
+
+      if self.instance.pk:
+         existing = existing.exclude(pk=self.instance.pk)
+
+      if existing.exists():
+         raise forms.ValidationError(f"Episode {episode_number} already exist in season {season_number}")
+
+      return cleaned_data
+      
+
+class CitationForm(forms.Form):
+   
+   spotted_at = forms.DurationField(
+      label="Spotted at:",
+      widget=forms.TextInput(attrs={
+         'placeholder': 'HH:MM:SS',
+         'class': 'form-control d-inline',
+         'style': 'width: auto'
+      }),
+      required=True
+   )
+
+   word = forms.CharField(
+      label="Word",
+      widget=forms.Select(attrs={
+         'class': 'select2 select2-ajax',
+         'data-is-ajax': 'true',
+         'data-width': '100%',
+         'data-placeholder': 'Word',
+         'data-tags': 'true',
+         'data-min-input-len': '3',
+      }),
+      required=True
+   )
+
+   definition_input = forms.CharField(
+      label='New Definition',
+      widget=forms.Textarea(attrs={
+         'rows': 2,
+         'cols': 50,
+         'class': 'form-control resize-none'
+      }),
+      required=False
+   )
+
+   definition_select = forms.CharField(
+      label="Definition",
+      widget=forms.Select(attrs={
+         'class': 'form-select',
+      }),
+      required=False
+   )
+
+   example = forms.CharField(
+      widget=forms.Textarea(attrs={
+         'rows': 2,
+         'cols': 50,
+         'class': 'form-control resize-none'
+      }),
+      required=True
+   )
+
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      label='Screenshot'
+   )
+
+   page = forms.IntegerField(
+      label='Page',
+      required=True,
+      widget=forms.NumberInput(attrs={
+         'class': 'form-control d-inline',
+         'style': 'width: auto',
+         'placeholder': '#'
+      })
+   )
+
+   def __init__(self, *args, **kwargs):
+      ajax_url = kwargs.pop('ajax_url', None)
+      initial_word_id = kwargs.pop('initial_word_id', None)
+      initial_word    = kwargs.pop('initial_word', None)
+      initial_defn_id = kwargs.pop('initial_defn_id', None)
+      can_add_img     = kwargs.pop('can_add_img', None)
+      is_book = kwargs.pop('is_book', None)
+      super().__init__(*args, **kwargs)
+
+      word_widget = self.fields['word'].widget
+      word_widget.attrs['data-ajax-url'] = ajax_url
+      word_widget.attrs['data-initial-id'] = initial_word_id
+      word_widget.attrs['data-initial-word'] = initial_word
+      self.fields['definition_select'].widget.attrs['data-initial-id'] = initial_defn_id
+
+      if not can_add_img:
+         del self.fields['image_file']
+      if is_book:
+         self.fields['spotted_at'].required = False
+      else:
+         del self.fields['page']
+         
+      # # when validation fails the same word is selected
+      # if self.is_bound and 'word' in self.data:
+      #    submitted_id = self.data.get('word')
+      #    if submitted_id:
+      #       self.fields['word'].queryset = Word.objects.filter(pk=submitted_id)
+
+   def clean(self):
+      cleaned_data = super().clean()
+      defn_input = cleaned_data.get('definition_input')
+      defn_select = cleaned_data.get('definition_select')
+      if not defn_input and not defn_select:
+         raise forms.ValidationError(f"An existent/new definition is required")
+      
+      if defn_select and defn_select != '-1':
+         try:
+            defn_obj = Definition.objects.get(pk=int(defn_select))
+            cleaned_data['defn_object']=defn_obj
+         except(ValueError, Definition.DoesNotExist):
+            raise forms.ValidationError(f"Invalid definition selected")
+      elif defn_select == '-1' and not defn_input:
+         raise forms.ValidationError(f"Please enter a new definition description")
+      
+      return cleaned_data
+
+
+class CitationDelete(forms.Form):
+   delete_example = forms.BooleanField(
+      required=False,
+      initial=False,
+      widget=forms.CheckboxInput(attrs={
+         'class': 'form-check-input'
+      }),
+   )
+
+   def __init__(self, *args, citation_id=None, **kwargs):
+      super().__init__(*args, **kwargs)
+      self.citation_id = citation_id
+
+   def save(self):
+      delete_example = self.cleaned_data.get('delete_example')
+      citation = Citation.objects.get(pk=self.citation_id)
+      if delete_example:
+         citation.example.delete()
+      if citation.image:
+         img = citation.image
+         storage = img.file.storage
+         if storage.exists(img.file.name):
+            storage.delete(img.file.name)
+         img.delete()
+
+      citation.delete()
+
+
+
+class CitationFormDetailsPage(forms.Form):
+   source=forms.ModelChoiceField(
+      widget=forms.Select(attrs={
+         'placeholder': "Select a source...",
+         'class': 'select2',
+         'required': 'true',
+      }),
+      queryset=Source.objects.none(),
+      required=True
+   )
+
+   episode=forms.ModelChoiceField(
+      widget=forms.Select(attrs={
+         'placeholder': "Select an episode...",
+         'class': 'select2',
+         'required': 'true',
+      }),
+      empty_label="Select an episode",
+      queryset=Episode.objects.none(),
+      required=False
+   )
+
+   spotted_at = forms.DurationField(
+      label="Spotted at:",
+      widget=forms.TextInput(attrs={
+         'placeholder': 'HH:MM:SS',
+         'class': 'form-control w-100',
+         'style': 'width: auto'
+      }),
+      required=True
+   )
+
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      label='Screenshot'
+   )
+
+   def __init__(self, *args, **kwargs):
+      lang_id = kwargs.pop('lang_id', None)
+      super().__init__(*args, **kwargs)
+
+      source_id = None
+      if self.is_bound:
+         if lang_id:
+            self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
+         source_id = self.data.get(f'{self.prefix}-source')
+      elif 'source' in self.initial:
+         source_id = self.initial.get('source')
+      
+      if source_id:
+         source = Source.objects.get(pk=source_id)
+         self.fields['episode'].queryset = source.episodes.all()
+
+
+class SegmentForm(forms.ModelForm):
+
+   class Meta:
+      model=Segment
+      fields=['segment_type', 'number', 'name']
+      widgets = {
+         'segment_type': forms.Select(attrs={'class': 'select2'}),
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+         'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '#'}),
+      }
+      labels = {
+         'name': 'Segment name',
+      }
+
+   def __init__(self, *args, **kwargs):
+      self.source = kwargs.pop('source', None)
+      source_category = kwargs.pop('source_category', None)
+      super().__init__(*args, **kwargs)
+      if source_category == 'ALB':
+         self.fields['segment_type'].choices = [
+            (Segment.SegmentType.TRACK.value, Segment.SegmentType.TRACK.label)
+         ]
+      elif source_category == 'BOK' or source_category == 'ABK':
+         self.fields['segment_type'].choices = [
+            (Segment.SegmentType.PROLOGUE.value, Segment.SegmentType.PROLOGUE.label),
+            (Segment.SegmentType.CHAPTER.value, Segment.SegmentType.CHAPTER.label),
+            (Segment.SegmentType.EPILOGUE.value, Segment.SegmentType.EPILOGUE.label),
+         ]
+         self.fields['number'].required = False
+         self.fields['name'].required = False
+
+   
+   def clean(self):
+      cleaned_data = super().clean()
+      segment_type = cleaned_data.get('segment_type')
+      name = cleaned_data.get('name')
+      number = cleaned_data.get('number')
+
+      if segment_type in ['PRL', 'EPL']:
+         qs = Segment.objects.filter(source=self.source, segment_type=segment_type)
+
+         if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+      
+         if qs.exists():
+            name = 'Prologue' if segment_type == 'PRL' else 'Epilogue'
+            raise forms.ValidationError(f'A {name} already exists for this source.')
+      
+      if not name:
+         cleaned_data['name'] = 'Prologue' if segment_type == 'PRL' else 'Epilogue'
+      
+      if not number:
+         cleaned_data['number'] = "1"
+      
+      return cleaned_data
+
+   def save(self, commit=True):
+      segment = super().save(commit=False)
+      segment.source = self.source
+
+      if commit:
+         segment.save()
+
+      return segment

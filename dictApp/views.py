@@ -1,15 +1,18 @@
 import json
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseBadRequest
 from .forms import *
 from .models import *
 from django.contrib import messages
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from django.core.paginator import Paginator
+from django.core.exceptions import BadRequest
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from collections import defaultdict
 from django.urls import reverse
+from itertools import groupby
+from django.conf import settings
 
 
 def start_screen(request):
@@ -85,10 +88,9 @@ def add_lang_to_set(request):
          language.save()
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': '/'})
-      else:
-         print('not valid')
-      return redirect('start_screen')
-   form = LanguageAddSetForm()
+         return redirect('start_screen')
+   else:
+      form = LanguageAddSetForm()
    return render(request, 'forms/_add_language.html', {'form': form})
 
 def add_lang_to_set_with_id(request, lang_id):
@@ -200,7 +202,16 @@ def word(request, lang_id, word_id=None):
          # Handle deleted definitions
          for idx, def_form in enumerate(def_formset.forms):
             if def_form.cleaned_data.get('DELETE', False) and def_form.instance.pk:
+               img_to_del = def_form.instance.image
+               if img_to_del:
+                  storage = img_to_del.file.storage
+                  if storage.exists(img_to_del.file.name):
+                     storage.delete(img_to_del.file.name)
+
+                  img_to_del.delete()
+
                def_form.instance.delete()
+
    
          return redirect('word_details', lang_id=lang_id, word_id=word.id)
    else:
@@ -231,12 +242,39 @@ def word(request, lang_id, word_id=None):
       'lang_id': lang_id,
       'country_qs': country_qs,
    })
-   
+
+def word_delete(request, lang_id, word_id):
+   word = get_object_or_404(
+      Word.objects.prefetch_related('definitions'),
+      pk=word_id,
+      language_id=lang_id
+   )
+
+   for defn in word.definitions.all():
+      img = defn.image
+      if img:
+         storage = img.file.storage
+         if storage.exists(img.file.name):
+            storage.delete(img.file.name)
+
+         img.delete()
+
+   word.delete()
+   messages.success(request, "Word deleted")
+
+   return redirect('word_list', lang_id=lang_id)
+
+
 def word_list(request, lang_id):
    lang = get_object_or_404(Language, pk=lang_id)
    words = lang.word_set.prefetch_related('definitions__examples').order_by('-id')
    paginator = Paginator(words, 30)
    page_obj = paginator.get_page(request.GET.get('page', 1))
+   page_range = paginator.get_elided_page_range(
+      number=page_obj.number,
+      on_each_side=2,
+      on_ends=1
+   )
 
    sources_by_category = {}
 
@@ -247,7 +285,8 @@ def word_list(request, lang_id):
    return render(request, 'word_list.html', {
       'lang_id': lang_id,
       'page_obj': page_obj,
-      'sources_by_category': sources_by_category
+      'sources_by_category': sources_by_category,
+      'pages': page_range
    })
 
 
@@ -443,7 +482,7 @@ def delete_country(request, cty_id):
 def show_image(request, img_id):
    instance = get_object_or_404(Image, pk=img_id)
 
-   return render(request, 'partial/_image_preview.html', {'image': instance})
+   return render(request, 'modals/_image_preview.html', {'image': instance})
 
 
 def link_word(request, lang_id, word_id):
@@ -488,16 +527,547 @@ def link_word(request, lang_id, word_id):
 
 def word_only_search(request, lang_id):
    query = request.GET.get('query', '')
-   items = []
-   print(f'query: {query} lang_id: {lang_id}')
    if query:
-      items = list(
-         Word.objects.filter(
-            name__icontains=query, language_id=lang_id
-         ).values('id', 'name').order_by('name')[:15]
+      word_qs = Word.objects.filter(
+         name__icontains=query, language_id=lang_id
+      ).values('id', 'name').order_by('name')[:15]
+
+      results = {
+         'results': [ {"id": item['id'], "text": item['name']} for item in word_qs]
+      }
+   return JsonResponse(results)
+
+
+def link_word_edit(request, lang_id, word_id, rel_word_id):
+   word = get_object_or_404(Word, pk=word_id)
+   rel_word = get_object_or_404(Word, pk=rel_word_id)
+
+   relations = WordRelation.objects.filter(
+      (Q(word_1=word) & Q(word_2=rel_word)) |
+      (Q(word_1=rel_word) & Q(word_2=word))
+   )
+   form = RelationTypeForm({'relation_type': relations.first().relation_type})
+
+   if request.method == "POST":
+      form = RelationTypeForm(request.POST)
+      if form.is_valid():
+         for rel in relations:
+            rel.relation_type = form.cleaned_data['relation_type']
+            rel.save()
+
+         return redirect('word_details', lang_id=lang_id, word_id=word_id)
+
+   return render(request, 'forms/_link_word_edit.html', {
+      "lang_id": lang_id,
+      'word_id': word_id,
+      "rel_word": rel_word,
+      'form': form
+   })
+
+def unlink_word(request, lang_id, word_id, rel_word_id):
+   word = get_object_or_404(Word, pk=word_id)
+   rel_word = get_object_or_404(Word, pk=rel_word_id)
+
+   if request.method == "POST":
+      relations = WordRelation.objects.filter(
+         (Q(word_1=word) & Q(word_2=rel_word)) |
+         (Q(word_1=rel_word) & Q(word_2=word))
       )
+      relations.delete()
+      return redirect('word_details', lang_id=lang_id, word_id=word_id)
+
+   return render(request, 'forms/_unlink_word.html', {
+      "lang_id": lang_id,
+      "word": word,
+      "rel_word": rel_word,
+      "form_url": request.path
+   })
+
+
+def sources(request, lang_id):
+
+   section_sources = Source.objects.filter(
+      language_id=lang_id,
+      source_category__in=['BOK', 'MOV', 'TVS', 'ALB']
+   ).order_by('-source_category')
+
+   CATEGORY_ORDER = ['TVS', 'MOV', 'BOK', 'ALB']
    
-   return JsonResponse(items, safe=False)
+   #to preserve insertion order
+   category_labels = dict(Source.SourceCategory.choices)
+   sections = {category_labels[code]: [] for code in CATEGORY_ORDER if code in category_labels}
+
+   for source in section_sources:
+      label = source.get_source_category_display()
+      if label in sections:
+         sections[label].append(source)
+
+   sections = {label: sources for label, sources in sections.items() if sources}
+
+   print(sections)
+   audio_sources = Source.objects.filter(
+      language_id=lang_id,
+      source_category__in=['ABK', 'SON', 'POD']
+   ).order_by('-source_category')
+
+   return render(request, 'sources.html', {
+      'lang_id': lang_id,
+      'sections' : sections,
+      'audio_sources': audio_sources
+   })
+
+def sources_add_edit(request, lang_id, source_id=None):
+
+   source = get_object_or_404(Source, pk=source_id) if source_id else None
+   language = get_object_or_404(Language, pk=lang_id)
+
+   if request.method == "POST":
+      form = SourceForm(request.POST, request.FILES, instance=source)
+      if form.is_valid():
+         source = form.save(commit=False)
+         source.language = language
+         source.save()
+
+         action = 'edited' if source_id else 'created'
+         messages.success(request, f"Source {action}")
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Refresh': 'true'})
+         return redirect('sources', lang_id=lang_id)
+   else:
+      form = SourceForm(instance=source)
+      
+   return render(request, 'forms/_source_form.html', {
+      "lang_id": lang_id,
+      "source": source,
+      "form": form,
+      "is_edit": source_id is not None
+   })
 
 
+def source_delete(request, lang_id, source_id):
+   source = get_object_or_404(Source, pk=source_id)
 
+   if request.method == 'POST':
+      img = source.image
+      try:
+         source.delete()	
+      except ProtectedError:
+         messages.error(request, "Cannot delete Source cause it still has related data. Delete all episodes/content first.")
+      else:
+         if img:
+            storage = img.file.storage
+            if storage.exists(img.file.name):
+               storage.delete(img.file.name)
+            img.delete()
+         
+         messages.success(request, "Source deleted.")
+
+      return redirect('sources', lang_id=lang_id)
+
+
+def episodes(request, lang_id, source_id):
+   source = get_object_or_404(Source, pk=source_id)
+   episodes = Episode.objects.filter(source_id=source_id).order_by('season_number')
+   grouped_by_season = {season: list(group) for season, group in groupby(episodes, key=lambda x: x.season_number)}
+
+   return render(request, 'episodes.html', {
+      'lang_id': lang_id,
+      'grouped_by_season': grouped_by_season,
+      'source': source
+   })
+
+
+def episode_add_edit(request, source_id, episode_id=None):
+   episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
+   source = get_object_or_404(Source, pk=source_id)
+
+   if request.method == "POST":
+      if episode is None:
+         episode = Episode(source=source)
+      
+      form = EpisodeForm(request.POST, instance=episode)
+      if form.is_valid():
+         episode = form.save(commit=False)
+         episode.source = source
+         episode.save()
+         
+         action = 'edited' if episode_id else 'created'
+         messages.success(request, f"Episode {action}")
+         
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Refresh': 'true'})
+         return redirect('episodes', source_id=source_id)
+   else:
+      form = EpisodeForm(instance=episode)
+
+   return render(request, 'forms/_episode_form.html', {
+      'source_id': source_id,
+      'episode_id': episode_id,
+      'form': form,
+      'is_edit': episode is not None,
+      'episode': episode
+   })
+
+
+def episode_delete(request, source_id, episode_id):
+   episode = get_object_or_404(Episode, pk=episode_id)
+   source = get_object_or_404(Source, pk=source_id)
+   try:
+      episode.delete()
+      messages.success(request, "Episode deleted.")
+   except ProtectedError:
+      messages.error(request, "Remove all citations before deleting the episode") 
+   
+   return redirect('episodes', lang_id=source.language_id, source_id=source_id)
+
+
+def segments(request, lang_id, source_id):
+   source = get_object_or_404(
+      Source.objects.prefetch_related('segments'),
+      pk=source_id
+   )
+
+   categorized = {}
+   for seg in source.segments.all().order_by('-segment_type'):
+      categorized.setdefault(seg.get_segment_type_display(), []).append({'id': seg.id, 'number': seg.number, 'name': seg.name})
+   
+   return render(request, 'segments.html', {
+      'lang_id': lang_id,
+      'source_id': source_id,
+      'source': source,
+      'segments': categorized
+   })
+
+
+def segment_add_edit(request, source_id, segment_id=None):
+   source = get_object_or_404(Source, pk=source_id)
+   segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+   if request.method == 'POST':
+      form = SegmentForm(request.POST, instance=segment, source=source, source_category=source.source_category)
+      if form.is_valid():
+         form.save()
+         action = 'edited' if segment_id else 'created'
+         messages.success(request, f"Segment {action}")
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Refresh': 'true'})
+         return redirect('episodes', source_id=source_id)
+   else:
+      form = SegmentForm(instance=segment, source=source, source_category=source.source_category)
+   
+   return render(request, 'forms/_segment_form.html', {
+      'form': form,
+      'source_id': source_id,
+      'is_edit': segment is not None,
+      'segment': segment,
+   })
+
+
+def segment_delete(request, source_id, segment_id):
+   segment = get_object_or_404(Segment, pk=segment_id)
+   source = get_object_or_404(Source, pk=source_id)
+   try:
+      segment.delete()
+      messages.success(request, "Segment deleted.")
+   except ProtectedError:
+      messages.error(request, "Remove all citations before deleting the segment")
+   
+   return redirect('segments', lang_id=source.language_id, source_id=source_id)
+
+
+def citation_delete(request, lang_id, citation_id):
+   citation = get_object_or_404(Citation, pk=citation_id)
+   
+   if request.method == 'POST':
+      form = CitationDelete(request.POST, citation_id=citation_id)
+      if form.is_valid():
+         form.save()
+         if request.META.get('HTTP_HX_REQUEST'):
+            if citation.episode:
+               kind, obj_id = 'episode', citation.episode_id
+            elif citation.segment:
+               kind, obj_id = 'segment', citation.segment_id
+            else:
+               kind, obj_id = 'source', citation.source_id
+
+            return HttpResponse(headers={'HX-Redirect': f'/lang/{lang_id}/{kind}/{obj_id}/play-session/'})
+         return redirect('episodes', source_id=source_id)
+   else:
+      form = CitationDelete(citation_id=citation_id)
+
+   return render(request, 'forms/_citation_delete.html', {
+      'lang_id': lang_id,
+      'citation_id': citation_id,
+      'form': form
+   })
+
+
+def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=None):
+   source = get_object_or_404(Source, pk=source_id) if source_id else None
+   episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
+   segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+   
+   if not any([source, episode, segment]):
+      return HttpResponseBadRequest('At least one source is required')
+
+   defn_ajax_url = reverse('search_definitions')
+
+   qs = ( 
+      Citation.objects
+      .values_list(
+         'id',
+         'spotted_at',
+         'example__definition__word_id',
+         'example__definition__word__name',
+         'example__definition_id',
+         'example__definition__description',
+         'example_id',
+         'example__description',
+         'image__file',
+         'image_id',
+         'page'
+      )
+   )
+
+   obj = episode or segment or source
+   temp_src = getattr(obj, 'source', obj)
+   qs = qs.filter(**{('source' if obj == source else obj.__class__.__name__.lower()): obj})
+
+   spreads = [] # for books only
+
+   if temp_src.source_category in ['MOV', 'TVS']:
+      template = 'play_session_film.html'
+   elif temp_src.source_category in ['ALB', 'SON', 'ABK', 'POD']:
+      template = 'play_session_sound.html'
+   elif temp_src.source_category in ['BOK']:
+      template = 'play_session_book.html'
+      
+      citations_per_page = 4
+      first_left_page_count = 3
+
+      flat_citations = list(qs)
+
+      # First spread: title + 3 citations
+      left_first = flat_citations[:first_left_page_count]
+      right_first = flat_citations[first_left_page_count:first_left_page_count + citations_per_page]
+      spreads.append({'left': left_first, 'right': right_first, 'chapter_title': segment.name,})
+
+
+      remaining = flat_citations[first_left_page_count + citations_per_page:]
+
+      for i in range(0, len(remaining), citations_per_page * 2):
+         left_page = remaining[i:i + citations_per_page]
+         right_page = remaining[i + citations_per_page:i + citations_per_page * 2]
+         if left_page or right_page:
+            spreads.append({
+               'left': left_page or [],
+               'right': right_page or [],
+               'chapter_title': None,
+            })
+   
+   # elif temp_src.source_category in ['GAM', 'OTH']
+      # template = 'play_session_timeline.html'
+   
+   return render(request, template, {
+      "lang_id": lang_id,
+      "source": source,
+      "episode": episode,
+      "segment": segment,
+      'defn_ajax_url': defn_ajax_url,
+      'citations': qs,
+      "MEDIA_URL": settings.MEDIA_URL,
+      'spreads': spreads if spreads else None
+   })
+
+
+def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment_id=None, citation_id=None):
+   source = get_object_or_404(Source, pk=source_id) if source_id else None
+   episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
+   segment = get_object_or_404(Segment, pk=segment_id) if segment_id else None
+   citation = get_object_or_404(Citation, pk=citation_id) if citation_id else None
+
+   ajax_url = reverse('search_word', kwargs={'lang_id': lang_id})
+
+   if not any([source, episode, segment]):
+      return HttpResponseBadRequest('At least one source is required')
+   
+   can_add_img = bool(episode or (source and source.source_category == 'MOV'))
+   is_book = bool(segment and segment.source.source_category == 'BOK')
+   
+   initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description, 'page': citation.page } if citation else {}
+
+   if request.method == "POST":
+      form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data, can_add_img=can_add_img, is_book=is_book)
+      if form.is_valid():
+         word_val = form.cleaned_data['word']
+         new_def = form.cleaned_data['definition_input']
+         existing_def_id = form.cleaned_data['definition_select']
+         
+         if word_val.isdigit():
+            word = get_object_or_404(Word, pk=int(word_val))
+         else:
+            word, created = Word.objects.get_or_create(name=word_val, language_id=lang_id)
+         
+         if existing_def_id and existing_def_id.isdigit() and existing_def_id != '-1':
+            definition = get_object_or_404(Definition, pk=int(existing_def_id))
+         elif new_def:
+            definition = Definition.objects.create(description=new_def, word=word)
+
+         example = citation.example if citation else Example()
+         example.description = form.cleaned_data['example']
+         example.definition = definition
+         example.save()
+
+         image_file = form.cleaned_data.get('image_file')
+         spotted_at = form.cleaned_data['spotted_at']
+
+         if not citation:
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
+               example=example,
+               source=source,
+               episode=episode,
+               segment=segment
+            )
+         else:
+            citation.spotted_at=spotted_at
+            old_img = citation.image
+            if old_img and image_file:
+               storage = old_img.file.storage
+               if storage.exists(old_img.file.name):
+                  storage.delete(old_img.file.name)
+               old_img.delete()
+         
+         if image_file:
+            citation.image = Image.objects.create(file=image_file)
+         
+         page = form.cleaned_data.get('page')
+         citation.page = page
+         citation.save()
+
+         if source:
+            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source_id})
+         
+         elif episode:
+            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode_id})
+         
+         elif segment:
+            redirect_url = reverse('play_session_segment', kwargs={'lang_id': lang_id, 'segment_id': segment_id})
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': redirect_url})
+         return redirect(redirect_url)
+         
+   else:      
+      if citation:
+         form = CitationForm(
+            ajax_url=ajax_url,
+            initial=initial_data,
+            initial_word_id=citation.example.definition.word_id,
+            initial_word=citation.example.definition.word.name,
+            initial_defn_id=citation.example.definition_id,
+            can_add_img=can_add_img,
+            is_book=is_book
+         )
+      else:
+         form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img, is_book=is_book)
+
+   return render(request, 'forms/_citation_form.html', {
+      'lang_id': lang_id,
+      'source_id': source_id,
+      'episode_id': episode_id,
+      'segment_id': segment_id,
+      'form': form,
+      'path': request.path,
+      'is_edit': citation is not None,
+      'citation_id': citation_id
+   })
+
+
+def search_definitions(request):
+   word_id = request.GET.get('word_id')
+   if not word_id:
+      return HttpResponseBadRequest('word_id is missing')
+
+   if not word_id.isdigit():
+      return JsonResponse({'results': []})
+
+   word = get_object_or_404(
+      Word.objects.prefetch_related('definitions'),
+      pk=word_id
+   )
+
+   results = {
+      'results': [ {'id': defn.id, 'text': defn.description} for defn in word.definitions.all() ]
+   }
+
+   return JsonResponse(results)
+
+def search_episodes_or_segments(request, source_id):
+   search_episodes = request.GET.get('search_episodes', '')
+
+   if search_episodes == '':
+      return HttpResponseBadRequest('The search episode option is missing')
+   
+   source = get_object_or_404(
+      Source.objects.prefetch_related('episodes', 'segments'),
+      pk=source_id
+   )
+
+   if search_episodes:
+      results = { 'results': [ { 'value': ep.id, 'text': str(ep) } for ep in source.episodes.all() ] }
+   else:
+      results = { 'results': [ { 'value': seg.id, 'text': str(seg) } for seg in source.segments.all() ] }
+
+   return JsonResponse(results)
+
+
+def get_sources(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   data = { 
+      'results': [
+         {'value': src.id, 'text': str(src), 'category': src.source_category}
+         for src in Source.objects.filter(language_id=lang_id)
+      ]
+   }
+   return JsonResponse(data)
+
+def example_cite(request, lang_id, example_id):
+
+   example = get_object_or_404(Example, pk=example_id)
+
+   if request.method == 'POST':
+      form = CitationFormDetailsPage(request.POST, request.FILES, prefix="src-ep", lang_id=lang_id)
+      
+      if form.is_valid():
+         source = form.cleaned_data['source']
+         episode = form.cleaned_data.get('episode')
+         spotted_at = form.cleaned_data['spotted_at']
+
+         citation = Citation.objects.create(
+            spotted_at=spotted_at,
+            example=example,
+            source=source if not episode else None,
+            episode=episode,
+         )
+
+         image_file = form.cleaned_data.get('image_file')
+         if image_file:
+            citation.image = Image.objects.create(file=image_file)
+            citation.save()
+
+         if episode:
+            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode.id})
+         elif source:
+            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source.id})         
+
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': redirect_url})
+   else:
+      form = CitationFormDetailsPage(prefix="src-ep", lang_id=lang_id)
+
+   return render(request, 'forms/_citation_form_details_page.html', {
+      'form': form,
+      'lang_id': lang_id,
+      'example_id': example_id
+   })

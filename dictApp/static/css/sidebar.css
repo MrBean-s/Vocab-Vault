@@ -38,3 +38,5 @@
 .nav-label:not(.nav-label-bottom) { margin-bottom: 0.8rem }
 
 .right-side { width: 85vw; margin-left: 15vw; }
+.modal { padding-left: 15vw; }
+.modal-backdrop { margin-left: 15vw; }

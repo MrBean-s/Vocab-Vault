@@ -1,0 +1,9 @@
+@font-face {
+  font-family: 'Emulogic';
+  src: url('/static/fonts/Emulogic-zrEw.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Baskervville-Bold';
+  src: url('/static/fonts/Baskervville-Bold.ttf') format('truetype');
+}

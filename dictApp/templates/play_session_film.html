@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+
+{% block additionalStyles %}
+<link rel="stylesheet" href="{% static 'swiper/swiper-bundle.min.css' %}">
+<style>
+   .unselectable {
+      cursor: not-allowed;
+      display: none;
+   }
+
+   .film-strip {
+      background: black;
+      height: 576px;
+      width: 100%;
+      padding-left: 27px;
+      position: relative;
+   }
+   
+   .film-strip::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: -18px;
+      background: var(--bg-body);
+      height: 45px;
+      width: calc(100% + 27px);
+   }
+   
+   .film-square {
+      min-width: 400px;
+      max-width: 400px;
+      width: 400px;
+      height: 100%;
+   }
+   
+   .film-strip-top,
+   .film-strip-bottom {
+      height: 20px;
+      display: flex;
+   }
+   
+   .film-strip-top {
+      margin-top: 18px;
+      margin-bottom: 12px;
+   }
+   
+   .film-strip-bottom {
+      margin-top: 12px;
+      margin-bottom: 18px;
+   }
+   
+   .film-strip-cut {
+      background: rgb(61, 64, 73);
+      width: 14px;
+      border-radius: 3px;
+      margin-right: 27px;
+   }
+   
+   .film-strip-middle, .film-strip-middle-lower, .film-strip-additional {
+      background: #0c101e;
+   }
+   .film-strip-middle {
+      height: 387px;
+      margin-right: 18px;
+      display: flex;
+      flex-direction: column;
+      padding: 18px;
+   }
+   
+   .img-wrapper {
+      width: 100%;
+      height: 200px !important;
+      background: black;
+      display: flex;
+      justify-content: center;
+   }
+   .img-wrapper img{
+      width: auto;
+      max-width: 100%;
+      height: 200px !important;
+   }
+   
+   .film-strip-middle-lower {
+      height: 45px;
+      margin-right: 18px;
+      padding: 0 18px;
+   }
+   
+   .swiper-pagination-bullet {
+      width: 23px;
+      height: 23px;
+      text-align: center;
+      line-height: 23px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      opacity: 1;
+      background: var(--bg-elevated);
+   }
+   
+   .swiper-pagination-bullet-active {
+      color: var(--text-main);
+      background: var(--accent-purple);
+   }
+   
+   .text-example {
+      margin-top: 18px;
+      font-style: italic;
+      font-size: 0.99rem;
+      height: 79px;
+      overflow-y: auto;
+   }
+   
+   .text-word {
+      margin-bottom: 18px;
+      font-size: 1.17rem;
+      font-weight: bold;
+      min-height: 36px;
+      max-height: 36px;
+      overflow-y: auto;
+   }
+   
+   .text-time {
+      font-weight: bold;
+      font-size: 1.35rem;
+   }
+
+   .container-custom {
+      padding: 0 100px;
+   }
+
+   .film-strip-additional{
+      height: 432px;
+      padding: 18px;
+      display: flex;
+      margin-right: 18px;
+   }
+   
+   .text-additional {
+      font-size: 1.5rem;
+      font-weight: bold;
+   }
+
+   .custom-prev-btn {
+      position: absolute;
+      top: calc((531px - 16px)/2);
+      left: -60px;
+      z-index: 3;
+   }
+   
+   .custom-next-btn {
+      position: absolute;
+      top: calc((531px - 16px)/2);
+      right: -60px;
+      z-index: 3;
+   }
+
+</style>
+{% endblock additionalStyles %}
+
+{% block innerbody %}
+
+{% if episode %}
+   {% url 'session_episode_cite' episode_id=episode.id lang_id=lang_id as target_url %}
+{% elif segment %}
+   {% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id as target_url %}   
+{% elif source %}
+   {% url 'session_source_cite' source_id=source.id lang_id=lang_id as target_url %}
+{% endif %}
+
+{% with item=episode|default:segment|default:source %}
+<div class="container-fluid container-custom py-5" style="user-select: none;">
+
+   <div class="d-flex align-items-center">
+      <h2 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h2>
+
+      <button hx-get="{{target_url}}"
+         hx-trigger="mouseup"
+         hx-target="#genericModalBody"
+         hx-target-error="#error-box"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+         class="btn btn-primary ms-auto">
+         Add a citation
+      </button>
+   </div>
+
+   {% if episode %}
+      <a href="{% url 'episodes' lang_id=lang_id source_id=episode.source.id %}" class="fs-5">
+         {{episode.source.name}}
+         {% if episode.source.released_year %}({{episode.source.released_year}}){% endif %}
+      </a>
+   {% else %}
+      <a href="{% url 'sources' lang_id=lang_id %}" class="fs-5">All sources</a>
+   {% endif %}
+
+   <div style="min-height: 80px"></div>
+
+   <div class="d-flex justify-content-center position-relative">
+      <div class="custom-prev-btn">
+         <i class="fa-solid fa-chevron-left fs-2"></i>
+      </div>
+      <div class="custom-next-btn">
+         <i class="fa-solid fa-chevron-right fs-2"></i>
+      </div>
+
+      <div id="#film-strip" class="swiper film-strip">
+         <div class="swiper-wrapper">
+            {% for cit_id, time, w_id, w_name, d_id, d_desc, ex_id, ex_desc, img_path, img_id, page_n in citations %}
+               {% if episode %}
+                  {% url 'session_episode_cite_edit' citation_id=cit_id episode_id=episode.id lang_id=lang_id as edit_url %}
+               {% elif segment %}
+                  {% url 'session_segment_cite_edit' citation_id=cit_id segment_id=segment.id lang_id=lang_id as edit_url %}   
+               {% elif source %}
+                  {% url 'session_source_cite_edit' citation_id=cit_id source_id=source.id lang_id=lang_id as edit_url %}
+               {% endif %}
+            <div class="swiper-slide film-square">
+               <div class="film-strip-top">
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+               <div class="film-strip-middle">
+                  <div class="text-word">{{w_name}}</div>
+                  {% if img_path %}
+                  <div class="img-wrapper"
+                     hx-get="{% url 'show_image' img_id=img_id %}"
+                     hx-trigger="manualTrigger"
+                     hx-target="#genericModalImgContent"
+                     hx-target-error="#error-box">
+                     <img src="{{MEDIA_URL}}{{img_path}}" alt="{{img_path}}">
+                  </div>
+                  {% endif %}
+                  <div class="text-example">{{ex_desc}}</div> 
+               </div>
+               <div class="film-strip-middle-lower d-flex justify-content-between">
+                  <p class="text-time m-0">{{time}}</p>
+                  <div>
+                     <a hx-get="{{edit_url}}"
+                        hx-trigger="click"
+                        hx-target="#genericModalBody"
+                        hx-target-error="#error-box"
+                        data-bs-toggle="modal"
+                        data-bs-target="#genericModal">
+                        <i class="fa-solid fa-pen-to-square text-muted"></i>
+                     </a>
+                     <a href="{% url 'word_details' lang_id=lang_id word_id=w_id %}">
+                        <i class="fa-solid fa-square-arrow-up-right px-3 text-muted"></i>
+                     </a>
+                  </div>
+               </div>
+               <div class="film-strip-bottom">
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+            </div>
+            {% endfor %}
+            <div class="swiper-slide film-square">
+               <div class="film-strip-top">
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+               <div class="film-strip-additional">
+                  <a id="addCitationLast"
+                     hx-get="{{target_url}}"
+                     hx-trigger="manualTrigger"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     class="w-100 h-100 d-flex justify-content-center align-items-center text-decoration-none position-relative"
+                     style="cursor: pointer;">
+                     <span class="position-absolute text-additional" style="top: 30%">Add a citation</span>
+                     <i class="fa-solid fa-circle-plus fs-2 text-accent-gold"></i>
+                  </a>
+               </div>
+               <div class="film-strip-bottom">
+                  {% for i in 10|times %}<div class="film-strip-cut"></div>{% endfor %}
+               </div>
+            </div>
+         </div>
+         <div class="pagination-fix"></div>
+         <div class="swiper-pagination"></div>
+      </div>
+   </div>
+
+
+   <div class="mt-5">
+   </div>
+
+</div>
+{% endwith %}
+
+{% endblock innerbody %}
+
+{% block additionalScripts %}
+<script src="{% static 'swiper/swiper-bundle.min.js' %}"></script>
+<script>
+   
+   var swiper = new Swiper('.swiper', {
+      // cssMode: true, // remove animations
+      spaceBetween: 0,
+      pagination: {
+         el: '.swiper-pagination',
+         clickable: true,
+         dynamicBullets: true,
+      },
+      keyboard: true,
+      preventClicks: true,
+      preventClicksPropagation: true,
+      navigation: {
+         nextEl: '.custom-next-btn',
+         prevEl: '.custom-prev-btn',
+      },
+      slidesPerView: 'auto',
+      
+      // centeredSlides: true,
+      // effect: 'coverflow',
+      // coverflowEffect: {
+      //    rotate: 50,
+      //    stretch: 0,
+      //    depth: 100,
+      //    modifier: 1,
+      //    slideShadows: true,
+      // },
+   });
+   
+   function htmxTriggerAndShow(target, trigger, modalId) {
+      htmx.trigger(target, trigger);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById(modalId)).show();
+   }
+   
+   // htmx + data-bs-toggle="modal" causes an bug using swipper
+   document.querySelectorAll('.img-wrapper').forEach(wrapper => {
+      wrapper.addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger', 'genericModalImg'));
+   });
+
+   document.getElementById('addCitationLast')
+      .addEventListener('click', (e) => htmxTriggerAndShow(e.currentTarget, 'manualTrigger', 'genericModal'));
+</script>
+<script>
+   const defn_ajax_url = "{{defn_ajax_url}}";
+
+
+   //called from base.html htmx:afterSettle which looks for data-modal-init="prepareSelect2CitationForm" inside the _citation_form swapped content
+   //(ノಠ益ಠ)ノ彡┻━┻
+   function prepareSelect2CitationForm() {
+      $('#genericModalTitle').text('Create a citation');
+
+      const $wordInput = $('#id_word');
+      const $defSelect = $('#id_definition_select');
+      const $defInput = $('#id_definition_input');
+
+      
+      const $initialId = $wordInput.data('initialId');
+      if ($initialId != "None") {
+         $wordInput.append(
+            $('<option>', {
+               value: $initialId,
+               text: $wordInput.data('initialWord')
+            })
+         ).trigger('change');
+         if ($defSelect.data('initialId')){
+            loadDefinitions($initialId).then(() => {
+               $defSelect.val($defSelect.data('initialId')).trigger('change');
+            });
+         }
+      } else {
+         $wordInput.append($('<option></option>')) //select2.select not fire when use remote source and createTag  #5386
+      }
+      
+
+      function showDefinitionField(useSelect) {
+         $defSelect.prop('disabled', !useSelect);
+         $defInput.prop('disabled', useSelect);
+         if (!useSelect) $defInput.val('');
+         $defSelect.closest('.row-wrapper').toggleClass('unselectable', !useSelect);
+         $defInput.closest('.row-wrapper').toggleClass('unselectable', useSelect);
+      }
+
+      async function loadDefinitions(wordId) {
+         const url = `${defn_ajax_url}?word_id=${wordId}`;
+         try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+            $defSelect.empty();
+            if (data.results.length > 0) {
+               data.results.forEach(item => {
+                  $('<option>', { value: item.id, text: item.text}).appendTo($defSelect);
+               });
+               $('<option>', { value: -1, text: 'New definition'}).appendTo($defSelect);
+               showDefinitionField(true);
+            } else {
+               showDefinitionField(false);
+            }
+         } catch (err) {
+            console.error('Fetch error:', err);
+         }
+      }
+
+
+      $wordInput.on('select2:select', async function(e) {
+         var wordId = parseInt($(this).val(), 10);
+
+         if (Number.isNaN(wordId)) {
+            showDefinitionField(false);
+         } else {
+            await loadDefinitions(wordId);
+            $defInput.val('');
+         }
+         
+         $('#id_example').closest('.row-wrapper').removeClass('unselectable');
+      });
+
+      $defSelect.on('change', function() {
+         if ($(this).val() == '-1') {
+            $defInput.closest('.row-wrapper').removeClass('unselectable');
+            $defInput.prop('disabled', false);
+         } else {
+            showDefinitionField(true);
+         }
+      });
+
+      $defSelect.prop('disabled', true);
+      $defInput.prop('disabled', true);
+
+      console.log('finished');
+   }
+</script>
+{% endblock additionalScripts %}

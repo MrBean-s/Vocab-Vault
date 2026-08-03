@@ -1,0 +1,21 @@
+<form method="POST"
+   hx-post="{% url 'citation_delete' lang_id=lang_id citation_id=citation_id %}"
+   hx-target="#genericModalBody"
+   hx-target-error="#genericModalBody"
+   hx-swap="innerHTML"
+   class="modal-form">
+   {% csrf_token %}
+   <h3>Are you sure you want to remove this citation? </h3>
+   <h5 class="mt-4 mb-5">The example won't be erased unless you specify it </h5>
+   
+   <div class="form-check">
+      {{form.delete_example}}
+      <label class="form-check-label" for="{{form.delete_example.id_for_label}}">Remove example</label>
+   </div>
+   {{form.delete_example.errors}}
+
+   <div class="pt-5 d-flex justify-content-between pt-5">
+      <button type="submit" class="btn btn-danger">Delete</button>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+   </div>
+</form>
