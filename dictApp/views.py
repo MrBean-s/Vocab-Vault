@@ -4,7 +4,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpRe
 from .forms import *
 from .models import *
 from django.contrib import messages
-from django.db.models import ProtectedError, Q
+from django.db.models import ProtectedError, Q, Count, Prefetch
 from django.core.paginator import Paginator
 from django.core.exceptions import BadRequest
 from django.db import transaction
@@ -13,6 +13,8 @@ from collections import defaultdict
 from django.urls import reverse
 from itertools import groupby
 from django.conf import settings
+from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta, MO
 
 
 def start_screen(request):
@@ -267,8 +269,89 @@ def word_delete(request, lang_id, word_id):
 
 def word_list(request, lang_id):
    lang = get_object_or_404(Language, pk=lang_id)
-   words = lang.word_set.prefetch_related('definitions__examples').order_by('-id')
-   paginator = Paginator(words, 30)
+   words_qs = lang.word_set.all()
+
+   form = WordListFilters(request.GET, lang_id=lang_id)
+   context = { 'lang_id': lang_id, 'form': form }
+
+   # for dynamic prefetch
+   def_qs = Definition.objects.prefetch_related('country_tags')
+   ex_qs = Example.objects.select_related(
+      'citation__source', 
+      'citation__episode', 
+      'citation__segment',
+      'part_of_speech',
+   )
+
+   if form.is_valid():
+      time_unit_type = form.cleaned_data.get('timeUnitType')
+      time_unit_value = form.cleaned_data.get('timeUnitValue')
+      forgetting_frequency = form.cleaned_data.get('forgettingFrequency')
+      region = form.cleaned_data.get('region')
+      source = form.cleaned_data.get('source')
+   
+      if time_unit_type in ['D', 'W', 'M', 'Y'] and time_unit_value:
+         gmt6_zone = timezone(timedelta(hours=-6))
+         gmt6_now = datetime.now(gmt6_zone)
+
+         if time_unit_type == 'M':
+            target = gmt6_now - relativedelta(months=time_unit_value)
+            start_date = target.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = start_date + relativedelta(months=1) - timedelta(microseconds=1)
+
+         elif time_unit_type == 'Y':
+            target = gmt6_now - relativedelta(years=time_unit_value)
+            start_date = target.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = start_date + relativedelta(years=1) - timedelta(microseconds=1)
+
+         elif time_unit_type == 'W':
+            target = gmt6_now - relativedelta(weeks=time_unit_value)
+            start_date = (target + relativedelta(weekday=MO(-1))).replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = start_date + relativedelta(weeks=1) - timedelta(microseconds=1)
+
+         elif time_unit_type == 'D':
+            target = gmt6_now - relativedelta(days=time_unit_value)
+            start_date = target.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = target.replace(hour=23, minute=59, second=59, microsecond=999999)
+         
+         context.update({'start_date': start_date, 'end_date': end_date})
+
+         words_qs = words_qs.filter(added_at__range=(start_date, end_date))
+
+      if forgetting_frequency:
+         words_qs = words_qs.filter(definitions__forgetting_frequency=forgetting_frequency)
+         def_qs = def_qs.filter(forgetting_frequency=forgetting_frequency)
+      
+      if region:
+         qualifying_def_ids = Definition.objects.annotate(
+            total_tags=Count('country_tags')
+         ).filter(
+            total_tags=1,
+            country_tags=region
+         ).values_list('pk', flat=True)
+
+         words_qs = words_qs.filter(definitions__pk__in=qualifying_def_ids)
+         def_qs = def_qs.filter(pk__in=qualifying_def_ids)
+      if source:
+         source_q = (
+            Q(citation__source_id=source) |
+            Q(citation__episode__source_id=source) |
+            Q(citation__segment__source_id=source)
+         )
+         matching_examples = Example.objects.filter(source_q)
+
+         words_qs = words_qs.filter(definitions__examples__in=matching_examples)
+         def_qs = def_qs.filter(examples__in=matching_examples).distinct()
+         ex_qs = ex_qs.filter(source_q)
+
+   def_prefetch = Prefetch(
+      'definitions',
+      queryset=def_qs.prefetch_related(Prefetch('examples', queryset=ex_qs))
+   )
+
+   words_qs = words_qs.distinct().prefetch_related(def_prefetch).order_by('-id')
+
+   paginator = Paginator(words_qs, 30)
    page_obj = paginator.get_page(request.GET.get('page', 1))
    page_range = paginator.get_elided_page_range(
       number=page_obj.number,
@@ -276,18 +359,9 @@ def word_list(request, lang_id):
       on_ends=1
    )
 
-   sources_by_category = {}
+   context.update({'page_obj': page_obj, 'pages': page_range})
 
-   for category, name, id in Source.objects.values_list('source_category', 'name', 'id').iterator():
-      label = Source.SourceCategory(category).label
-      sources_by_category.setdefault(label, []).append((id, name))
-
-   return render(request, 'word_list.html', {
-      'lang_id': lang_id,
-      'page_obj': page_obj,
-      'sources_by_category': sources_by_category,
-      'pages': page_range
-   })
+   return render(request, 'word_list.html', context)
 
 
 @csrf_exempt
@@ -810,7 +884,7 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
    if not any([source, episode, segment]):
       return HttpResponseBadRequest('At least one source is required')
 
-   defn_ajax_url = reverse('search_definitions')
+   defn_ajax_url = reverse('get_definitions')
 
    qs = ( 
       Citation.objects
@@ -984,7 +1058,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
    })
 
 
-def search_definitions(request):
+def get_definitions(request):
    word_id = request.GET.get('word_id')
    if not word_id:
       return HttpResponseBadRequest('word_id is missing')
@@ -1031,6 +1105,20 @@ def get_sources(request, lang_id):
       ]
    }
    return JsonResponse(data)
+
+
+def search_source(request, lang_id):
+   query = request.GET.get('query', '')
+   if query:
+      categories = dict(Source.SourceCategory.choices)
+      by_category = defaultdict(list)
+
+      for src in Source.objects.filter(language_id=lang_id, name__icontains=query).values('id', 'name', 'source_category'):
+         by_category[categories.get(src['source_category'])].append({'id': src['id'], 'text': src['name']})
+      
+      results = [ {"text": cat, "children": items} for cat, items in by_category.items() ]
+
+   return JsonResponse({"results": results})
 
 def example_cite(request, lang_id, example_id):
 

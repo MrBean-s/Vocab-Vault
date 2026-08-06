@@ -28,7 +28,7 @@ urlpatterns = [
    path("lang/<int:lang_id>/import/", views.import_words_from_old_json, name="import"),
    path("lang/<int:lang_id>/search/", views.search, name="search"),
    path("lang/<int:lang_id>/search_word/", views.word_only_search, name="search_word"),
-   path("search/definitions/", views.search_definitions, name="search_definitions"),
+   path("search/definitions/", views.get_definitions, name="get_definitions"),
    path("source/<int:source_id>/search_episodes_or_segments/", views.search_episodes_or_segments, name="search_episodes_or_segments"),
 
    path("countries/", views.countries, name="countries"),
@@ -37,6 +37,7 @@ urlpatterns = [
    path("image/<int:img_id>/", views.show_image, name="show_image"),
 
    path("lang/<int:lang_id>/sources/", views.sources, name="sources"),
+   path("lang/<int:lang_id>/search_source/", views.search_source, name="search_source"),
    path("lang/<int:lang_id>/source/add/", views.sources_add_edit, name="source_add"),
    path("lang/<int:lang_id>/source/<int:source_id>/edit/", views.sources_add_edit, name="source_edit"), 
    path("lang/<int:lang_id>/source/<int:source_id>/delete/", views.source_delete, name="source_delete"),
