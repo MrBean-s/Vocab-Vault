@@ -351,7 +351,7 @@ def word_list(request, lang_id):
 
    words_qs = words_qs.distinct().prefetch_related(def_prefetch).order_by('-id')
 
-   paginator = Paginator(words_qs, 10)
+   paginator = Paginator(words_qs, 24)
    page_obj = paginator.get_page(request.GET.get('page', 1))
    page_range = paginator.get_elided_page_range(
       number=page_obj.number,
