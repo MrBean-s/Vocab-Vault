@@ -178,71 +178,57 @@
    .pacman-input[id="dot-7"]:checked ~ .pacman {transform: translateX(calc(6 * var(--step)));}
    .pacman-input[id="dot-8"]:checked ~ .pacman {transform: translateX(calc(7 * var(--step)));}
    .pacman-input[id="dot-9"]:checked ~ .pacman {transform: translateX(calc(8 * var(--step)));}
+
+   .form-grid {
+      width: 85%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      row-gap: 20px;
+   }
+   .form-buttons {
+      width: 15%;
+   }
 </style>
 {% endblock %}
 
 {% block innerbody %}
 <div class="container" style="min-height: 100vh;">
-   <div class="top-part">
-      <form action="" method="POST">
-      <div class="row">
-         <div class="col-3">
-            <label for="timeUnitSelect" class="form-label">Date added</label>
-            <div class="d-flex gap-2 align-items-center">
-               <input type="number" min="0" placeholder="#" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                  class="form-control w-20"/>
-               <select name="timeUnit" id="timeUnitSelect" class="form-select w-60">
-                  <option value="" selected hidden>Choose an option...</option>
-                  <option value="day">Day</option>
-                  <option value="week">Week</option>
-                  <option value="month">Month</option>
-                  <option value="year">Year</option>
-               </select>
-               <div>Ago</div>
+   <div class="top-part gap-2">
+      <form method="GET" action="" id="filters-form" class="d-flex">
+         <div class="form-grid">
+            <div class="d-flex gap-2">
+               {{form.timeUnitValue}}
+               {{form.timeUnitType}}
+               <div id="{{form.timeUnitType.id_for_label}}-dropdownParent"></div>
+            </div>
+            <div>
+               {{form.region}}
+               <div id="{{form.region.id_for_label}}-dropdownParent"></div>
+            </div>
+            <div>
+               {{form.source}}
+               <div id="{{form.source.id_for_label}}-dropdownParent"></div>
+            </div>
+            <div>
+               {{form.forgettingFrequency}}
+               <div id="{{form.forgettingFrequency.id_for_label}}-dropdownParent"></div>
             </div>
          </div>
-         <div class="col-2">
-            <label for="freqSelect" class="form-label">Forgetting frequency</label>
-            <select name="forgettingFrequency" id="freqSelect" class="form-select">
-               <option value="" selected hidden>Choose an option...</option>
-               <option value="frequent">Frequent</option>
-               <option value="rare">Rare</option>
-               <option value="never">Never</option>
-            </select>
+         <div class="form-buttons d-flex gap-2 justify-content-end">
+            <button id="reset-button" type="button" class="btn btn-secondary my-auto">Clear</button>
+            <button type="submit" class="btn btn-primary my-auto">Filter</button>
          </div>
-         <div class="col-2">
-            <label for="regionSelect" class="form-label">Specific region</label>
-            <select name="regionCode" id="regionSelect" class="form-select">
-               <option value="" selected hidden>Choose an option...</option>
-               <option value="uk">UK</option>
-               <option value="us">US</option>
-               <option value="au">AU</option>
-            </select>
-         </div>
-         <div class="col-3">
-            <label for="sourceSelect" class="form-label">Source</label>
-            <select name="" id="sourceSelect" class="form-select">
-               <option value="" selected hidden>Choose an option...</option>
-               {% for cat, source in sources_by_category.items %}
-               <optgroup label="{{cat}}">
-                  {% for source_id, source_name in source %}
-                     <option value="{{source_id}}">{{source_name}}</option>
-                  {% endfor %}
-               </optgroup>
-               {% endfor %}
-            </select>
-         </div>
-         <div class="col-2">
-            <div class="d-flex gap-2 align-items-end h-100">
-               <button type="button" class="btn btn-secondary">Clear all</button>
-               <button type="submit" class="btn btn-important">Submit</button>
-            </div>
-         </div>
-      </div>
       </form>
-      
+
    </div>
    
+   {% if start_date and end_date %}
+   <div class="mb-3">
+      {{start_date}} UTC - {{end_date}} UTC
+   </div>
+   {% endif %}
+
    <div class="pseudo-table" id="word-list-table">
       <div class="pseudo-header row table-row sticky-top">
          <div class="col-3 d-flex align-items-center"> 
@@ -364,7 +350,7 @@
          </div>
       </div>
       <div class="w-25">
-         <form method="get" class="d-flex go-page ms-5 gap-2" style="width: 200px;">
+         <form id="change-page" class="d-flex go-page ms-5 gap-2" style="width: 200px;">
             <input type="number" name="page" class="form-control w-70" placeholder="Page"
                min="1" max="{{page_obj.paginator.num_pages}}" required="">
             <button type="submit" class="w-30 btn btn-primary">Go</button>
@@ -419,23 +405,42 @@
    toggleIndicator();
 
    $(document).ready(function() {
-      $('#sourceSelect').select2({
-         theme: 'bootstrap-5',
-         placeholder: 'Choose an option...',
-         allowClear: true
-      });
-      $('#regionSelect, #freqSelect, #timeUnitSelect').select2({
-         theme: 'bootstrap-5',
-         placeholder: 'Choose an option...',
-         minimumResultsForSearch: Infinity,
-         allowClear: true
+      $(".top-part").find('select.select2:not(.custom-select2)').each(function() {
+         if (!$(this).data('select2')) {
+            prepareSelect2(this.id);
+         }
       });
    });
 
+   function changePageUrl(pageNumber){
+      let currUrl = new URL(window.location.href);
+      currUrl.searchParams.set('page', pageNumber);
+      window.location.href = currUrl;
+   }
+
    document.querySelectorAll('.pacman-input').forEach((el) => {
       el.addEventListener('change', (event) => {
-         if (event.target.checked) window.location.href = `?page=${el.dataset.pageId}`;
+         if (event.target.checked) changePageUrl(el.dataset.pageId);
       });
+   });
+
+   const form = document.getElementById('change-page');
+   form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pageNumberBtn = document.getElementById('page-number-btn');
+      const input = form.querySelector('input');
+      if (!input.value || !Number.isInteger(parseInt(input.value))) return;
+      changePageUrl(input.value);
+   });
+
+   const filtersForm = document.getElementById('filters-form');
+   document.getElementById('reset-button').addEventListener('click', () => {
+      var inputs = $(filtersForm).find('input, select, textarea').val('').trigger('change');
+      filtersForm.submit();
+   });
+
+   $('#id_timeUnitType').on('select2:clear', function (){
+      $('#id_timeUnitValue').val('').trigger('change');
    });
 </script>
 {% endblock %}

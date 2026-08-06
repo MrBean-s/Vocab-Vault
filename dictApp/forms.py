@@ -2,6 +2,7 @@ from django import forms
 from .models import *
 from django.forms import inlineformset_factory, modelformset_factory
 from django.forms.models import BaseInlineFormSet
+from django.urls import reverse
 
 class LanguageForm(forms.ModelForm):
    image_file = forms.ImageField(
@@ -742,3 +743,77 @@ class SegmentForm(forms.ModelForm):
          segment.save()
 
       return segment
+
+class WordListFilters(forms.Form):
+   timeUnitType = forms.ChoiceField(
+      required=False,
+      choices = [
+         ('', 'Time unit'),
+         ("Y", "Year(s) Ago"),
+         ("M", "Month(s) Ago"),
+         ("W", "Week(s) Ago"),
+         ("D", "Day(s) Ago"),
+      ],
+      initial='',
+      widget=forms.Select(attrs={
+         'class': 'select2 w-70',
+         'data-allow-clear': 'true',
+         'data-placeholder': 'Time unit',
+         'data-remove-search': 'true'
+      })
+   )
+
+   timeUnitValue = forms.IntegerField(
+      required=False,
+      widget=forms.NumberInput(attrs={
+         'class': 'form-control w-30',
+         'placeholder': '#'
+      })
+   )
+
+   forgettingFrequency = forms.ChoiceField(
+      required=False,
+      choices = [('', '--- Select ---')] + Definition.ForgettingFrequency.choices,
+      widget=forms.Select(attrs={
+         'class': 'select2',
+         'data-allow-clear': 'true',
+         'data-placeholder': 'Forgetting frequency',
+         'data-remove-search': 'true'
+      })
+   )
+
+   region = forms.ModelChoiceField(
+      required=False,
+      queryset=Country.objects.none(),
+      widget=forms.Select(attrs={
+         'class': 'select2',
+         'data-allow-clear': 'true',
+         'data-placeholder': 'Region'
+      })
+   )
+
+   source = forms.IntegerField(
+      required=False,
+      widget=forms.Select(attrs={
+         'class': 'select2 select2-ajax',
+         'data-allow-clear': 'true',
+         'data-is-ajax': 'true',
+         'data-placeholder': 'Source',
+         'data-min-input-len': '3'
+      })
+   )
+
+   def __init__(self, *args, **kwargs):
+      lang_id = kwargs.pop('lang_id', None)
+      super().__init__(*args, **kwargs)
+      source_id = self.data.get('source')
+      if lang_id:
+         language = Language.objects.filter(pk=lang_id)
+         self.fields['region'].queryset = Country.objects.filter(languages__pk=lang_id)
+         self.fields['source'].widget.attrs['data-ajax-url'] = reverse('search_source', kwargs={'lang_id': lang_id})
+      if source_id:
+         try:
+            src = Source.objects.get(id=source_id)
+            self.fields['source'].widget.choices = [(src.id, src.name)]
+         except Source.DoesNotExist:
+            pass

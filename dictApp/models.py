@@ -173,6 +173,20 @@ class Source(models.Model):
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True, blank=True)
    language = models.ForeignKey(Language, on_delete=models.PROTECT, null=False)
 
+   REDIRECT_URLS = {
+      'MOV': 'play_session_source',
+      'SON': 'play_session_source',
+      'ABK': 'play_session_source',
+      'POD': 'play_session_source',
+      'TVS': 'episodes',
+      'ALB': 'segments',
+      'BOK': 'segments'
+   }
+
+   def get_redirect_url(self, lang_id):
+      url_name = self.REDIRECT_URLS[self.source_category]
+      return reverse(url_name, kwargs={'lang_id': lang_id, 'source_id': self.id})
+
    def __str__(self):
       return f'{self.name} ({self.released_year})'
 
