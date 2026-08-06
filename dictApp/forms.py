@@ -806,9 +806,14 @@ class WordListFilters(forms.Form):
    def __init__(self, *args, **kwargs):
       lang_id = kwargs.pop('lang_id', None)
       super().__init__(*args, **kwargs)
-
+      source_id = self.data.get('source')
       if lang_id:
          language = Language.objects.filter(pk=lang_id)
          self.fields['region'].queryset = Country.objects.filter(languages__pk=lang_id)
          self.fields['source'].widget.attrs['data-ajax-url'] = reverse('search_source', kwargs={'lang_id': lang_id})
-      
+      if source_id:
+         try:
+            src = Source.objects.get(id=source_id)
+            self.fields['source'].widget.choices = [(src.id, src.name)]
+         except Source.DoesNotExist:
+            pass

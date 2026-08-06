@@ -351,7 +351,7 @@ def word_list(request, lang_id):
 
    words_qs = words_qs.distinct().prefetch_related(def_prefetch).order_by('-id')
 
-   paginator = Paginator(words_qs, 30)
+   paginator = Paginator(words_qs, 10)
    page_obj = paginator.get_page(request.GET.get('page', 1))
    page_range = paginator.get_elided_page_range(
       number=page_obj.number,
@@ -678,7 +678,6 @@ def sources(request, lang_id):
 
    sections = {label: sources for label, sources in sections.items() if sources}
 
-   print(sections)
    audio_sources = Source.objects.filter(
       language_id=lang_id,
       source_category__in=['ABK', 'SON', 'POD']
@@ -1109,14 +1108,19 @@ def get_sources(request, lang_id):
 
 def search_source(request, lang_id):
    query = request.GET.get('query', '')
-   if query:
-      categories = dict(Source.SourceCategory.choices)
-      by_category = defaultdict(list)
+   
+   if not query:
+      return JsonResponse({"results": []})
 
-      for src in Source.objects.filter(language_id=lang_id, name__icontains=query).values('id', 'name', 'source_category'):
-         by_category[categories.get(src['source_category'])].append({'id': src['id'], 'text': src['name']})
-      
-      results = [ {"text": cat, "children": items} for cat, items in by_category.items() ]
+   categories = dict(Source.SourceCategory.choices)
+   by_category = defaultdict(list)
+
+   for src in Source.objects.filter(language_id=lang_id, name__icontains=query).values('id', 'name', 'source_category'):
+      cat = src['source_category']
+      url = reverse(Source.REDIRECT_URLS[cat], kwargs={'lang_id': lang_id, 'source_id': src['id']})
+      by_category[categories.get(cat)].append({'id': src['id'], 'text': src['name'], 'redirect_url': url})
+   
+   results = [ {"text": cat, "children": items} for cat, items in by_category.items() ]
 
    return JsonResponse({"results": results})
 

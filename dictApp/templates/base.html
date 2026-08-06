@@ -300,10 +300,6 @@
    {% block additionalModals %}
    {% endblock additionalModals %}
 
-
-   {% block additionalScripts %}
-   {% endblock additionalScripts %}
-
    <p id="error-box" class="text-danger position-fixed top-0 start-50"></p>
    <div id="form-loader" class="loader hidden"></div>
 
@@ -499,6 +495,9 @@
          });
       });
    </script>
+
+   {% block additionalScripts %}
+   {% endblock additionalScripts %}
 
 </body>
 </html>
