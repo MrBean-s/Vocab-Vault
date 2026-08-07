@@ -32,17 +32,23 @@
       .curr-image { max-height: 100%; max-width: 100%; }
       .add-example-item i, .add-country-item i { color: var(--bg-muted) !important }
 
-      [select-cty-parent] .select2-selection__choice { margin-bottom: 0 !important;}
-      [select-cty-parent] .select2-selection { background-color: transparent !important; padding: 0 !important;}
-      [select-cty-parent] .select2-selection__rendered { justify-content: end; row-gap: 0.4rem; }
-      [select-cty-parent] .select2-search--inline { display: none !important;}
-      [select-cty-parent] .select2-container .select2-selection--multiple { cursor: default !important; }
-      [select-cty-parent] .select2-dropdown { left: 40px !important; top: 7px !important }
+      .field-multi.select2-selection { background-color: transparent !important; padding: 0 !important; cursor: default;
+      margin-bottom: 5px}
+      .field-multi .select2-selection__choice { margin-bottom: 0 !important; }
+      .field-multi .select2-selection__rendered { /*justify-content: end;*/ row-gap: 0.4rem; min-height: 38px;}
+      .field-multi .select2-search--inline { display: none !important;}
+      .field-multi .select2-container .select2-selection--multiple { cursor: default !important; }
+      .field-multi .select2-dropdown { left: 40px !important; top: 7px !important }
       .select2-selection--single::after {/* the v in select */
         display: none;
       }
+      .field-description { border-radius: var(--bs-border-radius) 0 var(--bs-border-radius) var(--bs-border-radius) !important}
       .select2-selection--single { padding-right: 0.75rem !important}
       .select2-selection__clear { right: 1rem !important }
+      .field-cat { border-bottom: 0 !important; 
+         border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0 !important; }
+      .field-quote { border-radius: var(--bs-border-radius) 0 var(--bs-border-radius) var(--bs-border-radius);}
+      
    </style>
 {% endblock additionalStyles %}
 
@@ -110,7 +116,7 @@
             <div class="def-row custom-card d-grid pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%} position-relative"
                data-def-index="{{ def_index }}"
                data-is-prototype="{{def_is_prototype}}"
-               style="grid-template-columns: 55% 45%;">
+               style="grid-template-columns: 60% 40%;">
                
                <div class="wireframe px-5 pt-1 position-relative">
                   {{ def_form.id }}
@@ -119,8 +125,7 @@
                   {% if forloop.last %}checked{% endif %} class="d-hidden def-to-delete">
                   
                   <div class="mb-3" select-cty-parent>
-                     <div class="d-flex justify-content-between align-items-center mt-3 mb-2 
-                        position-relative">
+                     <div class="d-flex align-items-center mt-3 position-relative">
 
                         <label for="def_form.description.id_for_label" class="form-label m-0
                            field-title-accent">
@@ -128,40 +133,6 @@
                            <span class="def-row-number">{{forloop.counter}}</span>
                         </label>                 
 
-                        <div class="d-flex gap-2 w-80 justify-content-end align-items-center">
-                              <select name="def-{{def_index}}-countries" multiple class="select2"
-                                 id="def-{{def_index}}-countries" 
-                                 data-is-prototype="{{def_is_prototype}}"
-                                 backend-rendered='{{forloop.last|yesno:"false,true" }}'
-                                 data-width="75%"
-                                 data-is-multiple="true"
-                                 data-placeholder="Countries"
-                                 data-deny-open="true"
-                                 data-custom-template-select="true"
-                                 data-min-input-len="0"
-                                 {% if def_form.selected_country_ids %}data-has-selection{% endif %}>
-                                 {% for country in country_qs %}
-                                    {% if forloop.first %}
-                                       <option value="-999" data-display-in-pill="All countries"
-                                          {% if def_form.instance.pk and '-999' in def_form.selected_country_ids %}selected{% endif %}>
-                                       All countries</option>
-                                    {% endif %}
-                                    <option value="{{ country.id }}"
-                                       data-display-in-pill="{{ country.iso_code }}"
-                                       {% if def_form.instance.pk and country.id in def_form.selected_country_ids %}selected{% endif %}>
-                                       {{ country.name }}
-                                    </option>
-                                    {{country.id}}, {{def_form.selected_country_ids}}
-                                 {% endfor %}
-                              </select>
-                              <a class="text-decoration-none add-country-item" 
-                                 onclick="openSelect2Item('def-{{def_index}}-countries')"
-                                 title="Add country"
-                                 style="cursor: pointer; text-align: right;">
-                                 <i class="ps-2 fa-solid fa-circle-plus"></i>
-                              </a>
-                        </div>
-                        
                         <a class="position-absolute
                            remove-definition-item "
                            style="left: -32px;"
@@ -171,6 +142,49 @@
                            <i class="fa-solid fa-trash fs-6"></i>
                         </a>
                      </div>
+                     <div class="cty-topic-row d-flex gap-3 mt-3">
+                        
+                        <div class="d-flex gap-2 w-65 justify-content-end align-items-center position-relative">
+                           <select name="def-{{def_index}}-countries" multiple class="select2"
+                              id="def-{{def_index}}-countries" 
+                              data-is-prototype="{{def_is_prototype}}"
+                              backend-rendered='{{forloop.last|yesno:"false,true" }}'
+                              data-is-multiple="true"
+                              data-placeholder="Countries"
+                              data-deny-open="true"
+                              data-custom-template-select="true"
+                              data-min-input-len="0"
+                              data-selection-class="field-multi"
+                              {% if def_form.selected_country_ids %}data-has-selection{% endif %}>
+                              {% for country in country_qs %}
+                                 {% if forloop.first %}
+                                    <option value="-999" data-display-in-pill="All countries"
+                                       {% if def_form.instance.pk and '-999' in def_form.selected_country_ids %}selected{% endif %}>
+                                    All countries</option>
+                                 {% endif %}
+                                 <option value="{{ country.id }}"
+                                    data-display-in-pill="{{ country.iso_code }}"
+                                    {% if def_form.instance.pk and country.id in def_form.selected_country_ids %}selected{% endif %}>
+                                    {{ country.name }}
+                                 </option>
+                                 {{country.id}}, {{def_form.selected_country_ids}}
+                              {% endfor %}
+                           </select>
+                           <!-- <a class="text-decoration-none add-country-item position-absolute" 
+                              onclick="openSelect2Item('def-{{def_index}}-countries')"
+                              title="Add country"
+                              style="cursor: pointer; text-align: left; left: -20px">
+                              <i class="ps-2 fa-solid fa-circle-plus"></i>
+                           </a> -->
+                        </div>
+                        <div class="w-35 d-flex align-items-end">
+                           <div class="topic w-100">
+                              {{def_form.topic_category}}
+                              <div id="id_definitions-{{def_index}}-topic_category-dropdownParent"></div>
+                           </div>
+                        </div>
+                     </div>
+
                      <div id="def-{{def_index}}-countries-dropdownParent" class="position-relative"></div>
                      {% if forloop.last %}
                         {{ def_form.description }}
@@ -248,39 +262,39 @@
                                  id="{{ ex_form.DELETE.id_for_label }}"
                                  {% if forloop.last %}checked{% endif %} class="d-hidden">
 
-                              <div class="wireframe w-100 pb-4 d-flex">
-                                 <div class="px-5 w-55">
-                                    <div class="d-flex gap-2 justify-content-end w-100 align-items-center" style="height: 50px;">
+                              <div class="mb-3">
+                                 <div class="w-60">
+                                    <div class="w-30 pe-5 ms-auto">
                                        {{ ex_form.part_of_speech }}
                                     </div>                              
 
-                                    <div id="id_def-{{def_index}}-examples-{{ex_index}}-part_of_speech-dropdownParent"
-                                       class="pt-2"></div>
-
-                                    <div class="d-flex align-items-center gap-3">
-                                       <a href="#" data-def-index="{{def_index}}"
-                                          data-ex-index="{{ forloop.counter0 }}" 
-                                          class="remove-example-item "
-                                          onclick="removeExample(this); return false;">
-                                          <i class="fa-solid fa-trash"></i>
-                                       </a>
-                                       {% if forloop.last %}
-                                          {{ ex_form.description }}
-                                       {% else %}
-                                          {% render_field ex_form.description required="required" %}
-                                       {% endif %}
-                                       {{ ex_form.description.errors }}
-                                    </div>
+                                    <div id="id_def-{{def_index}}-examples-{{ex_index}}-part_of_speech-dropdownParent"></div>
                                  </div>
-                                 <div class="pe-5 ps-4 position-relative" style="width: 45% !important;">
-                                    <div class="explanation-arrow">
-                                       <i class="fa-solid fa-angles-right"></i>
+                                 <div class="d-flex">
+                                    <div class="px-5 w-60">
+                                       <div class="d-flex align-items-center gap-3">
+                                          <a href="#" data-def-index="{{def_index}}"
+                                             data-ex-index="{{ forloop.counter0 }}" 
+                                             class="remove-example-item "
+                                             onclick="removeExample(this); return false;">
+                                             <i class="fa-solid fa-trash"></i>
+                                          </a>
+                                          {% if forloop.last %}
+                                             {{ ex_form.description }}
+                                          {% else %}
+                                             {% render_field ex_form.description required="required" %}
+                                          {% endif %}
+                                          {{ ex_form.description.errors }}
+                                       </div>
                                     </div>
-                                    <div style="height: 50px;">
-                                    </div>
-                                    <div class="pt-2 d-flex w-100">
-                                       {{ ex_form.explanation }}
-                                       {{ ex_form.explanation.errors }}
+                                    <div class="pe-5 w-40 ps-4 position-relative">
+                                       <div class="explanation-arrow">
+                                          <i class="fa-solid fa-angles-right"></i>
+                                       </div>
+                                       <div class="d-flex w-100">
+                                          {{ ex_form.explanation }}
+                                          {{ ex_form.explanation.errors }}
+                                       </div>
                                     </div>
                                  </div>
                               </div>
@@ -347,6 +361,7 @@ function addDefinition() {
    totalForms.value = currentCount + 1;
 
    prepareSelect2(`def-${currentCount}-countries`);
+   prepareSelect2(`id_definitions-${currentCount}-topic_category`);
 }
 
 function addExample(element) {
