@@ -335,7 +335,7 @@
          params.width = $el.data('width') || '100%';
          params.dropdownParent = $(`#${$el.data('dropdownParent') || `${selector}-dropdownParent`}`);
          params.allowClear = $el.data('allowClear') === true;
-
+         params.selectionCssClass = $el.data('selectionClass') || '';
 
          if ($el.data('removeSearch') === true) params.minimumResultsForSearch = Infinity;
          if ($el.data('customTemplateSelect') === true) {
@@ -391,7 +391,35 @@
             if (denied == true) { e.preventDefault(); }
          });
          
-         if ($el.data('isMultiple')) {
+         if ($el.data('isMultiple')) { //hardcoded for the countries select in word_add_edit
+            function ensurePlusButton() {
+               if (!$renderedList.find('.add-plus-item').length) {
+                  var $li = $(`
+                     <li class="select2-selection__custom-action d-inline-flex align-items-center me-1">
+                        <a class="text-decoration-none add-plus-item"
+                           title="Add element"
+                           style="cursor: pointer;">
+                           <i class="fa-solid fa-earth-europe text-muted"></i>
+                        </a>
+                     </li>
+                  `);
+
+                  $li.find('.add-plus-item').on('click', function(e) {
+                     e.stopPropagation();
+                     $el.data('denyOpen', false);  
+                     $el.select2('open');
+                     $el.data('denyOpen', true);
+                  });
+
+                  $renderedList.append($li);
+               } else {
+                  $renderedList.append($renderedList.find('.select2-selection__custom-action'));
+               }
+            }
+
+            var $renderedList = $el.next('.select2-container').find('ul.select2-selection__rendered');
+            ensurePlusButton();
+
             $el.on('select2:select', function(e) {
                var id = e.params.data.id;
                var $el = $(this);
@@ -405,6 +433,10 @@
                      $el.val(selected).trigger('change');
                   }
                }
+               setTimeout(ensurePlusButton, 0);
+            });
+            $el.on('select2:unselect', function(e) {
+               setTimeout(ensurePlusButton, 0);
             });
          }
       }

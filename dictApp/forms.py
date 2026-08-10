@@ -132,10 +132,11 @@ class DefinitionForm(forms.ModelForm):
 
    class Meta:
       model = Definition
-      fields = ['description', 'origin']
+      fields = ['description', 'origin', 'topic_category']
       labels = {
          'description': 'Defintion',
-         'origin': 'Definition origin'
+         'origin': 'Definition origin',
+         'topic_category': 'Topic'
       }
       widgets = {
          'description': forms.Textarea(
@@ -143,7 +144,7 @@ class DefinitionForm(forms.ModelForm):
                'rows': 3, 
                'cols': 50, 
                'class': 'form-control resize-none field-description',
-               'manual-required': 'true'
+               'manual-required': 'true',
             }
          ),
          'origin': forms.Textarea(
@@ -153,11 +154,13 @@ class DefinitionForm(forms.ModelForm):
                'class': 'form-control resize-none field-description',
             }
          ),
-         'image_file': forms.FileInput(
-            attrs={
-               'class': 'form-control p-5'
-            }
-         )
+         'topic_category': forms.Select(attrs={
+            'class': 'select2',
+            'data-placeholder': 'Topic',
+            # 'data-remove-search': 'true',
+            'data-selection-class': 'field-cat',
+            'data-allow-clear': 'true',
+         }),
       }
 
    def save(self, commit=True):
@@ -181,16 +184,22 @@ class DefinitionForm(forms.ModelForm):
 
       return definition
 
+   def __init__(self, *args, **kwargs):
+      is_last = kwargs.pop('is_last', False)
+      super().__init__(*args, **kwargs)
+      self.fields['topic_category'].widget.attrs.update({
+         'backend-rendered': 'false' if is_last else 'true'
+      })
 
 class ExampleForm(forms.ModelForm):
    part_of_speech = forms.ModelChoiceField(
       queryset=PartOfSpeech.objects.none(),
       widget=forms.Select(attrs={
          'class': 'select2',
-         'data-allow-open': 'true',
          'data-placeholder': 'Category',
-         'data-width': '45%',
          'data-remove-search': 'true',
+         'data-selection-class': 'field-cat',
+         'data-allow-clear': 'true'
       }),
       required=False,
    )
@@ -206,16 +215,16 @@ class ExampleForm(forms.ModelForm):
             attrs={
                'rows': 2,
                'cols': 50, 
-               'class': 'form-control resize-none field-quote',
+               'class': 'form-control resize-none field-quote lh-sm',
                'placeholder': 'Write an example',
-               'manual-required': 'true'
+               'manual-required': 'true',
             }
          ),
          'explanation': forms.Textarea(
             attrs={
                'rows': 2, 
                'cols': 50, 
-               'class': 'form-control resize-none field-explanation',
+               'class': 'form-control resize-none field-explanation lh-sm',
                'placeholder': 'Explained in other words'
             }
          ),
@@ -239,6 +248,12 @@ class SkipEmptyDeletedInlineFormSet(BaseInlineFormSet):
             # Discard all field errors – this row is going to be deleted
             form._errors = {}
 
+class BaseDefinitionFormSet(SkipEmptyDeletedInlineFormSet):
+   def get_form_kwargs(self, index):
+      kwargs = super().get_form_kwargs(index)
+      kwargs['is_last'] = (index == self.total_form_count() - 1)
+      return kwargs
+
 class BaseExampleFormSet(SkipEmptyDeletedInlineFormSet):
    def __init__(self, *args, language=None, **kwargs):
       self.language = language
@@ -253,7 +268,7 @@ class BaseExampleFormSet(SkipEmptyDeletedInlineFormSet):
 DefinitionFormSet = inlineformset_factory(
    Word, Definition,
    form=DefinitionForm,
-   formset=SkipEmptyDeletedInlineFormSet,
+   formset=BaseDefinitionFormSet,
    extra=1,
    can_delete=True
 )
