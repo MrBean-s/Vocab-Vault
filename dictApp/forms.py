@@ -595,8 +595,8 @@ class CitationForm(forms.Form):
       cleaned_data = super().clean()
       defn_input = cleaned_data.get('definition_input')
       defn_select = cleaned_data.get('definition_select')
-      if not defn_input and not defn_select:
-         raise forms.ValidationError(f"An existent/new definition is required")
+      # if not defn_input and not defn_select:
+      #    raise forms.ValidationError(f"An existent/new definition is required")
       
       if defn_select and defn_select != '-1':
          try:
@@ -604,8 +604,8 @@ class CitationForm(forms.Form):
             cleaned_data['defn_object']=defn_obj
          except(ValueError, Definition.DoesNotExist):
             raise forms.ValidationError(f"Invalid definition selected")
-      elif defn_select == '-1' and not defn_input:
-         raise forms.ValidationError(f"Please enter a new definition description")
+      # elif defn_select == '-1' and not defn_input:
+      #    raise forms.ValidationError(f"Please enter a new definition description")
       
       return cleaned_data
 

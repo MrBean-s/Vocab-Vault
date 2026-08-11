@@ -115,6 +115,13 @@ class Definition(models.Model):
          return ['-999']
       return list(selected_ids)
 
+   def get_missing_fields(self):
+      missing = []
+      if not self.description:
+         missing.append('description')
+      # if not self.origin:
+         # missing.append('origin')
+      return missing
 
 
 class Example(models.Model):

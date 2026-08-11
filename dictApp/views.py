@@ -9,7 +9,7 @@ from django.core.paginator import Paginator
 from django.core.exceptions import BadRequest
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
-from collections import defaultdict
+from collections import defaultdict, Counter
 from django.urls import reverse
 from itertools import groupby
 from django.conf import settings
@@ -351,7 +351,7 @@ def word_list(request, lang_id):
 
    words_qs = words_qs.distinct().prefetch_related(def_prefetch).order_by('-id')
 
-   paginator = Paginator(words_qs, 24)
+   paginator = Paginator(words_qs, 30)
    page_obj = paginator.get_page(request.GET.get('page', 1))
    page_range = paginator.get_elided_page_range(
       number=page_obj.number,
@@ -983,8 +983,9 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          
          if existing_def_id and existing_def_id.isdigit() and existing_def_id != '-1':
             definition = get_object_or_404(Definition, pk=int(existing_def_id))
-         elif new_def:
+         elif new_def or new_def == '':
             definition = Definition.objects.create(description=new_def, word=word)
+
 
          example = citation.example if citation else Example()
          example.description = form.cleaned_data['example']
@@ -1030,6 +1031,8 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': redirect_url})
          return redirect(redirect_url)
+      else:
+         print(form.errors)
          
    else:      
       if citation:
@@ -1162,4 +1165,65 @@ def example_cite(request, lang_id, example_id):
       'form': form,
       'lang_id': lang_id,
       'example_id': example_id
+   })
+
+
+def word_list_pending(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+
+   words_with_missing_fields = (
+      Word.objects.filter(
+         Q(definitions__isnull=True) |
+         Q(definitions__description__isnull=True) | Q(definitions__description='') |
+         Q(definitions__examples__isnull=True) |
+         Q(definitions__examples__part_of_speech__isnull=True),
+         language_id=lang_id
+      )
+      .prefetch_related(
+         'definitions',
+         'definitions__examples',
+         'definitions__examples__part_of_speech'
+      )
+      .distinct()
+   ).order_by('-added_at')
+
+   word_results = []
+
+   for w in words_with_missing_fields:
+      def_counts = Counter()
+      ex_counts = Counter()
+      if w.definitions.count() == 0:
+         def_counts['definitions'] += 1
+      for d in w.definitions.all():
+         if not d.description:
+            def_counts['description'] += 1
+         if d.examples.count() == 0:
+            ex_counts['examples'] += 1
+         else:
+            for e in d.examples.all():
+               if not e.part_of_speech:
+                  ex_counts['parts of speech'] +=1
+
+      word_results.append({
+         'id': w.id,
+         'name': w.name,
+         'added_at': w.added_at,
+         'missing_counts': {
+            'definitions': dict(def_counts),
+            'examples': dict(ex_counts)
+         }
+      })
+   
+   paginator = Paginator(word_results, 30)
+   page_obj = paginator.get_page(request.GET.get('page', 1))
+   page_range = paginator.get_elided_page_range(
+      number=page_obj.number,
+      on_each_side=2,
+      on_ends=1
+   )
+
+   return render(request, 'word_list_pending.html', {
+      'page_obj': page_obj,
+      'pages': page_range,
+      'lang_id': lang_id
    })

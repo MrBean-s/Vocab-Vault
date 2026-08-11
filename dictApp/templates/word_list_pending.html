@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block additionalStyles %}
+<style>
+   .missing-category, .missing-key, .missing-value, .description, .header span, .list-item .title { font-size: 1.1rem; }
+   .description { color: var(--text-muted);}
+   .list-item {
+      background: var(--bg-surface);
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+   }
+   .header {
+      padding: 1rem 2rem;
+      background: var(--bg-dark);
+      border-bottom: 1px solid var(--border-color);
+   }
+   .header span { color: var(--accent-gold); font-weight: bold;;}
+   .list-item .title {
+      font-weight: bold;
+      font-style: italic;
+   }
+   .list-item .date {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+   }
+   .missing-category {
+      color: var(--text-muted);
+   }
+   .missing-key { font-style: italic; color: inherit; }
+   .missing-value { color: inherit; }
+
+      .pagination-wrapper, .go-page {
+      /*border: 6px double #1c1cdb;*/
+      /*background-color: black;*/
+      border-radius: 7px;
+   }
+
+   .pagination-wrapper {
+      padding: 20px 25px 50px 25px;
+   }
+
+
+   .pagination {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      --ddim: 12px;
+      --rd: 16px;
+      --rdim: calc(var(--rd)*2);
+      /*--pm: #ffff03;*/
+      --step: calc(var(--ddim) + 50px);
+   }
+
+   .page-indicator { 
+      position: absolute;
+      bottom: -40px;
+      left: -2px;
+      width: 100%;
+      /*text-align: center;*/
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #dedeff;
+      font-family: 'Emulogic';
+   }
+
+   .pacman-dot {
+      content: '';
+      margin: 0 25px;
+      height: var(--ddim);
+      width: var(--ddim);
+      /*background: #f7b997;*/
+      background: var(--accent-blue);
+      cursor: pointer;
+      border-radius: 40%;
+      padding-left: 10px;
+   }
+
+   .pacman-dot.elipsis { 
+      background: var(--bg-body);
+   }
+
+   .pacman-input {display: none;}
+
+   .pacman {
+      content: '';
+      position: absolute;
+      top: calc(-1 * (var(--rd) - (var(--ddim)/2) ) );
+      left: calc(-1 * (var(--ddim) - (var(--rd) / 2)) );
+      height: var(--rdim);
+      width: var(--rdim);
+      transition: transform 250ms linear;
+   }
+
+   .pacman:before,
+   .pacman:after {
+      content: '';
+      position: absolute;
+      height: var(--rd);
+      width: var(--rdim);
+      left: 0;
+      background: var(--accent-gold);
+      transition: inherit;
+   }
+
+   .pacman:before {
+      top: 0;
+      border-top-left-radius: var(--rdim);
+      border-top-right-radius: var(--rdim);
+      transform-origin: bottom center;
+      transform: rotate(-45deg);
+   }
+
+   .pacman:after {
+      bottom: 0;
+      border-bottom-left-radius: var(--rdim);
+      border-bottom-right-radius: var(--rdim);
+      transform-origin: top center;
+      transform: rotate(45deg);
+   }
+
+   @keyframes waka {
+      0% {}
+      50% {transform: rotate(0);}
+      100% {}
+   }
+
+   .pacman-input[type="radio"]:hover ~ .pacman:before,
+   .pacman-input[type="radio"]:hover ~ .pacman:after {
+      animation: waka 500ms infinite;
+   }
+
+   .pacman-input[id="dot-1"]:checked ~ .pacman {transform: translateX(0);}
+   .pacman-input[id="dot-2"]:checked ~ .pacman {transform: translateX(calc(1 * var(--step)));}
+   .pacman-input[id="dot-3"]:checked ~ .pacman {transform: translateX(calc(2 * var(--step)));}
+   .pacman-input[id="dot-4"]:checked ~ .pacman {transform: translateX(calc(3 * var(--step)));}
+   .pacman-input[id="dot-5"]:checked ~ .pacman {transform: translateX(calc(4 * var(--step)));}
+   .pacman-input[id="dot-6"]:checked ~ .pacman {transform: translateX(calc(5 * var(--step)));}
+   .pacman-input[id="dot-7"]:checked ~ .pacman {transform: translateX(calc(6 * var(--step)));}
+   .pacman-input[id="dot-8"]:checked ~ .pacman {transform: translateX(calc(7 * var(--step)));}
+   .pacman-input[id="dot-9"]:checked ~ .pacman {transform: translateX(calc(8 * var(--step)));}
+</style>
+{% endblock %}
+
+{% block innerbody %}
+
+<div class="container">
+
+   <h2 class="mt-5">Pending List</h2>
+
+   <div class="description mt-4 mb-4">
+      This page shows words with incomplete fields, primarily those added from the 'My Sources' panel.
+      This is intentional—you usually don't need to dive deep into word details while watching a show.
+   </div>
+   
+   <div class="pending-list">
+      <div class="header d-flex justify-content-between">
+         <span>Word</span>
+         <span>Missing fields</span>
+      </div>
+      {% for word in page_obj %}
+      <div class="list-item">
+         <div class="list-item-header d-flex justify-content-between">
+            <div>
+               <span class="title">{{word.name|capfirst}}</span>
+               <span class="date ms-1">{{word.added_at}}</span>
+            </div>
+            <div>
+               {% if word.missing_counts.definitions %}
+                  <span class="missing-category ms-4">In Definitions - </span>
+               {% endif %}
+               {% for key, value in word.missing_counts.definitions.items %}
+               <span class="{% if key == 'definitions' or key == 'description' %}text-danger{% endif %}">
+                  <span class="missing-key">{{key|capfirst}}:</span>
+                  <span class="missing-value">{{value}}</span>{% if not forloop.last %}, {% endif %}
+               </span>
+               {% endfor %}
+               {% if word.missing_counts.examples %}
+                  <span class="missing-category ms-4">In Examples - </span>
+               {% endif %}
+               {% for key, value in word.missing_counts.examples.items %}
+               <span class="{% if key == 'examples' %}text-danger{% endif %}">
+                  <span class="missing-key">{{key|capfirst}}:</span>
+                  <span class="missing-value">{{value}}</span>{% if not forloop.last %}, {% endif %}
+               </span>
+               {% endfor %}
+               <a href="{% url 'word_edit' lang_id=lang_id word_id=word.id%}" class="ms-4 btn btn-primary">Fix</a>
+            </div>
+         </div>
+      </div>
+      {% endfor %}
+   </div>
+</div>
+
+
+
+<div class="d-flex justify-content-center align-items-center mt-4">
+   <div class="pagination-wrapper position-relative">
+      <div class="pagination">
+         {% for p in pages %}
+            <input id="dot-{{forloop.counter}}" class="pacman-input" type="radio" name="dots"
+               {% if p == page_obj.number %}checked{% endif %}
+               {% if p == page_obj.paginator.ELLIPSIS %}disabled{% endif %}
+               data-page-id={{p}}>
+            <label class="pacman-dot position-relative
+               {% if p == page_obj.paginator.ELLIPSIS %}elipsis{% endif %}"
+               for="dot-{{forloop.counter}}"
+               {% if forloop.first %} style="margin-left: 0"{% endif %}
+               {% if forloop.last %} style="margin-right: 0"{% endif %}>
+               <div class="page-indicator w-100 text-center">
+               {% if p is None %}...{% else %}{{p}}{% endif %}
+               </div>
+            </label>
+         {% endfor %}
+         <div class="pacman"></div>
+      </div>
+   </div>
+   <div class="w-25">
+      <form id="change-page" class="d-flex go-page ms-5 gap-2" style="width: 200px;">
+         <input type="number" name="page" class="form-control w-70" placeholder="Page"
+            min="1" max="{{page_obj.paginator.num_pages}}" required="">
+         <button type="submit" class="w-30 btn btn-primary">Go</button>
+      </form>
+   </div>
+</div>
+{% endblock %}
+
+{% block additionalScripts %}
+<script>
+   function changePageUrl(pageNumber){
+      let currUrl = new URL(window.location.href);
+      currUrl.searchParams.set('page', pageNumber);
+      window.location.href = currUrl;
+   }
+
+   document.querySelectorAll('.pacman-input').forEach((el) => {
+      el.addEventListener('change', (event) => {
+         if (event.target.checked) changePageUrl(el.dataset.pageId);
+      });
+   });
+
+   const form = document.getElementById('change-page');
+   form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pageNumberBtn = document.getElementById('page-number-btn');
+      const input = form.querySelector('input');
+      if (!input.value || !Number.isInteger(parseInt(input.value))) return;
+      changePageUrl(input.value);
+   });
+</script>
+{% endblock %}

@@ -24,6 +24,7 @@ urlpatterns = [
    path("lang/<int:lang_id>/word/<int:word_id>/link-edit/<int:rel_word_id>", views.link_word_edit, name="link_word_edit"),
    path("lang/<int:lang_id>/word/<int:word_id>/relation/<int:rel_word_id>/unlink/", views.unlink_word, name="unlink_word"),
    path("lang/<int:lang_id>/words/", views.word_list, name="word_list"),
+   path("lang/<int:lang_id>/words/pending/", views.word_list_pending, name="word_list_pending"),
    
    path("lang/<int:lang_id>/import/", views.import_words_from_old_json, name="import"),
    path("lang/<int:lang_id>/search/", views.search, name="search"),
@@ -67,4 +68,5 @@ urlpatterns = [
    path("lang/<int:lang_id>/episode/<int:episode_id>/session/citation/<int:citation_id>/edit/", views.play_session_cite, name="session_episode_cite_edit"),
    path("lang/<int:lang_id>/segment/<int:segment_id>/session/citation/<int:citation_id>/edit/", views.play_session_cite, name="session_segment_cite_edit"),
 
+   
 ]
