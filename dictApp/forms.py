@@ -520,12 +520,21 @@ class CitationForm(forms.Form):
       required=True
    )
 
+   pending_definition = forms.BooleanField(
+      required=False,
+      initial=False,
+      widget=forms.CheckboxInput(attrs={
+         'class': 'form-check-input'
+      }),
+   )
+
    definition_input = forms.CharField(
       label='New Definition',
       widget=forms.Textarea(attrs={
          'rows': 2,
          'cols': 50,
-         'class': 'form-control resize-none'
+         'class': 'form-control resize-none',
+         'required': True
       }),
       required=False
    )
@@ -595,8 +604,11 @@ class CitationForm(forms.Form):
       cleaned_data = super().clean()
       defn_input = cleaned_data.get('definition_input')
       defn_select = cleaned_data.get('definition_select')
-      # if not defn_input and not defn_select:
-      #    raise forms.ValidationError(f"An existent/new definition is required")
+      pending_defn = cleaned_data.get('pending_definition')
+      if pending_defn:
+         cleaned_data['definition_input'] = 'Pending'
+      if not pending_defn and not defn_input and not defn_select:
+         raise forms.ValidationError(f"An existent/new definition is required")
       
       if defn_select and defn_select != '-1':
          try:
@@ -604,8 +616,8 @@ class CitationForm(forms.Form):
             cleaned_data['defn_object']=defn_obj
          except(ValueError, Definition.DoesNotExist):
             raise forms.ValidationError(f"Invalid definition selected")
-      # elif defn_select == '-1' and not defn_input:
-      #    raise forms.ValidationError(f"Please enter a new definition description")
+      elif defn_select == '-1' and not defn_input and not pending_defn:
+         raise forms.ValidationError(f"Please enter a new definition description or set it pending")
       
       return cleaned_data
 

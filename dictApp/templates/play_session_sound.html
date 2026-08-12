@@ -307,7 +307,8 @@
    //(ノಠ益ಠ)ノ彡┻━┻
    function prepareSelect2CitationForm() {
       $('#genericModalTitle').text('Create a citation');
-
+      $('#pending-toggle').toggleClass('unselectable');
+      
       const $wordInput = $('#id_word');
       const $defSelect = $('#id_definition_select');
       const $defInput = $('#id_definition_input');
@@ -321,6 +322,7 @@
                text: $wordInput.data('initialWord')
             })
          ).trigger('change');
+         $('#wordEditUrl').attr('href', (i, href) => href.replace(/\/word\/\d+/, `/word/${$initialId}`));
          if ($defSelect.data('initialId')){
             loadDefinitions($initialId).then(() => {
                $defSelect.val($defSelect.data('initialId')).trigger('change');
@@ -348,7 +350,11 @@
             $defSelect.empty();
             if (data.results.length > 0) {
                data.results.forEach(item => {
-                  $('<option>', { value: item.id, text: item.text}).appendTo($defSelect);
+                  $('<option>', {
+                     value: item.id,
+                     text: item.text.length > 90 ? item.text.slice(0, 90) + '...' : item.text,
+                     title: item.text
+                  }).appendTo($defSelect);
                });
                $('<option>', { value: -1, text: 'New definition'}).appendTo($defSelect);
                showDefinitionField(true);
@@ -369,6 +375,7 @@
          } else {
             await loadDefinitions(wordId);
             $defInput.val('');
+            $('#wordEditUrl').attr('href', (i, href) => href.replace(/\/word\/\d+/, `/word/${wordId}`));
          }
          
          $('#id_example').closest('.row-wrapper').removeClass('unselectable');
@@ -378,8 +385,10 @@
          if ($(this).val() == '-1') {
             $defInput.closest('.row-wrapper').removeClass('unselectable');
             $defInput.prop('disabled', false);
+            $('#wordEditUrl').toggleClass('unselectable', true);
          } else {
             showDefinitionField(true);
+            $('#wordEditUrl').toggleClass('unselectable', false);
          }
       });
 

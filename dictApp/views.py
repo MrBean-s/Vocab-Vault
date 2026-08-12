@@ -197,6 +197,7 @@ def word(request, lang_id, word_id=None):
             examples = ex_fs.save(commit=False)
             for ex in examples:
                ex.definition = definition
+               ex.status = 'P' if not ex.part_of_speech else 'C'
                ex.save()
             for obj in ex_fs.deleted_objects:
                obj.delete()
@@ -974,6 +975,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
       if form.is_valid():
          word_val = form.cleaned_data['word']
          new_def = form.cleaned_data['definition_input']
+         is_pending_def = form.cleaned_data['pending_definition']
          existing_def_id = form.cleaned_data['definition_select']
          
          if word_val.isdigit():
@@ -983,9 +985,14 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          
          if existing_def_id and existing_def_id.isdigit() and existing_def_id != '-1':
             definition = get_object_or_404(Definition, pk=int(existing_def_id))
-         elif new_def or new_def == '':
+         elif new_def or is_pending_def:   
             definition = Definition.objects.create(description=new_def, word=word)
 
+         if definition.description != 'Pending':
+            definition.status = 'C'; definition.save()
+         
+         initial_word_id = citation.example.definition.word_id if citation else None
+         initial_word = citation.example.definition.word if citation else None
 
          example = citation.example if citation else Example()
          example.description = form.cleaned_data['example']
@@ -1011,7 +1018,19 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
                if storage.exists(old_img.file.name):
                   storage.delete(old_img.file.name)
                old_img.delete()
-         
+
+            # If theres any pending word in the citation edit panel, the definition input is the only one shown
+            # This creates a new def every time so its necessary to delete the 'Pending' orphans
+            if initial_word_id == word.id:
+               word_to_delete_from = word
+            else:
+               word_to_delete_from = initial_word
+            
+            pending_def = word_to_delete_from.definitions.filter(status='P', description='Pending', examples__isnull=True).first()
+
+            if pending_def:
+               pending_def.delete()
+            
          if image_file:
             citation.image = Image.objects.create(file=image_file)
          
@@ -1172,11 +1191,14 @@ def word_list_pending(request, lang_id):
    language = get_object_or_404(Language, pk=lang_id)
 
    words_with_missing_fields = (
+      # will replace these Q()s with status == 'P' when I had fixed my own words
       Word.objects.filter(
          Q(definitions__isnull=True) |
-         Q(definitions__description__isnull=True) | Q(definitions__description='') |
+         Q(definitions__description__isnull=True) | Q(definitions__description='Pending') |
          Q(definitions__examples__isnull=True) |
          Q(definitions__examples__part_of_speech__isnull=True),
+         # Q(definitions__status='P') |
+         # Q(definitions__examples__status='P')
          language_id=lang_id
       )
       .prefetch_related(
@@ -1192,15 +1214,21 @@ def word_list_pending(request, lang_id):
    for w in words_with_missing_fields:
       def_counts = Counter()
       ex_counts = Counter()
-      if w.definitions.count() == 0:
+      
+      defs = w.definitions.all()
+      
+      if not defs:
          def_counts['definitions'] += 1
-      for d in w.definitions.all():
-         if not d.description:
+
+      for d in defs:
+         if not d.description or d.description == 'Pending':
             def_counts['description'] += 1
-         if d.examples.count() == 0:
+
+         examples = d.examples.all()
+         if not examples:
             ex_counts['examples'] += 1
          else:
-            for e in d.examples.all():
+            for e in examples:
                if not e.part_of_speech:
                   ex_counts['parts of speech'] +=1
 

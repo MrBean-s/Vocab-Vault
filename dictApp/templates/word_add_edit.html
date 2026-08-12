@@ -130,8 +130,8 @@
                         <label for="def_form.description.id_for_label" class="form-label m-0
                            field-title-accent">
                            {{ def_form.description.label }}
-                           <span class="def-row-number">{{forloop.counter}}</span>
-                        </label>                 
+                           <span class="def-row-number" data-is-prototype="{{def_is_prototype}}">{{forloop.counter}}</span>
+                        </label>
 
                         <a class="position-absolute
                            remove-definition-item "
@@ -333,7 +333,9 @@ function addDefinition() {
    
    newRow.dataset.isPrototype = 'false';
    newRow.classList.remove('d-hidden');
-   newRow.querySelector('.def-row-number').textContent = document.querySelectorAll('.def-row-number').length;
+   let rowNumberSpan = newRow.querySelector('.def-row-number');
+   rowNumberSpan.textContent = document.querySelectorAll('.def-row-number[data-is-prototype=false]').length + 1;
+   rowNumberSpan.setAttribute('data-is-prototype', false);
 
    const exContainer = newRow.querySelector('.examples-container');
    
@@ -396,7 +398,7 @@ function removeDefinition(element) {
    checkDeleteInput({ parent: defRow, checked: true });
    defRow.querySelector('.def-row-number').classList.remove('def-row-number');
 
-   document.querySelectorAll('.def-row-number').forEach((span, index) => { span.textContent = index; });
+   document.querySelectorAll('.def-row-number[data-is-prototype=false]').forEach((span, index) => { span.textContent = index + 1; });
 }
 
 function removeExample(element) {

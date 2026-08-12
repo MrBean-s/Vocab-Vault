@@ -156,6 +156,14 @@
       z-index: 3;
    }
 
+   .form-select, 
+   .form-select option {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+   }
+
 </style>
 {% endblock additionalStyles %}
 
@@ -345,7 +353,7 @@
       const $wordInput = $('#id_word');
       const $defSelect = $('#id_definition_select');
       const $defInput = $('#id_definition_input');
-
+      const $pendingCheck = $('#id_pending_definition');
       
       const $initialId = $wordInput.data('initialId');
       if ($initialId != "None") {
@@ -355,9 +363,15 @@
                text: $wordInput.data('initialWord')
             })
          ).trigger('change');
+         $('#wordEditUrl').attr('href', (i, href) => href.replace(/\/word\/\d+/, `/word/${$initialId}`));
          if ($defSelect.data('initialId')){
             loadDefinitions($initialId).then(() => {
                $defSelect.val($defSelect.data('initialId')).trigger('change');
+               
+               if ($defSelect.find('option:selected').text() == 'Pending') {
+                  $('#pending-toggle').toggleClass('unselectable');
+                  showDefinitionField(false);
+               }
             });
          }
       } else {
@@ -382,7 +396,11 @@
             $defSelect.empty();
             if (data.results.length > 0) {
                data.results.forEach(item => {
-                  $('<option>', { value: item.id, text: item.text}).appendTo($defSelect);
+                  $('<option>', {
+                     value: item.id,
+                     text: item.text.length > 90 ? item.text.slice(0, 90) + '...' : item.text,
+                     title: item.text
+                  }).appendTo($defSelect);
                });
                $('<option>', { value: -1, text: 'New definition'}).appendTo($defSelect);
                showDefinitionField(true);
@@ -403,6 +421,7 @@
          } else {
             await loadDefinitions(wordId);
             $defInput.val('');
+            $('#wordEditUrl').attr('href', (i, href) => href.replace(/\/word\/\d+/, `/word/${wordId}`));
          }
          
          $('#id_example').closest('.row-wrapper').removeClass('unselectable');
@@ -412,15 +431,21 @@
          if ($(this).val() == '-1') {
             $defInput.closest('.row-wrapper').removeClass('unselectable');
             $defInput.prop('disabled', false);
+            $('#wordEditUrl').toggleClass('unselectable', true);
          } else {
             showDefinitionField(true);
+            $('#wordEditUrl').toggleClass('unselectable', false);
          }
+         $pendingCheck.prop('checked', false);
+      });
+
+      $pendingCheck.on('change', function() {
+         var checked = $(this).is(':checked');
+         $defInput.prop('required', !checked);
       });
 
       $defSelect.prop('disabled', true);
       $defInput.prop('disabled', true);
-
-      console.log('finished');
    }
 </script>
 {% endblock additionalScripts %}

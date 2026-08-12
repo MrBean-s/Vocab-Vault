@@ -86,6 +86,18 @@ class Definition(models.Model):
       help_text='Topic domain of this relation'
    )
 
+   class Status(models.TextChoices):
+      PENDING = 'P', 'Pending'
+      COMPLETE = 'C', 'Complete'
+
+   status = models.CharField(
+      max_length=1, 
+      choices=Status.choices, 
+      default=Status.PENDING,
+      null=False,
+      blank=True
+   )
+
    def to_json(self, all_lang_countries_ids=None):
       data = {
          "id": self.id,
@@ -128,6 +140,18 @@ class Example(models.Model):
    description = models.TextField()
    explanation = models.TextField(null=True, blank=True)
    created = models.DateTimeField(auto_now_add=True)
+
+   class Status(models.TextChoices):
+      PENDING = 'P', 'Pending'
+      COMPLETE = 'C', 'Complete'
+
+   status = models.CharField(
+      max_length=1, 
+      choices=Status.choices, 
+      default=Status.PENDING,
+      null=False,
+      blank=True
+   )
 
    part_of_speech = models.ForeignKey('PartOfSpeech', on_delete=models.PROTECT, null=True,
       blank=True)

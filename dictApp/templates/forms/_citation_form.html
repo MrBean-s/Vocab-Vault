@@ -26,14 +26,29 @@
          <div id="{{form.word.id_for_label}}-dropdownParent"></div>
       </div>
 
+      
       <div class="mb-4 row-wrapper{% if not is_edit %} unselectable{% endif %}">
-         <label class="form-label" for="{{form.definition_select.id_for_label}}">{{form.definition_select.label}}</label>
-         {{form.definition_select}}
+         <div class="d-flex justify-content-between">
+            <label class="form-label" for="{{form.definition_select.id_for_label}}">{{form.definition_select.label}}</label>
+            <a id="wordEditUrl" href="{% url 'word_edit' lang_id=lang_id word_id=999999 %}">
+               <i class="fa-solid fa-pen-to-square anchor-not-href-icon text-muted"></i>
+            </a>
+         </div>
+         <div class="select-wrapper">
+            {{form.definition_select}}
+         </div>
          {{form.definition_select.errors}}
       </div>
 
       <div class="mb-4 row-wrapper {% if not is_edit %} unselectable{% endif %}">
-         <label class="form-label" for="{{form.definition_input.id_for_label}}">{{form.definition_input.label}}</label>
+         <div class="d-flex justify-content-between">
+            <label class="form-label" for="{{form.definition_input.id_for_label}}">{{form.definition_input.label}}</label>
+            <span id="pending-toggle">
+               <label class="form-label pe-2" for="{{form.pending_definition.id_for_label}}">Set definition as pending</label>
+               {{form.pending_definition}}
+            </span>
+         </div>
+         
          {{form.definition_input}}
          {{form.definition_input.errors}}
       </div>
