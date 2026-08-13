@@ -522,7 +522,6 @@ class CitationForm(forms.Form):
 
    pending_definition = forms.BooleanField(
       required=False,
-      initial=False,
       widget=forms.CheckboxInput(attrs={
          'class': 'form-check-input'
       }),
@@ -534,7 +533,8 @@ class CitationForm(forms.Form):
          'rows': 2,
          'cols': 50,
          'class': 'form-control resize-none',
-         'required': True
+         'required': True,
+         'disabled': True
       }),
       required=False
    )
@@ -543,6 +543,8 @@ class CitationForm(forms.Form):
       label="Definition",
       widget=forms.Select(attrs={
          'class': 'form-select',
+         'required': True,
+         'disabled': True
       }),
       required=False
    )
@@ -576,7 +578,6 @@ class CitationForm(forms.Form):
       ajax_url = kwargs.pop('ajax_url', None)
       initial_word_id = kwargs.pop('initial_word_id', None)
       initial_word    = kwargs.pop('initial_word', None)
-      initial_defn_id = kwargs.pop('initial_defn_id', None)
       can_add_img     = kwargs.pop('can_add_img', None)
       is_book = kwargs.pop('is_book', None)
       super().__init__(*args, **kwargs)
@@ -585,15 +586,12 @@ class CitationForm(forms.Form):
       word_widget.attrs['data-ajax-url'] = ajax_url
       word_widget.attrs['data-initial-id'] = initial_word_id
       word_widget.attrs['data-initial-word'] = initial_word
-      self.fields['definition_select'].widget.attrs['data-initial-id'] = initial_defn_id
-
       if not can_add_img:
          del self.fields['image_file']
       if is_book:
          self.fields['spotted_at'].required = False
       else:
          del self.fields['page']
-         
       # # when validation fails the same word is selected
       # if self.is_bound and 'word' in self.data:
       #    submitted_id = self.data.get('word')
@@ -606,7 +604,8 @@ class CitationForm(forms.Form):
       defn_select = cleaned_data.get('definition_select')
       pending_defn = cleaned_data.get('pending_definition')
       if pending_defn:
-         cleaned_data['definition_input'] = 'Pending'
+         cleaned_data['definition_input'] = ''
+      
       if not pending_defn and not defn_input and not defn_select:
          raise forms.ValidationError(f"An existent/new definition is required")
       

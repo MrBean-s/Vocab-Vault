@@ -968,8 +968,14 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
    can_add_img = bool(episode or (source and source.source_category == 'MOV'))
    is_book = bool(segment and segment.source.source_category == 'BOK')
    
-   initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description, 'page': citation.page } if citation else {}
-
+   initial_data = { 
+      'spotted_at': citation.spotted_at,
+      'example': citation.example.description,
+      'page': citation.page,
+      'pending_definition': citation.example.definition.description == '',
+      'definition_select': citation.example.definition_id if citation.example.definition.description != '' else None
+   } if citation else {}
+   
    if request.method == "POST":
       form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data, can_add_img=can_add_img, is_book=is_book)
       if form.is_valid():
@@ -977,7 +983,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          new_def = form.cleaned_data['definition_input']
          is_pending_def = form.cleaned_data['pending_definition']
          existing_def_id = form.cleaned_data['definition_select']
-         
+
          if word_val.isdigit():
             word = get_object_or_404(Word, pk=int(word_val))
          else:
@@ -985,11 +991,11 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          
          if existing_def_id and existing_def_id.isdigit() and existing_def_id != '-1':
             definition = get_object_or_404(Definition, pk=int(existing_def_id))
-         elif new_def or is_pending_def:   
+         elif new_def or is_pending_def:
             definition = Definition.objects.create(description=new_def, word=word)
 
-         if definition.description != 'Pending':
-            definition.status = 'C'; definition.save()
+         definition.status = 'P' if is_pending_def else 'C'
+         definition.save()
          
          initial_word_id = citation.example.definition.word_id if citation else None
          initial_word = citation.example.definition.word if citation else None
@@ -1026,7 +1032,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             else:
                word_to_delete_from = initial_word
             
-            pending_def = word_to_delete_from.definitions.filter(status='P', description='Pending', examples__isnull=True).first()
+            pending_def = word_to_delete_from.definitions.filter(status='P', description='', examples__isnull=True).first()
 
             if pending_def:
                pending_def.delete()
@@ -1060,9 +1066,8 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             initial=initial_data,
             initial_word_id=citation.example.definition.word_id,
             initial_word=citation.example.definition.word.name,
-            initial_defn_id=citation.example.definition_id,
             can_add_img=can_add_img,
-            is_book=is_book
+            is_book=is_book,
          )
       else:
          form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img, is_book=is_book)
@@ -1093,7 +1098,7 @@ def get_definitions(request):
    )
 
    results = {
-      'results': [ {'id': defn.id, 'text': defn.description} for defn in word.definitions.all() ]
+      'results': [ {'id': defn.id, 'text': defn.description} for defn in word.definitions.exclude(description='') ]
    }
 
    return JsonResponse(results)
