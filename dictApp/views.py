@@ -9,7 +9,7 @@ from django.core.paginator import Paginator
 from django.core.exceptions import BadRequest
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
-from collections import defaultdict
+from collections import defaultdict, Counter
 from django.urls import reverse
 from itertools import groupby
 from django.conf import settings
@@ -174,7 +174,7 @@ def word(request, lang_id, word_id=None):
          word = word_form.save(commit=False)
          word.language = language
          word.save()
-   
+
          for idx, def_form in enumerate(def_formset.forms):
             # Skip forms marked for deletion
             if def_form.cleaned_data.get('DELETE', False):
@@ -197,6 +197,7 @@ def word(request, lang_id, word_id=None):
             examples = ex_fs.save(commit=False)
             for ex in examples:
                ex.definition = definition
+               ex.status = 'P' if not ex.part_of_speech else 'C'
                ex.save()
             for obj in ex_fs.deleted_objects:
                obj.delete()
@@ -214,6 +215,12 @@ def word(request, lang_id, word_id=None):
 
                def_form.instance.delete()
 
+         if not word.definitions.all():
+            messages.success(request, "Word added to pending list")
+            word.is_draft = True
+         else:
+            word.is_draft = False
+         word.save()
    
          return redirect('word_details', lang_id=lang_id, word_id=word.id)
    else:
@@ -269,7 +276,7 @@ def word_delete(request, lang_id, word_id):
 
 def word_list(request, lang_id):
    lang = get_object_or_404(Language, pk=lang_id)
-   words_qs = lang.word_set.all()
+   words_qs = lang.word_set.filter(is_draft=False)
 
    form = WordListFilters(request.GET, lang_id=lang_id)
    context = { 'lang_id': lang_id, 'form': form }
@@ -351,7 +358,7 @@ def word_list(request, lang_id):
 
    words_qs = words_qs.distinct().prefetch_related(def_prefetch).order_by('-id')
 
-   paginator = Paginator(words_qs, 24)
+   paginator = Paginator(words_qs, 30)
    page_obj = paginator.get_page(request.GET.get('page', 1))
    page_range = paginator.get_elided_page_range(
       number=page_obj.number,
@@ -967,24 +974,38 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
    can_add_img = bool(episode or (source and source.source_category == 'MOV'))
    is_book = bool(segment and segment.source.source_category == 'BOK')
    
-   initial_data = { 'spotted_at': citation.spotted_at, 'example': citation.example.description, 'page': citation.page } if citation else {}
-
+   initial_data = { 
+      'spotted_at': citation.spotted_at,
+      'example': citation.example.description,
+      'page': citation.page,
+      'pending_definition': citation.example.definition.description == '',
+      'definition_select': citation.example.definition_id if citation.example.definition.description != '' else None
+   } if citation else {}
+   
    if request.method == "POST":
       form = CitationForm(request.POST, request.FILES, ajax_url=ajax_url, initial=initial_data, can_add_img=can_add_img, is_book=is_book)
       if form.is_valid():
          word_val = form.cleaned_data['word']
          new_def = form.cleaned_data['definition_input']
+         is_pending_def = form.cleaned_data['pending_definition']
          existing_def_id = form.cleaned_data['definition_select']
-         
+
          if word_val.isdigit():
             word = get_object_or_404(Word, pk=int(word_val))
+            word.is_draft = False; word.save()
          else:
             word, created = Word.objects.get_or_create(name=word_val, language_id=lang_id)
          
          if existing_def_id and existing_def_id.isdigit() and existing_def_id != '-1':
             definition = get_object_or_404(Definition, pk=int(existing_def_id))
-         elif new_def:
+         elif new_def or is_pending_def:
             definition = Definition.objects.create(description=new_def, word=word)
+
+         definition.status = 'P' if is_pending_def else 'C'
+         definition.save()
+         
+         initial_word_id = citation.example.definition.word_id if citation else None
+         initial_word = citation.example.definition.word if citation else None
 
          example = citation.example if citation else Example()
          example.description = form.cleaned_data['example']
@@ -1010,7 +1031,19 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
                if storage.exists(old_img.file.name):
                   storage.delete(old_img.file.name)
                old_img.delete()
-         
+
+            # If theres any pending word in the citation edit panel, the definition input is the only one shown
+            # This creates a new def every time so its necessary to delete the 'Pending' orphans
+            if initial_word_id == word.id:
+               word_to_delete_from = word
+            else:
+               word_to_delete_from = initial_word
+            
+            pending_def = word_to_delete_from.definitions.filter(status='P', description='', examples__isnull=True).first()
+
+            if pending_def:
+               pending_def.delete()
+            
          if image_file:
             citation.image = Image.objects.create(file=image_file)
          
@@ -1030,6 +1063,8 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': redirect_url})
          return redirect(redirect_url)
+      else:
+         print(form.errors)
          
    else:      
       if citation:
@@ -1038,9 +1073,8 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             initial=initial_data,
             initial_word_id=citation.example.definition.word_id,
             initial_word=citation.example.definition.word.name,
-            initial_defn_id=citation.example.definition_id,
             can_add_img=can_add_img,
-            is_book=is_book
+            is_book=is_book,
          )
       else:
          form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img, is_book=is_book)
@@ -1071,7 +1105,7 @@ def get_definitions(request):
    )
 
    results = {
-      'results': [ {'id': defn.id, 'text': defn.description} for defn in word.definitions.all() ]
+      'results': [ {'id': defn.id, 'text': defn.description} for defn in word.definitions.exclude(description='') ]
    }
 
    return JsonResponse(results)
@@ -1163,3 +1197,92 @@ def example_cite(request, lang_id, example_id):
       'lang_id': lang_id,
       'example_id': example_id
    })
+
+
+def word_list_pending(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+
+   words_with_missing_fields = (
+      # will replace these Q()s with status == 'P' when I had fixed my own words
+      Word.objects.filter(
+         Q(definitions__isnull=True) |
+         Q(definitions__description__isnull=True) | Q(definitions__description='') |
+         Q(definitions__examples__isnull=True) |
+         Q(definitions__examples__part_of_speech__isnull=True),
+         # Q(definitions__status='P') |
+         # Q(definitions__examples__status='P')
+         language_id=lang_id,
+         is_draft=False
+      )
+      .prefetch_related(
+         'definitions',
+         'definitions__examples',
+         'definitions__examples__part_of_speech'
+      )
+      .distinct()
+   ).order_by('-added_at')
+
+   paginator = Paginator(words_with_missing_fields, 30)
+   page_obj = paginator.get_page(request.GET.get('page', 1))
+   word_results = []
+
+   for w in page_obj:
+      def_counts = Counter()
+      ex_counts = Counter()
+      
+      defs = w.definitions.all()
+      
+      if not defs:
+         def_counts['definitions'] += 1
+
+      for d in defs:
+         if not d.description or d.description == 'Pending':
+            def_counts['description'] += 1
+
+         examples = d.examples.all()
+         if not examples:
+            ex_counts['examples'] += 1
+         else:
+            for e in examples:
+               if not e.part_of_speech:
+                  ex_counts['parts of speech'] +=1
+
+      word_results.append({
+         'id': w.id,
+         'name': w.name,
+         'added_at': w.added_at,
+         'missing_counts': {
+            'definitions': dict(def_counts),
+            'examples': dict(ex_counts)
+         }
+      })
+   
+   page_obj.object_list = word_results
+
+   page_range = paginator.get_elided_page_range(
+      number=page_obj.number,
+      on_each_side=2,
+      on_ends=1
+   )
+
+   drafts = Word.objects.filter(is_draft=True)
+   return render(request, 'word_list_pending.html', {
+      'page_obj': page_obj,
+      'pages': page_range,
+      'lang_id': lang_id,
+      'drafts': drafts
+   })
+
+
+def add_word_later(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   if request.method == "POST":
+      form = SearchLater(request.POST, lang_id=lang_id)
+      if form.is_valid():
+         form.save()
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': reverse('word_list_pending', kwargs={'lang_id': lang_id})})
+         return redirect('word_list_pending', lang_id=lang_id)
+   else:
+      form = SearchLater(lang_id=lang_id)
+   return render(request, 'forms/_search_later_form.html', { 'lang_id': lang_id, 'form': form } )

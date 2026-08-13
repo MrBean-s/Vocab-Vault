@@ -520,12 +520,21 @@ class CitationForm(forms.Form):
       required=True
    )
 
+   pending_definition = forms.BooleanField(
+      required=False,
+      widget=forms.CheckboxInput(attrs={
+         'class': 'form-check-input'
+      }),
+   )
+
    definition_input = forms.CharField(
       label='New Definition',
       widget=forms.Textarea(attrs={
          'rows': 2,
          'cols': 50,
-         'class': 'form-control resize-none'
+         'class': 'form-control resize-none',
+         'required': True,
+         'disabled': True
       }),
       required=False
    )
@@ -534,6 +543,8 @@ class CitationForm(forms.Form):
       label="Definition",
       widget=forms.Select(attrs={
          'class': 'form-select',
+         'required': True,
+         'disabled': True
       }),
       required=False
    )
@@ -567,7 +578,6 @@ class CitationForm(forms.Form):
       ajax_url = kwargs.pop('ajax_url', None)
       initial_word_id = kwargs.pop('initial_word_id', None)
       initial_word    = kwargs.pop('initial_word', None)
-      initial_defn_id = kwargs.pop('initial_defn_id', None)
       can_add_img     = kwargs.pop('can_add_img', None)
       is_book = kwargs.pop('is_book', None)
       super().__init__(*args, **kwargs)
@@ -576,15 +586,12 @@ class CitationForm(forms.Form):
       word_widget.attrs['data-ajax-url'] = ajax_url
       word_widget.attrs['data-initial-id'] = initial_word_id
       word_widget.attrs['data-initial-word'] = initial_word
-      self.fields['definition_select'].widget.attrs['data-initial-id'] = initial_defn_id
-
       if not can_add_img:
          del self.fields['image_file']
       if is_book:
          self.fields['spotted_at'].required = False
       else:
          del self.fields['page']
-         
       # # when validation fails the same word is selected
       # if self.is_bound and 'word' in self.data:
       #    submitted_id = self.data.get('word')
@@ -595,7 +602,11 @@ class CitationForm(forms.Form):
       cleaned_data = super().clean()
       defn_input = cleaned_data.get('definition_input')
       defn_select = cleaned_data.get('definition_select')
-      if not defn_input and not defn_select:
+      pending_defn = cleaned_data.get('pending_definition')
+      if pending_defn:
+         cleaned_data['definition_input'] = ''
+      
+      if not pending_defn and not defn_input and not defn_select:
          raise forms.ValidationError(f"An existent/new definition is required")
       
       if defn_select and defn_select != '-1':
@@ -604,8 +615,8 @@ class CitationForm(forms.Form):
             cleaned_data['defn_object']=defn_obj
          except(ValueError, Definition.DoesNotExist):
             raise forms.ValidationError(f"Invalid definition selected")
-      elif defn_select == '-1' and not defn_input:
-         raise forms.ValidationError(f"Please enter a new definition description")
+      elif defn_select == '-1' and not defn_input and not pending_defn:
+         raise forms.ValidationError(f"Please enter a new definition description or set it pending")
       
       return cleaned_data
 
@@ -832,3 +843,33 @@ class WordListFilters(forms.Form):
             self.fields['source'].widget.choices = [(src.id, src.name)]
          except Source.DoesNotExist:
             pass
+
+
+class SearchLater(forms.Form):
+   word_name = forms.CharField(
+      required=True,
+      label='Word name',
+      widget=forms.TextInput(attrs={
+         'class': 'form-control',
+         'placeholder': 'Word name',
+      })
+   )
+
+   def __init__(self, *args, **kwargs):
+      lang_id = kwargs.pop('lang_id', None)
+      super().__init__(*args, **kwargs)
+      self.lang_id = lang_id
+
+   def clean(self):
+      cleaned_data = super().clean()
+      name = cleaned_data.get('word_name', None)
+      if not name:
+         self.add_error('word_name', "The name is required.")
+      if Word.objects.filter(name=name, language_id=self.lang_id).exists():
+         self.add_error('word_name', "This word already exist.")
+      return cleaned_data
+   
+   def save(self):
+      Word.objects.create(name=self.cleaned_data['word_name'], language_id=self.lang_id, is_draft=True)
+      
+         

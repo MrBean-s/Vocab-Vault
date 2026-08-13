@@ -26,16 +26,32 @@
          <div id="{{form.word.id_for_label}}-dropdownParent"></div>
       </div>
 
-      <div class="mb-4 row-wrapper{% if not is_edit %} unselectable{% endif %}">
-         <label class="form-label" for="{{form.definition_select.id_for_label}}">{{form.definition_select.label}}</label>
-         {{form.definition_select}}
-         {{form.definition_select.errors}}
-      </div>
+      
+      <div class="definition-wrapper position-relative unselectable">
+         <div id="definition-section">
+            <div class="mb-4 row-wrapper{% if not is_edit %} unselectable{% endif %}">
+               <label class="form-label" for="{{form.definition_select.id_for_label}}">{{form.definition_select.label}}</label>
+               <a id="wordEditUrl" href="{% url 'word_edit' lang_id=lang_id word_id=999999 %}">
+                  <i class="fa-solid fa-pen-to-square anchor-not-href-icon text-muted"></i>
+               </a>
+               <div class="select-wrapper">
+                  {{form.definition_select}}
+               </div>
+               {{form.definition_select.errors}}
+            </div>
 
-      <div class="mb-4 row-wrapper {% if not is_edit %} unselectable{% endif %}">
-         <label class="form-label" for="{{form.definition_input.id_for_label}}">{{form.definition_input.label}}</label>
-         {{form.definition_input}}
-         {{form.definition_input.errors}}
+            <div class="mb-4 row-wrapper{% if not is_edit %} unselectable{% endif %}">
+               <label class="form-label" for="{{form.definition_input.id_for_label}}">{{form.definition_input.label}}</label>            
+               <div class="input-wrapper">
+                  {{form.definition_input}}
+               </div>
+               {{form.definition_input.errors}}
+            </div>
+         </div>
+         <div class="position-absolute end-0 top-0">
+            <label class="form-label pe-2" for="{{form.pending_definition.id_for_label}}">Set definition as pending</label>
+            {{form.pending_definition}}
+         </div>
       </div>
 
       <div class="mb-4 row-wrapper {% if not is_edit %} unselectable{% endif %}">
@@ -53,7 +69,7 @@
       </div>
    </div>
    {% if form.non_field_errors %}
-      {% for error in form.non_field_errros %}
+      {% for error in form.non_field_errors %}
       <div class="text-danger">{{error}}</div>
       {% endfor %}
    {% endif %}

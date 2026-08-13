@@ -18,6 +18,7 @@ class Word(models.Model):
    name = models.CharField(max_length=200)
    added_at = models.DateTimeField(auto_now_add=True)
    is_idiom = models.BooleanField(default=False)
+   is_draft = models.BooleanField(default=False)
 
    language = models.ForeignKey(Language, on_delete=models.PROTECT)
    related_words = models.ManyToManyField(
@@ -86,6 +87,18 @@ class Definition(models.Model):
       help_text='Topic domain of this relation'
    )
 
+   class Status(models.TextChoices):
+      PENDING = 'P', 'Pending'
+      COMPLETE = 'C', 'Complete'
+
+   status = models.CharField(
+      max_length=1, 
+      choices=Status.choices, 
+      default=Status.PENDING,
+      null=False,
+      blank=True
+   )
+
    def to_json(self, all_lang_countries_ids=None):
       data = {
          "id": self.id,
@@ -115,12 +128,31 @@ class Definition(models.Model):
          return ['-999']
       return list(selected_ids)
 
+   def get_missing_fields(self):
+      missing = []
+      if not self.description:
+         missing.append('description')
+      # if not self.origin:
+         # missing.append('origin')
+      return missing
 
 
 class Example(models.Model):
    description = models.TextField()
    explanation = models.TextField(null=True, blank=True)
    created = models.DateTimeField(auto_now_add=True)
+
+   class Status(models.TextChoices):
+      PENDING = 'P', 'Pending'
+      COMPLETE = 'C', 'Complete'
+
+   status = models.CharField(
+      max_length=1, 
+      choices=Status.choices, 
+      default=Status.PENDING,
+      null=False,
+      blank=True
+   )
 
    part_of_speech = models.ForeignKey('PartOfSpeech', on_delete=models.PROTECT, null=True,
       blank=True)
