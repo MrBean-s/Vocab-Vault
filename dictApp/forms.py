@@ -843,3 +843,33 @@ class WordListFilters(forms.Form):
             self.fields['source'].widget.choices = [(src.id, src.name)]
          except Source.DoesNotExist:
             pass
+
+
+class SearchLater(forms.Form):
+   word_name = forms.CharField(
+      required=True,
+      label='Word name',
+      widget=forms.TextInput(attrs={
+         'class': 'form-control',
+         'placeholder': 'Word name',
+      })
+   )
+
+   def __init__(self, *args, **kwargs):
+      lang_id = kwargs.pop('lang_id', None)
+      super().__init__(*args, **kwargs)
+      self.lang_id = lang_id
+
+   def clean(self):
+      cleaned_data = super().clean()
+      name = cleaned_data.get('word_name', None)
+      if not name:
+         self.add_error('word_name', "The name is required.")
+      if Word.objects.filter(name=name, language_id=self.lang_id).exists():
+         self.add_error('word_name', "This word already exist.")
+      return cleaned_data
+   
+   def save(self):
+      Word.objects.create(name=self.cleaned_data['word_name'], language_id=self.lang_id, is_draft=True)
+      
+         

@@ -18,6 +18,7 @@ class Word(models.Model):
    name = models.CharField(max_length=200)
    added_at = models.DateTimeField(auto_now_add=True)
    is_idiom = models.BooleanField(default=False)
+   is_draft = models.BooleanField(default=False)
 
    language = models.ForeignKey(Language, on_delete=models.PROTECT)
    related_words = models.ManyToManyField(

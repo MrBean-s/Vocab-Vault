@@ -174,7 +174,7 @@ def word(request, lang_id, word_id=None):
          word = word_form.save(commit=False)
          word.language = language
          word.save()
-   
+
          for idx, def_form in enumerate(def_formset.forms):
             # Skip forms marked for deletion
             if def_form.cleaned_data.get('DELETE', False):
@@ -215,6 +215,12 @@ def word(request, lang_id, word_id=None):
 
                def_form.instance.delete()
 
+         if not word.definitions.all():
+            messages.success(request, "Word added to pending list")
+            word.is_draft = True
+         else:
+            word.is_draft = False
+         word.save()
    
          return redirect('word_details', lang_id=lang_id, word_id=word.id)
    else:
@@ -270,7 +276,7 @@ def word_delete(request, lang_id, word_id):
 
 def word_list(request, lang_id):
    lang = get_object_or_404(Language, pk=lang_id)
-   words_qs = lang.word_set.all()
+   words_qs = lang.word_set.filter(is_draft=False)
 
    form = WordListFilters(request.GET, lang_id=lang_id)
    context = { 'lang_id': lang_id, 'form': form }
@@ -986,6 +992,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
 
          if word_val.isdigit():
             word = get_object_or_404(Word, pk=int(word_val))
+            word.is_draft = False; word.save()
          else:
             word, created = Word.objects.get_or_create(name=word_val, language_id=lang_id)
          
@@ -1199,12 +1206,13 @@ def word_list_pending(request, lang_id):
       # will replace these Q()s with status == 'P' when I had fixed my own words
       Word.objects.filter(
          Q(definitions__isnull=True) |
-         Q(definitions__description__isnull=True) | Q(definitions__description='Pending') |
+         Q(definitions__description__isnull=True) | Q(definitions__description='') |
          Q(definitions__examples__isnull=True) |
          Q(definitions__examples__part_of_speech__isnull=True),
          # Q(definitions__status='P') |
          # Q(definitions__examples__status='P')
-         language_id=lang_id
+         language_id=lang_id,
+         is_draft=False
       )
       .prefetch_related(
          'definitions',
@@ -1214,9 +1222,11 @@ def word_list_pending(request, lang_id):
       .distinct()
    ).order_by('-added_at')
 
+   paginator = Paginator(words_with_missing_fields, 30)
+   page_obj = paginator.get_page(request.GET.get('page', 1))
    word_results = []
 
-   for w in words_with_missing_fields:
+   for w in page_obj:
       def_counts = Counter()
       ex_counts = Counter()
       
@@ -1247,16 +1257,32 @@ def word_list_pending(request, lang_id):
          }
       })
    
-   paginator = Paginator(word_results, 30)
-   page_obj = paginator.get_page(request.GET.get('page', 1))
+   page_obj.object_list = word_results
+
    page_range = paginator.get_elided_page_range(
       number=page_obj.number,
       on_each_side=2,
       on_ends=1
    )
 
+   drafts = Word.objects.filter(is_draft=True)
    return render(request, 'word_list_pending.html', {
       'page_obj': page_obj,
       'pages': page_range,
-      'lang_id': lang_id
+      'lang_id': lang_id,
+      'drafts': drafts
    })
+
+
+def add_word_later(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   if request.method == "POST":
+      form = SearchLater(request.POST, lang_id=lang_id)
+      if form.is_valid():
+         form.save()
+         if request.META.get('HTTP_HX_REQUEST'):
+            return HttpResponse(headers={'HX-Redirect': reverse('word_list_pending', kwargs={'lang_id': lang_id})})
+         return redirect('word_list_pending', lang_id=lang_id)
+   else:
+      form = SearchLater(lang_id=lang_id)
+   return render(request, 'forms/_search_later_form.html', { 'lang_id': lang_id, 'form': form } )

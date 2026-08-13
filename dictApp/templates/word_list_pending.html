@@ -138,6 +138,12 @@
    .pacman-input[id="dot-7"]:checked ~ .pacman {transform: translateX(calc(6 * var(--step)));}
    .pacman-input[id="dot-8"]:checked ~ .pacman {transform: translateX(calc(7 * var(--step)));}
    .pacman-input[id="dot-9"]:checked ~ .pacman {transform: translateX(calc(8 * var(--step)));}
+
+   #related-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 20px 10px;
+   }
 </style>
 {% endblock %}
 
@@ -151,11 +157,34 @@
       This page shows words with incomplete fields, primarily those added from the 'My Sources' panel.
       This is intentional—you usually don't need to dive deep into word details while watching a show.
    </div>
-   
-   <div class="pending-list">
+
+   <h5 class="mt-2 mb-3">To search later</h5>
+   <div id="related-grid">
+      {% for word in drafts %}
+         <div class="grid-item">
+            <a href="{% url 'word_edit' lang_id=lang_id word_id=word.id%}">
+               {{word.name}}
+            </a>
+         </div>
+      {% endfor %}
+      <div class="grid-item">
+         <a class="text-decoration-none add-pending text-main ps-1"
+         hx-get="{% url 'add_word_later' lang_id=lang_id %}"
+         hx-target="#genericModalBody"
+         hx-error="#error-box"
+         hx-trigger="click"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+         style="cursor: pointer">
+         Add item
+         <i class="fa-solid fa-circle-plus"></i>
+      </a>
+      </div>
+   </div>
+   <div class="pending-list mt-4">
       <div class="header d-flex justify-content-between">
-         <span>Word</span>
-         <span>Missing fields</span>
+         <span>Words with missing fields</span>
+         <span>Problems</span>
       </div>
       {% for word in page_obj %}
       <div class="list-item">
@@ -246,5 +275,9 @@
       if (!input.value || !Number.isInteger(parseInt(input.value))) return;
       changePageUrl(input.value);
    });
+
+   function initSearchLaterForm() {
+      document.getElementById('genericModalTitle').textContent = 'Draft a word';
+   }
 </script>
 {% endblock %}
