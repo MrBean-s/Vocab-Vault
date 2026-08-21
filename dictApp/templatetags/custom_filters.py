@@ -24,3 +24,7 @@ def divide(value, arg):
       return float(value) / float(arg)
    except (ValueError, ZeroDivisionError):
       return None
+
+@register.filter
+def modulo(value, arg):
+   return int(value) % int(arg)

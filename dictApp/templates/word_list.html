@@ -16,7 +16,7 @@
    .row-even { background-color: #161b2a;}
    .row-odd { background-color: #1d263c;}
    .table-header-text { font-weight: bold; font-size: 1.4rem; color: var(--accent-gold); }
-   .word-name { color: var(--bg-info) }
+   .word-name { color: var(--text-info) }
    /*.table-row, .table-cell {border: 1px solid var(--color-border);}*/
    .table-row { padding: 5px 10px; min-height: 50px;}
    .table-separator { border: 1px solid var(--border-color); }
@@ -225,7 +225,7 @@
    
    {% if start_date and end_date %}
    <div class="mb-3">
-      {{start_date}} UTC - {{end_date}} UTC
+      {{start_date}} - {{end_date}}
    </div>
    {% endif %}
 
