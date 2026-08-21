@@ -8,7 +8,7 @@ class Language(models.Model):
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
    in_user_set = models.BooleanField(default=False)
    added_manually = models.BooleanField(default=False)
-   google_ngram_code = models.CharField(max_length=10, blank=True)
+   iso_code = models.CharField(max_length=2, blank=True)
 
    def __str__(self):
       return self.name
@@ -136,6 +136,11 @@ class Definition(models.Model):
          # missing.append('origin')
       return missing
 
+   def __str__(self):
+      txt = self.word.language.name.upper() + " - " + self.description
+      if len(txt) > 50:
+         txt = txt[:50] + '...'
+      return txt
 
 class Example(models.Model):
    description = models.TextField()
@@ -219,8 +224,17 @@ class Source(models.Model):
       url_name = self.REDIRECT_URLS[self.source_category]
       return reverse(url_name, kwargs={'lang_id': lang_id, 'source_id': self.id})
 
+   def get_citation_count(self):
+      return Citation.objects.filter(
+         Q(source=self) |
+         Q(episode__source=self) |
+         Q(segment__source=self)
+      ).distinct().count()
+
+
    def __str__(self):
-      return f'{self.name} ({self.released_year})'
+      year_str = f" ({self.released_year})" if self.released_year else ''
+      return f"{self.name}{year_str}"
 
 class Episode(models.Model):
    season_number = models.IntegerField(null=True, blank=True)

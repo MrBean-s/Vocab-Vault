@@ -871,5 +871,72 @@ class SearchLater(forms.Form):
    
    def save(self):
       Word.objects.create(name=self.cleaned_data['word_name'], language_id=self.lang_id, is_draft=True)
+
+
+class QuizSettingsForm(forms.Form):
+   quiz_type = forms.ChoiceField(
+      required=False,
+      choices={
+         "WW": "Write the Word",
+         "MO": "Multiple Option",
+      },
+      initial="WW",
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )
+
+   source = forms.ModelChoiceField(
+      required=False,
+      queryset=Source.objects.none(),
+      widget=forms.Select(attrs={
+         'class': 'select2',
+         'data-placeholder': 'Source',
+         'data-allow-clear': 'true'
+      }),
+   )
+
+   forgettingFrequency = forms.ChoiceField(
+      required=False,
+      choices = [('', '')] + list(Definition.ForgettingFrequency.choices),
+      initial=None,
+      widget=forms.Select(attrs={
+         'class': 'select2',
+         'data-allow-clear': 'true',
+         'data-placeholder': 'Forgetting frequency',
+         'data-remove-search': 'true'
+      })
+   )
+   
+   prioritize = forms.ChoiceField(
+      required=True,
+      choices={
+         "OLDEST": "Oldest",
+         "NEWEST": "Newest",
+         "ANY": "Any"
+      },
+      initial="ANY",
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )
+   
+   quantity = forms.IntegerField(
+      min_value=5,
+      max_value=20,
+      initial=10,
+      required=True,
+      widget=forms.NumberInput(attrs={'class': 'form-control'})
+   )
+
+   def clean(self):
+      cleaned_data = super().clean()
+      source = cleaned_data.get('source')
+      quantity = cleaned_data.get('quantity')
+      if source and source.get_citation_count() < 5:
+         self.add_error(None, 'The show must have at least 5 citations to start a quiz.')
       
-         
+      return cleaned_data
+
+   def __init__(self, *args, **kwargs):
+      lang_id = kwargs.pop('lang_id', None)
+      super().__init__(*args, **kwargs)
+
+      if lang_id and Language.objects.get(pk=lang_id):
+         self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)

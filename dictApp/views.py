@@ -1,4 +1,4 @@
-import json
+import json, random, uuid
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseBadRequest
 from .forms import *
@@ -13,9 +13,10 @@ from collections import defaultdict, Counter
 from django.urls import reverse
 from itertools import groupby
 from django.conf import settings
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
+from django.utils import timezone as django_tz
 from dateutil.relativedelta import relativedelta, MO
-
+from django.views.decorators.http import require_POST
 
 def start_screen(request):
    languages = Language.objects.select_related('image').filter(in_user_set=True).all()
@@ -298,26 +299,25 @@ def word_list(request, lang_id):
       source = form.cleaned_data.get('source')
    
       if time_unit_type in ['D', 'W', 'M', 'Y'] and time_unit_value:
-         gmt6_zone = timezone(timedelta(hours=-6))
-         gmt6_now = datetime.now(gmt6_zone)
+         now = django_tz.localtime()
 
          if time_unit_type == 'M':
-            target = gmt6_now - relativedelta(months=time_unit_value)
+            target = now - relativedelta(months=time_unit_value)
             start_date = target.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             end_date = start_date + relativedelta(months=1) - timedelta(microseconds=1)
 
          elif time_unit_type == 'Y':
-            target = gmt6_now - relativedelta(years=time_unit_value)
+            target = now - relativedelta(years=time_unit_value)
             start_date = target.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
             end_date = start_date + relativedelta(years=1) - timedelta(microseconds=1)
 
          elif time_unit_type == 'W':
-            target = gmt6_now - relativedelta(weeks=time_unit_value)
+            target = now - relativedelta(weeks=time_unit_value)
             start_date = (target + relativedelta(weekday=MO(-1))).replace(hour=0, minute=0, second=0, microsecond=0)
             end_date = start_date + relativedelta(weeks=1) - timedelta(microseconds=1)
 
          elif time_unit_type == 'D':
-            target = gmt6_now - relativedelta(days=time_unit_value)
+            target = now - relativedelta(days=time_unit_value)
             start_date = target.replace(hour=0, minute=0, second=0, microsecond=0)
             end_date = target.replace(hour=23, minute=59, second=59, microsecond=999999)
          
@@ -528,7 +528,7 @@ def word_details(request, lang_id, word_id):
 
    return render(request, 'word_details.html', {
       'lang_id': lang_id,
-      'ngram_code': language.google_ngram_code,
+      'ngram_code': language.iso_code,
       'context': context,
       'related_words': related_words
    })
@@ -1286,3 +1286,230 @@ def add_word_later(request, lang_id):
    else:
       form = SearchLater(lang_id=lang_id)
    return render(request, 'forms/_search_later_form.html', { 'lang_id': lang_id, 'form': form } )
+
+
+def deck(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+
+   active_quizzes = [
+      {
+         'uuid': uuid,
+         'creation_date': django_tz.localtime(datetime.fromisoformat(data['creation_date'])),
+         'quiz_type': data['quiz_type'],
+         'used_settings': data['used_settings']
+      } for uuid, data in (request.session.get('quizzes') or {}).items()
+   ]
+
+   return render(request, 'decks.html', {
+      'lang_id': lang_id,
+      'iso_code': language.iso_code,
+      'decks': None,
+      'active_quizzes': active_quizzes
+   })
+
+
+def quiz_settings(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   form = QuizSettingsForm(request.POST or None, lang_id=lang_id)
+
+   if request.method == 'POST' and form.is_valid():
+      quiz_type = form.cleaned_data.get('quiz_type')
+      source = form.cleaned_data.get('source')
+      forgetting_frequency = form.cleaned_data.get('forgettingFrequency')
+      prioritize = form.cleaned_data.get('prioritize', 'ANY')
+      requested_quantity = form.cleaned_data.get('quantity', 10 if quiz_type == 'WW' else 5)
+      distractors_qty = 4
+      used_settings = { 'quantity': requested_quantity }
+
+      definitions_qs = Definition.objects.filter(
+         word__language_id=lang_id
+      ).exclude(word__is_draft=True)
+
+      if source:
+         definitions_qs = definitions_qs.filter(
+            Q(examples__citation__source=source) |
+            Q(examples__citation__episode__source=source) |
+            Q(examples__citation__segment__source=source)
+         ).distinct()
+         used_settings['source'] = source.name
+
+      if forgetting_frequency:
+         definitions_qs = definitions_qs.filter(forgetting_frequency=forgetting_frequency)
+         used_settings['forgetting_frequency'] = forgetting_frequency
+
+      total_available = definitions_qs.count()
+      needed = requested_quantity * distractors_qty if quiz_type == 'MO' else requested_quantity
+
+      if total_available < needed:
+         form.add_error(
+            None,
+            f"Not enough words. Need {needed} but only {total_available} available. Remove filters, change the mode, or reduce quantity."
+         )
+         return render(request, 'forms/_quiz_settings_form.html', {'lang_id': lang_id, 'form': form})
+      
+      quantity = min(needed, total_available)
+
+      def weighted_sample_unique(population, weights, k):
+         if k > len(population):
+            raise ValueError("k cannot be larger than the population")
+
+         chosen = []
+         while len(chosen) < k:
+            candidate = random.choices(population, weights=weights, k=1)[0]
+            if candidate not in chosen:
+               chosen.append(candidate)
+         return chosen
+      
+      if prioritize == 'OLDEST':
+         definitions = list(definitions_qs.order_by('word__added_at'))
+         weights = [1 / (i + 1) for i in range(len(definitions))]
+         selected = weighted_sample_unique(definitions, weights, quantity)
+         used_settings['prioritize'] = 'OLDEST'
+      elif prioritize == 'NEWEST':
+         definitions = list(definitions_qs.order_by('-word__added_at'))
+         weights = [1 / (i + 1) for i in range(len(definitions))]
+         selected = weighted_sample_unique(definitions, weights, quantity)
+         used_settings['prioritize'] = 'NEWEST'
+      else:
+         definitions = list(definitions_qs)
+         selected = random.sample(definitions, quantity)
+         used_settings['prioritize'] = 'ANY'
+   
+      questions = []
+      answer_key = {}
+      used_definitions = []
+      if quiz_type == 'MO':
+         for question_idx, i in enumerate(range(0, len(selected), distractors_qty)):
+            group = selected[i:i + distractors_qty]
+            correct_def = group[0]
+            used_definitions.append(correct_def)
+            correct_word = correct_def.word
+
+            option_words = [d.word.name for d in group]
+            random.shuffle(option_words)
+            
+            questions.append({
+               'type': 'radiogroup',
+               'name': f'q{question_idx}',
+               'title': correct_def.description,
+               'choices': option_words
+            })
+
+            answer_key[f'q{question_idx}'] = { 'word_id': correct_word.id, 'word_name': correct_word.name, 'defn_id': correct_def.id }
+      elif quiz_type == 'WW':
+         for i, defn in enumerate(selected):
+            questions.append({
+               'type': 'text',
+               'name': f'q{i}',
+               'title': defn.description,
+            })
+            answer_key[f'q{i}'] = { 'word_id': defn.word.id, 'word_name': defn.word.name, 'defn_id': defn.id }
+         used_definitions = selected
+      
+      survey_json = {
+         "pages": [{"name": f"page{i}", "elements": [question]} for i, question in enumerate(questions)],
+         "progressBarLocation": "top",
+         "showProgressBar": "top",
+         "showQuestionNumbers": "on",
+         "progressBarType": "questions",
+         "timeLimit": 300,
+         "timeLimitPerPage": 30,
+         "showTimerPanel": "bottom",
+         "showTimerPanelMode": "page",
+      }
+
+      quiz_uuid = str(uuid.uuid4())
+      quizzes = request.session.get('quizzes', {})
+      quizzes[quiz_uuid] = {
+         'creation_date': django_tz.now().isoformat(),
+         'quiz_type': quiz_type,
+         'survey_json': survey_json,
+         'answer_key': answer_key,
+         'used_settings': used_settings
+         # 'definition_ids': [d.id for d in used_definitions],
+      }
+      request.session['quizzes'] = quizzes
+      
+      kwargs = {'lang_id': lang_id, 'quiz_uuid': quiz_uuid }
+      if request.META.get('HTTP_HX_REQUEST'):
+         return HttpResponse(headers={'HX-Redirect': reverse('quiz_play', kwargs=kwargs)})
+      return redirect('quiz_play', **kwargs)
+
+   return render(request, 'forms/_quiz_settings_form.html', {
+      'lang_id': lang_id,
+      'form': form
+   })
+
+
+def quiz_play(request, quiz_uuid, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+
+   # print('received uuid', quiz_uuid)
+   quiz_data = request.session['quizzes'].get(str(quiz_uuid))
+   # print(request.session['quizzes'])
+   if not quiz_data:
+      messages.error(request, "The quiz has expired.")
+      return redirect('decks', lang_id=lang_id)
+
+   survey_json = quiz_data.get('survey_json')
+   validation_url = reverse('validate_quiz_answer', kwargs={'lang_id': lang_id, 'quiz_uuid': quiz_uuid})
+
+   return render(request, 'quiz_play.html', {
+      'lang_id': lang_id,
+      'survey_json': survey_json,
+      'validation_url': validation_url
+   })
+
+
+def clear_all_quizzes(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   
+   quizzes = request.session.get('quizzes')
+   if quizzes:
+      request.session['quizzes'] = {}
+   
+   return redirect('decks', lang_id=lang_id)
+
+
+def remove_quiz(request, quiz_uuid, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+
+   quizzes = request.session.get('quizzes', {})
+   quizzes.pop(str(quiz_uuid), None)
+   
+   request.session.modified = True
+   
+   return redirect('decks', lang_id=lang_id)
+
+
+@require_POST
+def validate_quiz_answer_ajax(request, quiz_uuid, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+
+   data = json.loads(request.body)
+   question_name = data.get('question_name')
+   answer = data.get('answer')
+
+   quiz_data = request.session.get('quizzes', {}).get(str(quiz_uuid), None)
+   
+   if not quiz_data:
+      messages.error(request, "The quiz has expired.")
+      return redirect('decks', lang_id=lang_id)
+   
+   answer_key = quiz_data['answer_key']
+   
+   correct_word_id, correct_word_name, defn_id = answer_key.get(question_name).values()
+   
+   defn = Definition.objects.filter(pk=defn_id).first()
+      
+   correct_answer = {
+      'correct': (answer == correct_word_name),
+      'word_path': reverse('word_details', kwargs={'lang_id': lang_id, 'word_id': correct_word_id}),
+      'word_name': correct_word_name,
+      'definition': defn.description if defn else '',
+      'image_path': defn.image.file.url if defn and defn.image else '',
+      'examples': [e.description for e in defn.examples.all()] if defn else []
+   }
+
+   return JsonResponse(correct_answer)
+

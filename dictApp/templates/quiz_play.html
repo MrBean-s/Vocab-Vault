@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block additionalStyles %}
+   <link rel="stylesheet" href="{% static 'survey-core/survey-core-3.0.0.min.css' %}">
+   <style>
+
+      .sd-question {
+         padding: 30px 50px;
+      }
+      .sv-string-viewer {
+         font-size: 1.5rem;
+      }
+      .sd-item__control-label .sv-string-viewer, .sd-element__num  { font-size: 1.2rem !important;}
+      .sd-item__control-label { line-height: 30px }
+      .sd-selectbase__label { align-items: center}
+      /* .sd-question__header { padding-bottom: 40px; } */
+      .sd-progress__text { box-shadow: None;}
+      .sd-body { padding-top: 15vh;}
+      .sd-page__content { padding: 0 !important}
+      .ans-correct {
+         border: 2px solid #28a745 !important;
+         background-color: rgba(40, 167, 69, 0.1) !important;
+      }
+      .ans-wrong {
+         border: 2px solid #dc3545 !important;
+         background-color: rgba(220, 53, 69, 0.1) !important;
+      }
+      .sd-question__container {
+         min-height: 415px;
+      }
+      .sd-question__header-and-content-container {
+         row-gap: 70px;
+      }
+      .sd-question__header {
+         min-height: 85px;
+      }
+      .sd-question__content, .sd-selectbase {
+         display: flex;
+         /* flex-direction: column; */
+         width: 100%;
+         justify-content: center;
+      }
+      .sd-selectbase { justify-content: start; gap: 20px 20px; flex-wrap: wrap}
+      .sd-selectbase .sd-item {
+         border: 1px solid var(--border-color);
+         border-radius: 0.375rem;
+         padding: 0;
+         width: calc(50% - 10px);
+         height: 80px;
+      }
+      .sd-selectbase__label { 
+         width: 100%;
+         gap: 20px;
+         padding: 20px 25px;
+         border-radius: 0.375rem;
+      }
+      .sd-item--checked .sd-selectbase__label {
+         border: 2px solid var(--sjs2-color-project-brand-600) !important;
+         background-color: rgba(156, 64, 255, 0.1) !important;
+      }
+
+      .sd-item:nth-child(1) .sd-selectbase__label{ background: #c04e5a;}
+      .sd-item:nth-child(2) .sd-selectbase__label{ background: #3069c4;}
+      .sd-item:nth-child(3) .sd-selectbase__label{ background: #c39c27;}
+      .sd-item:nth-child(4) .sd-selectbase__label{ background: #10a875;}
+
+      .sd-item__control-label {
+         font-weight: bold;
+         text-shadow: 0px 0px 5px black;
+      }
+
+      .sd-item__control-label .sv-string-viewer {
+         padding: 0px 10px;
+      }
+
+      .sd-radio__decorator { display: none}
+
+      .answer-box {
+         padding: 0;
+         max-height: 500px;
+         overflow-y: auto;
+      }
+
+      .answer-content {
+         border-radius: 0.375rem;
+         /* border:  2px solid #b4bcc9 !important; */
+         /* background-color: rgba(187, 191, 219, 0.1) !important; */
+         display: flex;
+         flex-direction: column;
+         justify-content: space-around;
+      }
+      .word {
+         font-weight: bold;
+         font-size: 1.3rem;
+      }
+
+      .image-wrapper {
+         aspect-ratio: 16 / 9;
+         min-width: 320px;
+         min-height: 180px;
+         background: black;
+         display: flex; justify-content: center;
+
+      }
+
+      .image-wrapper img {
+         width: auto;
+         height: 100%;
+         max-width: 100%;
+         object-fit: contain;
+      }
+      .examples {
+         max-height: 200px;
+         overflow-y: auto;
+      }
+      .examples p {
+         font-style: italic;
+         font-size: 1.15rem;
+      }
+   </style>
+{% endblock %}
+
+{% block innerbody %}
+
+
+<div class="container py-5">
+   <div id="surveyContainer" class="quiz-wrapper"></div>
+</div>
+
+
+<template id="answer-template">
+  <div class="answer-box d-flex col-lg-3 col-12">
+      <div class="answer-content w-100">
+         <div class="mb-3">
+            <span class="message"></span>
+            <a class="word" target="_blank" rel="noopener noreferrer"></a>
+         </div>
+         <div class="image-slot">
+            <!-- <div class="image-wrapper"></div> -->
+         </div>
+         <div class="examples"></div>
+      </div>
+  </div>
+</template>
+
+
+{% endblock %}
+
+{% block additionalScripts %}
+   <script src="{% static 'survey-core/survey-core-3.0.0.min.js' %}"></script>
+   <script src="{% static 'survey-core/survey-core-3.0.0-js-ui.min.js' %}"></script>
+   <script src="{% static 'survey-core/themes/custom.js' %}"></script>
+
+   <!-- Outputs data safely into a <script type="application/json" id="quiz-data"> tag -->
+   {{ survey_json|json_script:"quiz-data" }}
+   {{ validation_url|json_script:"validation-url" }}
+
+   <script>
+      const quizData = JSON.parse(document.getElementById('quiz-data').textContent);
+      const validationUrl = JSON.parse(document.getElementById('validation-url').textContent);
+
+      const quiz = new Survey.Model(quizData);
+
+      quiz.applyTheme(SurveyTheme.ContrastDark);
+      quiz.width = '100%';
+      // quiz.widthMode = 'responsive';
+
+      document.addEventListener("DOMContentLoaded", function() {
+         quiz.render(document.getElementById("surveyContainer"));
+
+         const nextBtn = document.querySelector('.sd-navigation__next-btn');
+         nextBtn.classList.toggle('d-none', true);
+
+         function pageAnswered (sender) {
+            const pageAnswered = quiz.currentPage.questions.every(q => q.isAnswered);
+            nextBtn.classList.toggle('d-none', !pageAnswered);
+            const completeBtn = document.querySelector('.sd-navigation__complete-btn');
+            completeBtn?.classList.toggle('d-none', !(pageAnswered && sender.isLastPage));
+         }
+
+         async function validateAnswer(qName, qValue) {
+            const payload = { 'question_name': qName, 'answer': qValue }
+            const config = { 'method': 'POST', 'headers': {'Content-Type': 'application/json', "X-CSRFToken": '{{csrf_token}}'}, 'body': JSON.stringify(payload)}
+            try {
+               const response = await fetch(validationUrl, config);
+               if (!response.ok) throw new Error('Failed to validate');
+               const data = await response.json();
+               return data;
+            } catch (error) {
+               console.log('Error', error);
+               return false;
+            }
+            return correct;
+         }
+
+         async function applyAnswerFeedback(question) {
+            if (!question.value) return;
+
+            const correctAnswerData = await validateAnswer(question.name, question.value);
+            const isCorrect = correctAnswerData.correct;
+
+            question.readOnly = true;
+            question.clearErrors();
+
+            // if (!isCorrect) { question.addError("Incorrect answer!"); }
+
+            requestAnimationFrame(() => {
+               const el = document.querySelector(`[data-name="${question.name}"]`);
+               el?.classList.toggle("ans-wrong", !isCorrect);
+               el?.classList.toggle("ans-correct", isCorrect);
+            });
+            
+            const parent = document.querySelector('.sd-body.sd-body--static');
+            if (!parent) return;
+
+            const questionBody = parent.querySelector('.sd-page.sd-body__page');
+            if (!questionBody) return;
+            
+            let wrapper = parent.querySelector('.side-by-side-row');
+            if (!wrapper) {
+               wrapper = document.createElement('div');
+               wrapper.classList.add('row', 'w-100', 'side-by-side-row', 'g-0', 'gy-4', 'gap-5');
+
+               const questionCol = document.createElement('div');
+               questionCol.classList.add('col', 'question-col');
+
+               parent.insertBefore(wrapper, questionBody);
+               wrapper.appendChild(questionCol);
+               questionCol.appendChild(questionBody);
+            }
+
+            let answerBox = parent.querySelector('.answer-box');
+            answerBox?.classList.toggle('d-none', false);
+            if (!answerBox) {
+               const answerTemplate = document.getElementById('answer-template');
+               const clone = answerTemplate.content.cloneNode(true);
+               wrapper.appendChild(clone);
+               answerBox = parent.querySelector('.answer-box');
+            }
+
+            const answerWord = answerBox.querySelector('.answer-content .word');
+            const exampleContainer = answerBox.querySelector('.answer-content .examples');
+
+            answerWord.textContent = correctAnswerData.word_name;
+            answerWord.href = correctAnswerData.word_path;
+
+            if (correctAnswerData.image_path) {
+               const imageWrapper = Object.assign(document.createElement('div'), { className: 'image-wrapper'});
+               imageWrapper.append(Object.assign(document.createElement('img'), { src: correctAnswerData.image_path }));
+
+               answerBox.querySelector('.answer-content .image-slot').append(imageWrapper);
+            }
+            
+            if (correctAnswerData.examples && correctAnswerData.examples.length > 0) {
+               exampleContainer
+                  .prepend(
+                     Object.assign(document.createElement('h6'), { className: 'text-muted mt-3', textContent: 'Examples: '})
+                  );
+            }
+            const paragraphs = correctAnswerData.examples.map(desc => 
+               Object.assign(document.createElement('p'), { className: 'description', textContent: '"' + desc + '"' })
+            );
+            exampleContainer.append(...paragraphs);
+
+            answerBox.querySelector('.answer-content .message').innerHTML = !isCorrect ? "The correct answer is:&nbsp;&nbsp;&nbsp;" : "Great job! That is correct.<br>";
+         }
+
+         quiz.onValueChanged.add(async (sender, options) => {
+            await applyAnswerFeedback(options.question);
+
+            pageAnswered(sender);
+         });
+         
+         quiz.onCurrentPageChanged.add((sender, options) => {
+            nextBtn.classList.toggle('d-none', true);
+            document.querySelector('.sd-navigation__complete-btn')?.classList.toggle('d-none', true);
+            setTimeout(async () => {
+               for (const question of quiz.currentPage.questions) {
+                  if (question.isAnswered) {
+                     await applyAnswerFeedback(question);
+                  } else {
+                     document.querySelector('.answer-box')?.classList.toggle('d-none', true);
+                  }
+               }
+               pageAnswered(sender);
+            }, 0);
+         });
+         quiz.onCurrentPageChanging.add((sender, options) => {
+            document.querySelector('.answer-box')?.remove();
+         });
+      });
+
+   </script>
+{% endblock %}

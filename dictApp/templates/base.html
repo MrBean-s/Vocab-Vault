@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html {% block html_lang %}{% endblock %}>
 <head>
    <meta charset="utf-8">
    <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -32,7 +32,7 @@
             --bg-red:          #b24a4a;
             --bg-muted:        #919aaa;
 
-            --bg-success:      #8dc314;
+            --bg-success:      #289d55;
             --bg-important:    #edc448;
             --bg-danger:       #d4423f;
             --bg-primary:      #3155d0;
@@ -43,7 +43,7 @@
             --text-important:  #edc448;
             --text-danger:     #d4423f;
             --text-primary:    #0466ff;
-            --text-info:       #3b92d0;
+            --text-info:       #469ddc;
 
             --text-main:       #e6f1fc;
             --text-secondary:  #beccda;
@@ -55,6 +55,7 @@
             --accent-purple:   #a755ff;
             --accent-red:      #b24a4a;
             --accent-orange:   #e1653f;
+            --accent-green:     #8dc314;
 
             --select-hover:     #b24a4a;
             --select-selected:  #2441a6;
@@ -103,7 +104,7 @@
 
 
          
-         [class*=" add-"] i, [class^="add-"] i { color: var(--bg-success) }
+         [class*=" add-"] i, [class^="add-"] i { color: var(--accent-green) }
          [class*=" remove-"] i, [class^="remove-"] i { color: var(--bg-danger) }
          
          textarea:not([readonly]):not(.select2-search__field), input:not([readonly]):not([type=checkbox]):not(.ts-control input) {
@@ -111,7 +112,7 @@
             border: 0 !important;
             color: var(--text-main) !important;
          }
-         input:focus:not([type=checkbox]):not(.ts-control input), textarea:focus:not(.select2-search__field) {
+         input:focus:not([type=checkbox]):not(.ts-control input):not(.sd-formbox__input), textarea:focus:not(.select2-search__field) {
             box-shadow: rgba(6, 90, 222, 0.7) 3px 3px !important;
          }
 

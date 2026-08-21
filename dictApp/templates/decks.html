@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block html_lang %}lang="{{iso_code}}"{% endblock %}
+{% load custom_filters %}
+
+{% block additionalStyles %}
+<style>
+   #deck-grid, #quiz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+      column-gap: 20px;
+      row-gap: 40px;
+      width: 100%;
+   }
+
+   .deck-card, .quiz-card {
+      aspect-ratio: 1 / 1.1;
+      min-width: 215px;
+      min-height: 240px;
+      width: 100%;
+
+      cursor: pointer;
+      color: white;
+      
+      border-radius: 0.5rem;
+   }
+
+   .quiz-card {
+      padding: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+   }
+
+   .quiz-card .header, .quiz-card .footer { max-height: 20% }
+   .quiz-card .body { max-height: 80%; overflow-y: scroll }
+   
+   .setting-tittle { font-weight: bold; }
+   .setting-value { hyphens: auto; font-style: italic; }
+
+   .color-0  { background: #312e81; }
+   .color-1  { background: #1e3a8a; }
+   .color-2  { background: #164e63; }
+   .color-3  { background: #064e3b; }
+   .color-4  { background: #14532d; }
+   .color-5  { background: #78350f; }
+   .color-6  { background: #7c2d12; }
+   .color-7  { background: #881337; }
+   .color-8  { background: #701a75; }
+   .color-9  { background: #581c87; }
+
+</style>
+{% endblock %}
+
+{% block innerbody %}
+   <div class="container py-5">
+      <h2 class="mb-3">Decks</h2>
+      
+      <div class="d-flex mb-3 mt-5">
+         <h2>Active quizzes</h2>
+
+         <div class="d-flex gap-4 ms-auto align-items-center">
+            <a href="{% url 'clear_all_quizzes' lang_id=lang_id %}">Clear all quizzes</a>
+            <button 
+               class="btn btn-primary"
+               data-bs-toggle="modal"
+               data-bs-target="#genericModal"
+               hx-get="{% url 'quiz_settings' lang_id=lang_id %}"
+               hx-target="#genericModalBody"
+               hx-trigger="click"
+               hx-target-error="#error-box">
+               Create a quiz
+            </button>
+         </div>
+
+         
+      </div>
+      <div id="quiz-grid">
+         {% for quiz in active_quizzes %}
+            <div class="quiz-card color-{{forloop.counter0|modulo:10}} position-relative"
+               href="{% url 'quiz_play' lang_id=lang_id quiz_uuid=quiz.uuid %}">
+               <div class="header">
+                   <a class="stretched-link text-decoration-none text-white" 
+                  href="{% url 'quiz_play' lang_id=lang_id quiz_uuid=quiz.uuid %}"></a>
+                  {% if quiz.quiz_type == 'WW' %}Write the word{% elif quiz.quiz_type == 'MO' %}Multiple option{% endif %}               </div>
+               <div class="body">
+                  {% for key, value in quiz.used_settings.items %}
+                  <div class="settings">
+                     <span class="setting-tittle">{{key|title}}:</span>
+                     <span class="setting-value">{{value|title}}</span>
+                  </div>
+                  {% endfor %}
+               </div>
+               <span class="footer d-flex justify-content-between">
+                  {{quiz.creation_date}}
+                  <a href="{% url 'remove_quiz' lang_id=lang_id quiz_uuid=quiz.uuid %}" class="position-relative z-2 text-white">
+                     <i class="fa-solid fa-trash"></i>
+                  </a>
+                  
+               </span>
+            </div>         
+         {% endfor %}
+      </div>
+   </div>
+{% endblock%}
+
+{% block additionalScripts %}
+{% endblock %}
