@@ -113,12 +113,12 @@ class Definition(models.Model):
             for cty in self.country_tags.all()
          ],
          "all_countries": False,
-         "examples": [ex.to_json() for ex in self.examples.all()]
+         "examples": [ex.to_json() for ex in self.examples.all()],
+         'topic_category': self.get_topic_category_display() or "",
       }
       if all_lang_countries_ids is not None:
          selected_ids = {c["id"] for c in data["countries"]}
          data["all_countries"] = True if selected_ids == all_lang_countries_ids else False
-
       return data
 
    def get_selected_countries_ids(self):

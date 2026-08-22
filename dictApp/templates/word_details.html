@@ -9,7 +9,7 @@
    .ex-description, .ex-explanation { font-size: 1.25rem; font-style: italic }
    .ex-description { color: var(--text-secondary)}
    .ex-explanation { color: var(--text-muted) }
-   .p-speech { color: var(--text-info); font-weight: bold;}
+   .p-speech, .topic  { color: var(--text-info); font-weight: bold;}
    .tag-region { background-color: var(--bg-purple); }
 
    .separator { 
@@ -132,6 +132,10 @@
                   hx-target-error="#error-box"
                   data-bs-toggle="modal"
                   data-bs-target="#genericModalImg">
+            {% endif %}
+            
+            {% if def.topic_category %}
+               <div class="topic"> {{def.topic_category}}</div>
             {% endif %}
 
             <div class="mb-4 def-description">

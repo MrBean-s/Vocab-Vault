@@ -81,7 +81,7 @@ def delete_language(request, lang_id):
          messages.success(request, "Language deleted.")
 
       return redirect('languages')
-   
+
 def add_lang_to_set(request):
    if request.method == 'POST':
       form = LanguageAddSetForm(request.POST)
@@ -149,6 +149,7 @@ def word(request, lang_id, word_id=None):
       }
 
    if request.method == 'POST':
+      print(request.FILES)
       word_form = WordForm(request.POST, instance=word)
 
       def_formset = DefinitionFormSet(
@@ -455,7 +456,7 @@ def search(request, lang_id):
       
    if 'word' in filters:
       word_results = Word.objects.filter(
-      name__icontains=query, language_id=lang_id
+         name__icontains=query, language_id=lang_id
       ).values_list('id', 'name').order_by(order)[:limit]
 
       for wid, wname in word_results.iterator():

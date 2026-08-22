@@ -4,8 +4,9 @@
 {% load widget_tweaks %}
 
 {% block additionalStyles %}
+   <link rel="stylesheet" href="{% static 'filepond/filepond-4.32.12.css' %}">
+   <link rel="stylesheet" href="{% static 'filepond/filepond-plugin-image-preview-4.6.12.css' %}">
    <style>
-      
       .resize-none { 	resize: none; }
       .header-bar { background-color: var(--bg-dark); height: 100px;
          border-bottom: 1px solid var(--accent-blue) }
@@ -13,7 +14,7 @@
       .d-hidden-only { visibility: hidden !important; }
       .banner-input { font-size: 2rem; padding: 0; padding-left: 15px;}
       .banner-input::placeholder { color: var(--text-main) !important }
-      .img-input { width: 320px; border-radius: 0 0 10px 10px; }
+      
       .form-control-plaintext { caret-color: transparent; }
       textarea[readonly]::placeholder,
       input[readonly]::placeholder {
@@ -21,13 +22,67 @@
       }
       .explanation-arrow { position: absolute; bottom: 10px; left: -21px;}
       .explanation-arrow i { color: var(--accent-green); }
-      .image-placeholder { 
-         display: flex; justify-content: center; align-items: center; 
-         width: 320px; height: 180px; 
-         border-radius: 10px 10px 0 0;
-         background: #222c43;
+
+      
+     .filepond-wrapper { 
+         width: 99%;
+         height: 100%;
+         padding-top: 5px;
       }
-      .placeholder-black { background: black; }
+
+      .filepond--root {
+         max-height: 100% !important;
+         height: 100%;
+         margin-bottom: 0 !important;
+         pointer-events: none;
+      }
+
+      .filepond--label-action,
+      .filepond--file-action-button,
+      .filepond--item {
+         pointer-events: auto;
+      }
+
+      .filepond--drop-label { 
+         background: #222c43;
+         border-radius: var(--bs-border-radius);
+         min-height: 100% !important;
+      }
+
+      .filepond--panel-root {
+         background: #222c43 !important;
+         border: none !important;
+         border-radius: var(--bs-border-radius);
+      }
+
+      .filepond--item-panel {
+         border-radius: 0 !important;
+      }
+
+      .filepond--image-preview-wrapper {
+         border-radius: 0 !important;
+      }
+
+      .filepond--list {
+         left: 0 !important;
+         right: 0 !important;
+      }
+
+      .filepond--item {
+         margin-left: 0 !important;
+         margin-right: 0 !important;
+      }
+
+      .filepond--image-preview {
+         background: black !important;
+      }
+
+      .filepond--list-scroller {
+         margin: 0 !important;
+         -webkit-mask: none !important;
+         mask: none !important;
+      }
+
       .repr-image { max-height: 80%; }
       .curr-image { max-height: 100%; max-width: 100%; }
       .add-example-item i, .add-country-item i { color: var(--bg-muted) !important }
@@ -113,135 +168,127 @@
 
             {% with def_index=forloop.counter0 %}
             {% with def_is_prototype=forloop.last|lower %}
-            <div class="def-row custom-card d-grid pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%} position-relative"
+            <div class="def-row custom-card pb-3 mb-4 rounded{%if forloop.last%} d-hidden{%endif%} position-relative"
                data-def-index="{{ def_index }}"
-               data-is-prototype="{{def_is_prototype}}"
-               style="grid-template-columns: 60% 40%;">
+               data-is-prototype="{{def_is_prototype}}">
                
-               <div class="wireframe px-5 pt-1 position-relative">
+               <div class="wireframe pt-1 position-relative">
                   {{ def_form.id }}
                   <input type="checkbox" name="{{ def_form.DELETE.html_name }}"
                      id="{{ def_form.DELETE.id_for_label }}"
                   {% if forloop.last %}checked{% endif %} class="d-hidden def-to-delete">
                   
-                  <div class="mb-3" select-cty-parent>
-                     <div class="d-flex align-items-center mt-3 position-relative">
+                  <div class="ps-5 d-flex align-items-center mt-3 position-relative">
 
-                        <label for="def_form.description.id_for_label" class="form-label m-0
-                           field-title-accent">
-                           {{ def_form.description.label }}
-                           <span class="def-row-number" data-is-prototype="{{def_is_prototype}}">{{forloop.counter}}</span>
-                        </label>
-
-                        <a class="position-absolute
-                           remove-definition-item "
-                           style="left: -32px;"
-                           href="#" data-def-index="{{ def_index }}" 
-                           onclick="removeDefinition(this); return false;">
-
-                           <i class="fa-solid fa-trash fs-6"></i>
-                        </a>
-                     </div>
-                     <div class="cty-topic-row d-flex gap-3 mt-3">
-                        
-                        <div class="d-flex gap-2 w-65 justify-content-end align-items-center position-relative">
-                           <select name="def-{{def_index}}-countries" multiple class="select2"
-                              id="def-{{def_index}}-countries" 
-                              data-is-prototype="{{def_is_prototype}}"
-                              backend-rendered='{{forloop.last|yesno:"false,true" }}'
-                              data-is-multiple="true"
-                              data-placeholder="Countries"
-                              data-deny-open="true"
-                              data-custom-template-select="true"
-                              data-min-input-len="0"
-                              data-selection-class="field-multi"
-                              {% if def_form.selected_country_ids %}data-has-selection{% endif %}>
-                              {% for country in country_qs %}
-                                 {% if forloop.first %}
-                                    <option value="-999" data-display-in-pill="All countries"
-                                       {% if def_form.instance.pk and '-999' in def_form.selected_country_ids %}selected{% endif %}>
-                                    All countries</option>
-                                 {% endif %}
-                                 <option value="{{ country.id }}"
-                                    data-display-in-pill="{{ country.iso_code }}"
-                                    {% if def_form.instance.pk and country.id in def_form.selected_country_ids %}selected{% endif %}>
-                                    {{ country.name }}
-                                 </option>
-                                 {{country.id}}, {{def_form.selected_country_ids}}
-                              {% endfor %}
-                           </select>
-                           <!-- <a class="text-decoration-none add-country-item position-absolute" 
-                              onclick="openSelect2Item('def-{{def_index}}-countries')"
-                              title="Add country"
-                              style="cursor: pointer; text-align: left; left: -20px">
-                              <i class="ps-2 fa-solid fa-circle-plus"></i>
-                           </a> -->
-                        </div>
-                        <div class="w-35 d-flex align-items-end">
-                           <div class="topic w-100">
-                              {{def_form.topic_category}}
-                              <div id="id_definitions-{{def_index}}-topic_category-dropdownParent"></div>
-                           </div>
-                        </div>
-                     </div>
-
-                     <div id="def-{{def_index}}-countries-dropdownParent" class="position-relative"></div>
-                     {% if forloop.last %}
-                        {{ def_form.description }}
-                     {% else %}
-                        {% render_field def_form.description required="required" %}
-                     {% endif %}
-                     {{ def_form.description.errors }}
-                  </div>
-         
-                  <div class="mb-3">
-                     <label for="def_form.origin.id_for_label" class="form-label field-title">
-                        {{ def_form.origin.label }}
+                     <label for="def_form.description.id_for_label" class="form-label m-0
+                        field-title-accent">
+                        {{ def_form.description.label }}
+                        <span class="def-row-number" data-is-prototype="{{def_is_prototype}}">{{forloop.counter}}</span>
                      </label>
-                     {{ def_form.origin }}
-                     {{ def_form.origin.errors }}
+
+                     <a class="position-absolute
+                        remove-definition-item"
+                        style="left: 15px"
+                        href="#" data-def-index="{{ def_index }}" 
+                        onclick="removeDefinition(this); return false;">
+
+                        <i class="fa-solid fa-trash fs-6"></i>
+                     </a>
                   </div>
 
-                  <div class="d-flex position-relative">
-                     <div class="position-absolute " style="left: -35px">
+                  <div class="defn-img-row d-grid pt-3" style="grid-template-columns: 60% 40%;">
+                     <div class="left-col px-5">
+                        <div class="mb-3">
+                           <div class="cty-topic-row d-flex gap-3">
+                              <div class="d-flex gap-2 w-65 justify-content-end align-items-center position-relative">
+                                 <select name="def-{{def_index}}-countries" multiple class="select2"
+                                    id="def-{{def_index}}-countries" 
+                                    data-is-prototype="{{def_is_prototype}}"
+                                    backend-rendered='{{forloop.last|yesno:"false,true" }}'
+                                    data-is-multiple="true"
+                                    data-placeholder="Countries"
+                                    data-deny-open="true"
+                                    data-custom-template-select="true"
+                                    data-min-input-len="0"
+                                    data-selection-class="field-multi"
+                                    {% if def_form.selected_country_ids %}data-has-selection{% endif %}>
+                                    {% for country in country_qs %}
+                                       {% if forloop.first %}
+                                          <option value="-999" data-display-in-pill="All countries"
+                                             {% if def_form.instance.pk and '-999' in def_form.selected_country_ids %}selected{% endif %}>
+                                          All countries</option>
+                                       {% endif %}
+                                       <option value="{{ country.id }}"
+                                          data-display-in-pill="{{ country.iso_code }}"
+                                          {% if def_form.instance.pk and country.id in def_form.selected_country_ids %}selected{% endif %}>
+                                          {{ country.name }}
+                                       </option>
+                                       {{country.id}}, {{def_form.selected_country_ids}}
+                                    {% endfor %}
+                                 </select>
+                              </div>
+                              <div class="w-35 d-flex align-items-end">
+                                 <div class="topic w-100">
+                                    {{def_form.topic_category}}
+                                    <div id="id_definitions-{{def_index}}-topic_category-dropdownParent"></div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div id="def-{{def_index}}-countries-dropdownParent" class="position-relative"></div>
+                           {% if forloop.last %}
+                              {{ def_form.description }}
+                           {% else %}
+                              {% render_field def_form.description required="required" %}
+                           {% endif %}
+                           {{ def_form.description.errors }}
+                        </div>
+               
+                        <div class="mb-3">
+                           <label for="def_form.origin.id_for_label" class="form-label field-title">
+                              {{ def_form.origin.label }}
+                           </label>
+                           {{ def_form.origin }}
+                           {{ def_form.origin.errors }}
+                        </div>
+                     </div>
+                     <div class="right-col pb-3">
+                        <div class="filepond-wrapper ps-4 pe-5 ms-auto" tabindex="0">
+                           <!-- {% if def_form.instance.image and def_form.instance.image.file %}
+                           <div class="image-placeholder placeholder-black">
+                              <img src="{{def_form.instance.image.file.url}}" alt="Current image"
+                                 class="curr-image"
+                                 hx-get="{% url 'show_image' img_id=def_form.instance.image.id %}"
+                                 hx-trigger="click"
+                                 hx-target="#genericModalImgContent"
+                                 hx-target-error="#error-box"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#genericModalImg">
+                           </div>
+                           {% else %}
+                           <div class="image-placeholder">
+                              <img class="repr-image" src="{% static 'images/img_placeholder2.png' %}" alt="">
+                           </div>
+                           {% endif %} -->
+
+                           {{ def_form.image_file }}
+                           {{ def_form.image_file.errors }}
+                        </div>
+                     </div>
+                  </div>
+
+                  <div class="d-flex position-relative ps-5">
+                     <div class="position-absolute " style="left: 15px">
                         <a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
                         onclick="addExample(this, 'true'); return false;">
-                           <i class="fa-solid fa-circle-plus fs-5"></i>
+                           <i class="fa-solid fa-circle-plus fs-6"></i>
                         </a>
                      </div>
                      <div class="field-title">Examples</div>
                   </div>
                </div>
 
-               <div class="wireframe d-flex justify-content-center align-items-center">
-                  <div class="wireframe p-4 pb-0">
-                     
-                     {% if def_form.instance.image and def_form.instance.image.file %}
-                     <div class="image-placeholder placeholder-black">
-                        <img src="{{def_form.instance.image.file.url}}" alt="Current image"
-                           class="curr-image"
-                           hx-get="{% url 'show_image' img_id=def_form.instance.image.id %}"
-                           hx-trigger="click"
-                           hx-target="#genericModalImgContent"
-                           hx-target-error="#error-box"
-                           data-bs-toggle="modal"
-                           data-bs-target="#genericModalImg">
-                     </div>
-                     {% else %}
-                     <div class="image-placeholder">
-                        <img class="repr-image" src="{% static 'images/img_placeholder2.png' %}" alt="">
-                        <!-- <a href="https://www.flaticon.com/free-icons/image-comics" title="Image Comics icons">Image Comics icons  created by kmg design - Flaticon</a> -->
-                     </div>
-                     {% endif %}
-
-                     <div class=" wireframe h-15 d-flex justify-content-center align-items-center gap-3">
-                        {{ def_form.image_file }}
-                        {{ def_form.image_file.errors }}
-                     </div>
-                  </div>
-               </div>
                
-               <div class="d-flex" style="grid-column: 1 / -1;">
+               <div class="d-flex w-100">
                   <!-- Examples for this definition -->
                   {% with ex_fs=example_formsets|get_at:def_index %}
                      <div class="examples-container w-100" data-def-index="{{ def_index }}">
@@ -316,7 +363,15 @@
 {% endblock innerbody %}
    
 {% block additionalScripts %}
+<script src="{% static 'filepond/filepond-4.32.12.js' %}"></script>
+<script src="{% static 'filepond/filepond-plugin-image-preview-4.6.12.js' %}"></script>
+
+
 <script>
+FilePond.registerPlugin(FilePondPluginImagePreview);
+
+const imageInstances = new Map();
+let activePond = null;
 
 const openSelect2Item = function(selector) {
    var $select = $(`#${selector}`);
@@ -364,6 +419,8 @@ function addDefinition() {
 
    prepareSelect2(`def-${currentCount}-countries`);
    prepareSelect2(`id_definitions-${currentCount}-topic_category`);
+   const imgInput = newRow.querySelector(`#id_definitions-${currentCount}-image_file`);
+   initializeFilePond(imgInput.closest('.filepond-wrapper'));
 }
 
 function addExample(element) {
@@ -424,6 +481,44 @@ function setManualRequired(parent, requiredBool) {
    });
 }
 
+function initializeFilePond(container) {
+   const input = container.querySelector('.filepond');
+   if (!input) return;
+
+   const pond = FilePond.create(input, {
+      allowMultiple: false,
+      allowPaste: false,
+      allowBrowse: true,
+      storeAsFile: true,
+      labelIdle: 'Drag & Drop, paste here, or <span class="filepond--label-action browse-btn">Browse</span>'
+   });
+
+   imageInstances.set(container, pond);
+
+   container.addEventListener('focusin', () => setActiveContainer(container, pond));
+   container.addEventListener('click', () => setActiveContainer(container, pond));
+}
+
+function setActiveContainer(container, pond) {
+   document.querySelectorAll('.filepond-wrapper').forEach(el => el.classList.remove('active'))
+   container.classList.add('active');
+   activePond = pond;
+}
+
+document.addEventListener('paste', (e) => {
+   if (!activePond) return;
+   
+   const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+   for (const item of items) {
+      if (item.type.indexOf('image') !== -1) {
+         const file = item.getAsFile();
+         if (file) {
+            activePond.addFile(file);
+         }
+      }
+   }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
    document.querySelectorAll('form').forEach(form => form.reset());
    {% if not has_word %}
@@ -432,6 +527,10 @@ document.addEventListener('DOMContentLoaded', function() {
    document.querySelectorAll('select.select2[backend-rendered="true"]').forEach(el => {
       prepareSelect2(el.id);
    });
+   document.querySelectorAll('.filepond-wrapper .filepond[backend-rendered="true"]').forEach((container) => {
+      console.log('initializing');
+      initializeFilePond(container);
+   })
 });
 </script>
 {% endblock additionalScripts %}

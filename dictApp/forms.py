@@ -127,7 +127,7 @@ class WordForm(forms.ModelForm):
 class DefinitionForm(forms.ModelForm):
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control img-input',})
+      widget=forms.FileInput(attrs={'class': 'filepond',})
    )
 
    class Meta:
@@ -188,6 +188,9 @@ class DefinitionForm(forms.ModelForm):
       is_last = kwargs.pop('is_last', False)
       super().__init__(*args, **kwargs)
       self.fields['topic_category'].widget.attrs.update({
+         'backend-rendered': 'false' if is_last else 'true'
+      })
+      self.fields['image_file'].widget.attrs.update({
          'backend-rendered': 'false' if is_last else 'true'
       })
 
