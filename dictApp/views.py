@@ -149,7 +149,6 @@ def word(request, lang_id, word_id=None):
       }
 
    if request.method == 'POST':
-      print(request.FILES)
       word_form = WordForm(request.POST, instance=word)
 
       def_formset = DefinitionFormSet(
@@ -158,7 +157,6 @@ def word(request, lang_id, word_id=None):
          instance=word,
          prefix='definitions',
       )
-   
       # Build example formsets from POST data
       example_formsets = []
       total_defs = int(request.POST.get('definitions-TOTAL_FORMS', 0))

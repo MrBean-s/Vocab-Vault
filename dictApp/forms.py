@@ -166,7 +166,8 @@ class DefinitionForm(forms.ModelForm):
    def save(self, commit=True):
       definition = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
-      
+      delete_image = self.data.get(f"{self.prefix}-image-DELETE")
+
       if image_file:
          old_img = definition.image
 
@@ -179,6 +180,14 @@ class DefinitionForm(forms.ModelForm):
          new_img = Image.objects.create(file=image_file)
          definition.image = new_img
 
+      elif delete_image and definition.pk and definition.image:
+         img_to_del = definition.image
+         storage = img_to_del.file.storage
+         if storage.exists(img_to_del.file.name):
+            storage.delete(img_to_del.file.name)
+         img_to_del.delete()
+         definition.image = None
+
       if commit:
          definition.save()
 
@@ -187,11 +196,13 @@ class DefinitionForm(forms.ModelForm):
    def __init__(self, *args, **kwargs):
       is_last = kwargs.pop('is_last', False)
       super().__init__(*args, **kwargs)
+      existing_img_path = self.instance.image.file.url if self.instance.image and self.instance.image.file else ''
       self.fields['topic_category'].widget.attrs.update({
-         'backend-rendered': 'false' if is_last else 'true'
+         'backend-rendered': 'false' if is_last else 'true',
       })
       self.fields['image_file'].widget.attrs.update({
-         'backend-rendered': 'false' if is_last else 'true'
+         'backend-rendered': 'false' if is_last else 'true',
+         'data-img-path': existing_img_path
       })
 
 class ExampleForm(forms.ModelForm):

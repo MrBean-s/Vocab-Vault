@@ -23,7 +23,6 @@
       .explanation-arrow { position: absolute; bottom: 10px; left: -21px;}
       .explanation-arrow i { color: var(--accent-green); }
 
-      
      .filepond-wrapper { 
          width: 99%;
          height: 100%;
@@ -34,7 +33,6 @@
          max-height: 100% !important;
          height: 100%;
          margin-bottom: 0 !important;
-         pointer-events: none;
       }
 
       .filepond--label-action,
@@ -47,6 +45,7 @@
          background: #222c43;
          border-radius: var(--bs-border-radius);
          min-height: 100% !important;
+         pointer-events: none;
       }
 
       .filepond--panel-root {
@@ -253,25 +252,10 @@
                      </div>
                      <div class="right-col pb-3">
                         <div class="filepond-wrapper ps-4 pe-5 ms-auto" tabindex="0">
-                           <!-- {% if def_form.instance.image and def_form.instance.image.file %}
-                           <div class="image-placeholder placeholder-black">
-                              <img src="{{def_form.instance.image.file.url}}" alt="Current image"
-                                 class="curr-image"
-                                 hx-get="{% url 'show_image' img_id=def_form.instance.image.id %}"
-                                 hx-trigger="click"
-                                 hx-target="#genericModalImgContent"
-                                 hx-target-error="#error-box"
-                                 data-bs-toggle="modal"
-                                 data-bs-target="#genericModalImg">
-                           </div>
-                           {% else %}
-                           <div class="image-placeholder">
-                              <img class="repr-image" src="{% static 'images/img_placeholder2.png' %}" alt="">
-                           </div>
-                           {% endif %} -->
-
+                           <!-- <img class="repr-image position-absolute end-0" src="{% static 'images/img_placeholder2.png' %}" alt=""> -->
                            {{ def_form.image_file }}
                            {{ def_form.image_file.errors }}
+                           <input type="hidden" name="definitions-{{def_index}}-image-DELETE" value="false" class="delete-img-flag">
                         </div>
                      </div>
                   </div>
@@ -483,14 +467,34 @@ function setManualRequired(parent, requiredBool) {
 
 function initializeFilePond(container) {
    const input = container.querySelector('.filepond');
+   const deleteFlag = container.querySelector('.delete-img-flag');
+   
    if (!input) return;
+
+   let files = [];
+   const existingImg = input.dataset.imgPath;
+   if (existingImg) {
+      files.push({
+         source: existingImg,
+         options: { type: 'local' }
+      });
+   }
 
    const pond = FilePond.create(input, {
       allowMultiple: false,
       allowPaste: false,
       allowBrowse: true,
       storeAsFile: true,
-      labelIdle: 'Drag & Drop, paste here, or <span class="filepond--label-action browse-btn">Browse</span>'
+      imagePreviewMinHeight: 230,
+      labelIdle: 'Drag & Drop, paste here, or <span class="filepond--label-action browse-btn">Browse</span>',
+      files: files,
+      server: {
+         load: (source, load, error, progress, abort, headers) => {
+            fetch(source).then(res => res.blob()).then(load).catch(error);
+         }
+      },
+      onaddfile: (error, file) => { if (!error && deleteFlag) deleteFlag.value = 'false'; },
+      onremovefile: (error, file) => { if (deleteFlag) deleteFlag.value = 'true'; }
    });
 
    imageInstances.set(container, pond);
@@ -527,8 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
    document.querySelectorAll('select.select2[backend-rendered="true"]').forEach(el => {
       prepareSelect2(el.id);
    });
-   document.querySelectorAll('.filepond-wrapper .filepond[backend-rendered="true"]').forEach((container) => {
-      console.log('initializing');
+   document.querySelectorAll('.filepond-wrapper:has(.filepond[backend-rendered="true"])').forEach((container) => {
       initializeFilePond(container);
    })
 });
