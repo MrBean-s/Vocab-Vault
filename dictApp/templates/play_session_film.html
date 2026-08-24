@@ -4,6 +4,8 @@
 
 {% block additionalStyles %}
 <link rel="stylesheet" href="{% static 'swiper/swiper-bundle.min.css' %}">
+<link rel="stylesheet" href="{% static 'filepond/filepond-4.32.12.css' %}">
+<link rel="stylesheet" href="{% static 'filepond/filepond-plugin-image-preview-4.6.12.css' %}">
 <style>
    .unselectable {
       cursor: not-allowed;
@@ -163,7 +165,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
    }
-
+   .filepond-container { height: 230px;}
 </style>
 {% endblock additionalStyles %}
 
@@ -298,6 +300,8 @@
 
 {% block additionalScripts %}
 <script src="{% static 'swiper/swiper-bundle.min.js' %}"></script>
+<script src="{% static 'filepond/filepond-4.32.12.js' %}"></script>
+<script src="{% static 'filepond/filepond-plugin-image-preview-4.6.12.js' %}"></script>
 <script>
    
    var swiper = new Swiper('.swiper', {
@@ -348,6 +352,9 @@
    //called from base.html htmx:afterSettle which looks for data-modal-init="prepareSelect2CitationForm" inside the _citation_form swapped content
    //(ノಠ益ಠ)ノ彡┻━┻
    async function prepareSelect2CitationForm() {
+      FilePond.registerPlugin(FilePondPluginImagePreview);
+      document.querySelector('.modal-dialog').classList.toggle('modal-xl', true);
+
       $('#genericModalTitle').text('Create a citation');
 
       const $wordInput = $('#id_word');
@@ -469,6 +476,11 @@
 
       // console.log('pendingcheck triggering change');
       $pendingCheck.trigger('change');
+
+
+      document.querySelectorAll('.filepond-wrapper').forEach((container) => {
+         initializeFilePond(container);  //defined on base.html
+      });
    }
 </script>
 {% endblock additionalScripts %}

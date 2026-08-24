@@ -261,6 +261,64 @@
          @keyframes l13{ 
             100%{transform: rotate(1turn)}
          }
+
+         .filepond-wrapper { 
+            width: 100%;
+            height: 100%;
+         }
+
+         .filepond--root {
+            max-height: 100% !important;
+            height: 100%;
+            margin-bottom: 0 !important;
+         }
+
+         .filepond--label-action,
+         .filepond--file-action-button,
+         .filepond--item {
+            pointer-events: auto;
+         }
+
+         .filepond--drop-label { 
+            background: #222c43;
+            border-radius: var(--bs-border-radius);
+            min-height: 100% !important;
+            pointer-events: none;
+         }
+
+         .filepond--panel-root {
+            background: #222c43 !important;
+            border: none !important;
+            border-radius: var(--bs-border-radius);
+         }
+
+         .filepond--item-panel {
+            border-radius: 0 !important;
+         }
+
+         .filepond--image-preview-wrapper {
+            border-radius: 0 !important;
+         }
+
+         .filepond--list {
+            left: 0 !important;
+            right: 0 !important;
+         }
+
+         .filepond--item {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+         }
+
+         .filepond--image-preview {
+            background: black !important;
+         }
+
+         .filepond--list-scroller {
+            margin: 0 !important;
+            -webkit-mask: none !important;
+            mask: none !important;
+         }
       </style>
    {% endblock styles %}
    {% block sidebarStyle %}
@@ -306,6 +364,7 @@
 
    <script>
       document.getElementById('genericModal').addEventListener('hidden.bs.modal', function () {
+         document.querySelector('.modal-dialog').classList.toggle('modal-xl', false);
          document.getElementById('genericModalTitle').textContent = '';
          document.getElementById('genericModalBody').innerHTML = ``;
          document.getElementById('genericModal').classList.add('hidden');
@@ -451,6 +510,68 @@
             }
          });
       }
+
+      //if theres more than one filepond instance this can be used to control focus dynamically or destruction
+      const imageInstances = new Map(); 
+      let activePond = null;
+
+      function initializeFilePond(container) {
+         const input = container.querySelector('.filepond');
+         const deleteFlag = container.querySelector('.delete-img-flag');
+         
+         if (!input) return;
+
+         let files = [];
+         const existingImg = input.dataset.imgPath;
+         if (existingImg) {
+            files.push({
+               source: existingImg,
+               options: { type: 'local' }
+            });
+         }
+
+         const pond = FilePond.create(input, {
+            allowMultiple: false,
+            allowPaste: false,
+            allowBrowse: true,
+            storeAsFile: true,
+            imagePreviewMinHeight: 230,
+            labelIdle: 'Drag & Drop, click and Ctr + V here, or <span class="filepond--label-action browse-btn">Browse</span>',
+            files: files,
+            server: {
+               load: (source, load, error, progress, abort, headers) => {
+                  fetch(source).then(res => res.blob()).then(load).catch(error);
+               }
+            },
+            onaddfile: (error, file) => { if (!error && deleteFlag) deleteFlag.value = 'false'; },
+            onremovefile: (error, file) => { if (deleteFlag) deleteFlag.value = 'true'; }
+         });
+
+         imageInstances.set(container, pond);
+
+         container.addEventListener('focusin', () => setActiveContainer(container, pond));
+         container.addEventListener('click', () => setActiveContainer(container, pond));
+      }
+
+      function setActiveContainer(container, pond) {
+         document.querySelectorAll('.filepond-wrapper').forEach(el => el.classList.remove('active'))
+         container.classList.add('active');
+         activePond = pond;
+      }
+
+      document.addEventListener('paste', (e) => {
+         if (!activePond) return;
+         
+         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+         for (const item of items) {
+            if (item.type.indexOf('image') !== -1) {
+               const file = item.getAsFile();
+               if (file) {
+                  activePond.addFile(file);
+               }
+            }
+         }
+      });
 
       function awaitImageLoad(imgElement) {
          if (imgElement.complete && imgElement.naturalWidth !== 0) {

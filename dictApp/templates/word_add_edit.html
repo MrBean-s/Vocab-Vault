@@ -23,65 +23,6 @@
       .explanation-arrow { position: absolute; bottom: 10px; left: -21px;}
       .explanation-arrow i { color: var(--accent-green); }
 
-     .filepond-wrapper { 
-         width: 99%;
-         height: 100%;
-         padding-top: 5px;
-      }
-
-      .filepond--root {
-         max-height: 100% !important;
-         height: 100%;
-         margin-bottom: 0 !important;
-      }
-
-      .filepond--label-action,
-      .filepond--file-action-button,
-      .filepond--item {
-         pointer-events: auto;
-      }
-
-      .filepond--drop-label { 
-         background: #222c43;
-         border-radius: var(--bs-border-radius);
-         min-height: 100% !important;
-         pointer-events: none;
-      }
-
-      .filepond--panel-root {
-         background: #222c43 !important;
-         border: none !important;
-         border-radius: var(--bs-border-radius);
-      }
-
-      .filepond--item-panel {
-         border-radius: 0 !important;
-      }
-
-      .filepond--image-preview-wrapper {
-         border-radius: 0 !important;
-      }
-
-      .filepond--list {
-         left: 0 !important;
-         right: 0 !important;
-      }
-
-      .filepond--item {
-         margin-left: 0 !important;
-         margin-right: 0 !important;
-      }
-
-      .filepond--image-preview {
-         background: black !important;
-      }
-
-      .filepond--list-scroller {
-         margin: 0 !important;
-         -webkit-mask: none !important;
-         mask: none !important;
-      }
-
       .repr-image { max-height: 80%; }
       .curr-image { max-height: 100%; max-width: 100%; }
       .add-example-item i, .add-country-item i { color: var(--bg-muted) !important }
@@ -102,6 +43,11 @@
       .field-cat { border-bottom: 0 !important; 
          border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0 !important; }
       .field-quote { border-radius: var(--bs-border-radius) 0 var(--bs-border-radius) var(--bs-border-radius);}
+
+      .filepond-wrapper { 
+         width: 99%;
+         padding-top: 5px;
+      }
       
    </style>
 {% endblock additionalStyles %}
@@ -148,13 +94,13 @@
    </div>
    <div class="container">
       <div class="mb-3 pt-4">
-         <span class="ps-5 position-relative">
-            <a class="position-absolute add-definition-item text-decoration-none" style="left: 10px"
+         <label for="add-defn" class="ps-5 position-relative clickable" role="button">
+            <button id="add-defn" class="position-absolute add-definition-item text-decoration-none btn-transparent" style="left: 10px"
                onclick="addDefinition(); return false;">
                <i class="fa-solid fa-circle-plus fs-5"></i>
-            </a>
+            </button>
             Definitions
-         </span>
+         </label>
       </div>
       <div id="definitions-container">
          {{ def_formset.management_form }}
@@ -179,20 +125,20 @@
                   
                   <div class="ps-5 d-flex align-items-center mt-3 position-relative">
 
-                     <label for="def_form.description.id_for_label" class="form-label m-0
-                        field-title-accent">
+                     <label for="definitions-{{def_index}}-remove" class="form-label m-0 field-title-accent"
+                        role="button">
                         {{ def_form.description.label }}
                         <span class="def-row-number" data-is-prototype="{{def_is_prototype}}">{{forloop.counter}}</span>
                      </label>
 
-                     <a class="position-absolute
-                        remove-definition-item"
+                     <button id="definitions-{{def_index}}-remove"
+                        class="position-absolute remove-definition-item btn-transparent"
                         style="left: 15px"
                         href="#" data-def-index="{{ def_index }}" 
                         onclick="removeDefinition(this); return false;">
 
                         <i class="fa-solid fa-trash fs-6"></i>
-                     </a>
+                     </button>
                   </div>
 
                   <div class="defn-img-row d-grid pt-3" style="grid-template-columns: 60% 40%;">
@@ -254,20 +200,26 @@
                         <div class="filepond-wrapper ps-4 pe-5 ms-auto" tabindex="0">
                            <!-- <img class="repr-image position-absolute end-0" src="{% static 'images/img_placeholder2.png' %}" alt=""> -->
                            {{ def_form.image_file }}
-                           {{ def_form.image_file.errors }}
                            <input type="hidden" name="definitions-{{def_index}}-image-DELETE" value="false" class="delete-img-flag">
                         </div>
+                        {{ def_form.image_file.errors }}
                      </div>
                   </div>
 
                   <div class="d-flex position-relative ps-5">
-                     <div class="position-absolute " style="left: 15px">
-                        <a class="add-example-item" href="#" data-def-index="{{ def_index }}" 
+                     <label for="definitions-{{def_index}}-example-add" class="form-label m-0 field-title-accent"
+                        role="button">
+                        Examples
+                     </label>
+
+                     <button id="definitions-{{def_index}}-example-add"
+                        class="position-absolute add-example-item btn-transparent"
+                        style="left: 15px"
+                        href="#" data-def-index="{{ def_index }}" 
                         onclick="addExample(this, 'true'); return false;">
-                           <i class="fa-solid fa-circle-plus fs-6"></i>
-                        </a>
-                     </div>
-                     <div class="field-title">Examples</div>
+
+                        <i class="fa-solid fa-circle-plus fs-6"></i>
+                     </button>
                   </div>
                </div>
 
@@ -354,9 +306,6 @@
 <script>
 FilePond.registerPlugin(FilePondPluginImagePreview);
 
-const imageInstances = new Map();
-let activePond = null;
-
 const openSelect2Item = function(selector) {
    var $select = $(`#${selector}`);
    $select.data('denyOpen', false);  
@@ -404,7 +353,9 @@ function addDefinition() {
    prepareSelect2(`def-${currentCount}-countries`);
    prepareSelect2(`id_definitions-${currentCount}-topic_category`);
    const imgInput = newRow.querySelector(`#id_definitions-${currentCount}-image_file`);
-   initializeFilePond(imgInput.closest('.filepond-wrapper'));
+   const filepondWrapper = imgInput.closest('.filepond-wrapper');
+   initializeFilePond(filepondWrapper); //defined on base.html
+   setActiveContainer(filepondWrapper, imageInstances.get(filepondWrapper)); //defined on base.html
 }
 
 function addExample(element) {
@@ -440,6 +391,12 @@ function removeDefinition(element) {
    defRow.querySelector('.def-row-number').classList.remove('def-row-number');
 
    document.querySelectorAll('.def-row-number[data-is-prototype=false]').forEach((span, index) => { span.textContent = index + 1; });
+   const filepondWrapper = defRow.querySelector('.filepond-wrapper');
+   const pond = imageInstances.get(filepondWrapper);
+   if (pond) { pond.destroy(); imageInstances.delete(filepondWrapper); }
+
+   let [container, c_pond] = [...imageInstances].at(-1) || [];
+   if (container && c_pond) setActiveContainer(container, c_pond);
 }
 
 function removeExample(element) {
@@ -465,74 +422,16 @@ function setManualRequired(parent, requiredBool) {
    });
 }
 
-function initializeFilePond(container) {
-   const input = container.querySelector('.filepond');
-   const deleteFlag = container.querySelector('.delete-img-flag');
-   
-   if (!input) return;
-
-   let files = [];
-   const existingImg = input.dataset.imgPath;
-   if (existingImg) {
-      files.push({
-         source: existingImg,
-         options: { type: 'local' }
-      });
-   }
-
-   const pond = FilePond.create(input, {
-      allowMultiple: false,
-      allowPaste: false,
-      allowBrowse: true,
-      storeAsFile: true,
-      imagePreviewMinHeight: 230,
-      labelIdle: 'Drag & Drop, paste here, or <span class="filepond--label-action browse-btn">Browse</span>',
-      files: files,
-      server: {
-         load: (source, load, error, progress, abort, headers) => {
-            fetch(source).then(res => res.blob()).then(load).catch(error);
-         }
-      },
-      onaddfile: (error, file) => { if (!error && deleteFlag) deleteFlag.value = 'false'; },
-      onremovefile: (error, file) => { if (deleteFlag) deleteFlag.value = 'true'; }
-   });
-
-   imageInstances.set(container, pond);
-
-   container.addEventListener('focusin', () => setActiveContainer(container, pond));
-   container.addEventListener('click', () => setActiveContainer(container, pond));
-}
-
-function setActiveContainer(container, pond) {
-   document.querySelectorAll('.filepond-wrapper').forEach(el => el.classList.remove('active'))
-   container.classList.add('active');
-   activePond = pond;
-}
-
-document.addEventListener('paste', (e) => {
-   if (!activePond) return;
-   
-   const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-   for (const item of items) {
-      if (item.type.indexOf('image') !== -1) {
-         const file = item.getAsFile();
-         if (file) {
-            activePond.addFile(file);
-         }
-      }
-   }
-});
-
 document.addEventListener('DOMContentLoaded', function() {
    document.querySelectorAll('form').forEach(form => form.reset());
    {% if not has_word %}
       addDefinition();
    {% endif %}
    document.querySelectorAll('select.select2[backend-rendered="true"]').forEach(el => {
-      prepareSelect2(el.id);
+      prepareSelect2(el.id); //defined on base.html
    });
    document.querySelectorAll('.filepond-wrapper:has(.filepond[backend-rendered="true"])').forEach((container) => {
-      initializeFilePond(container);
+      initializeFilePond(container);  //defined on base.html
    })
 });
 </script>

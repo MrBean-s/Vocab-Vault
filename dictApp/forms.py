@@ -180,7 +180,7 @@ class DefinitionForm(forms.ModelForm):
          new_img = Image.objects.create(file=image_file)
          definition.image = new_img
 
-      elif delete_image and definition.pk and definition.image:
+      elif delete_image and delete_image != 'false' and definition.pk and definition.image:
          img_to_del = definition.image
          storage = img_to_del.file.storage
          if storage.exists(img_to_del.file.name):
@@ -515,8 +515,7 @@ class CitationForm(forms.Form):
       label="Spotted at:",
       widget=forms.TextInput(attrs={
          'placeholder': 'HH:MM:SS',
-         'class': 'form-control d-inline',
-         'style': 'width: auto'
+         'class': 'form-control',
       }),
       required=True
    )
@@ -574,7 +573,7 @@ class CitationForm(forms.Form):
 
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      widget=forms.FileInput(attrs={'class': 'filepond'}),
       label='Screenshot'
    )
 
@@ -589,11 +588,12 @@ class CitationForm(forms.Form):
    )
 
    def __init__(self, *args, **kwargs):
-      ajax_url = kwargs.pop('ajax_url', None)
-      initial_word_id = kwargs.pop('initial_word_id', None)
-      initial_word    = kwargs.pop('initial_word', None)
-      can_add_img     = kwargs.pop('can_add_img', None)
-      is_book = kwargs.pop('is_book', None)
+      ajax_url          = kwargs.pop('ajax_url', None)
+      initial_word_id   = kwargs.pop('initial_word_id', None)
+      initial_word      = kwargs.pop('initial_word', None)
+      can_add_img       = kwargs.pop('can_add_img', None)
+      is_book           = kwargs.pop('is_book', None)
+      existing_img_path = kwargs.pop('existing_img_path', None)
       super().__init__(*args, **kwargs)
 
       word_widget = self.fields['word'].widget
@@ -606,6 +606,11 @@ class CitationForm(forms.Form):
          self.fields['spotted_at'].required = False
       else:
          del self.fields['page']
+      
+      if existing_img_path:
+         self.fields['image_file'].widget.attrs.update({
+            'data-img-path': existing_img_path
+         })
       # # when validation fails the same word is selected
       # if self.is_bound and 'word' in self.data:
       #    submitted_id = self.data.get('word')

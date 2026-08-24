@@ -1012,6 +1012,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          example.save()
 
          image_file = form.cleaned_data.get('image_file')
+         delete_image = form.data.get("citation-image-DELETE")
          spotted_at = form.cleaned_data['spotted_at']
 
          if not citation:
@@ -1024,12 +1025,22 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             )
          else:
             citation.spotted_at=spotted_at
-            old_img = citation.image
-            if old_img and image_file:
-               storage = old_img.file.storage
-               if storage.exists(old_img.file.name):
-                  storage.delete(old_img.file.name)
-               old_img.delete()
+            if image_file:
+               old_img = citation.image
+               if old_img and image_file:
+                  storage = old_img.file.storage
+                  if storage.exists(old_img.file.name):
+                     storage.delete(old_img.file.name)
+                  old_img.delete()
+               citation.image = Image.objects.create(file=image_file)
+
+            elif delete_image and delete_image != 'false' and citation.image:
+               img_to_del = citation.image
+               storage = img_to_del.file.storage
+               if storage.exists(img_to_del.file.name):
+                  storage.delete(img_to_del.file.name)
+               img_to_del.delete()
+               citation.image = None
 
             # If theres any pending word in the citation edit panel, the definition input is the only one shown
             # This creates a new def every time so its necessary to delete the 'Pending' orphans
@@ -1042,10 +1053,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
 
             if pending_def:
                pending_def.delete()
-            
-         if image_file:
-            citation.image = Image.objects.create(file=image_file)
-         
+
          page = form.cleaned_data.get('page')
          citation.page = page
          citation.save()
@@ -1067,13 +1075,15 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          
    else:      
       if citation:
+         ex = citation.example
          form = CitationForm(
             ajax_url=ajax_url,
             initial=initial_data,
-            initial_word_id=citation.example.definition.word_id,
-            initial_word=citation.example.definition.word.name,
+            initial_word_id=ex.definition.word_id,
+            initial_word=ex.definition.word.name,
             can_add_img=can_add_img,
             is_book=is_book,
+            existing_img_path=citation.image.file.url if citation.image and citation.image.file else ''
          )
       else:
          form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img, is_book=is_book)
