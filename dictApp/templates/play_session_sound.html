@@ -227,42 +227,7 @@
 
 {% block additionalScripts %}
 <script src="{% static 'swiper/swiper-bundle.min.js' %}"></script>
-<script>
-   
-   var swiper = new Swiper('#waveform', {
-      spaceBetween: 0,
-      pagination: {
-         el: '.swiper-pagination',
-         clickable: true,
-         dynamicBullets: true,
-      },
-      keyboard: true,
-      preventClicks: true,
-      preventClicksPropagation: true,
-      // navigation: {
-      //    nextEl: '.custom-next-btn',
-      //    prevEl: '.custom-prev-btn',
-      // },
-      slidesPerView: 'auto',
-      
-      // centeredSlides: true,
-      // effect: 'coverflow',
-      // coverflowEffect: {
-      //    rotate: 50,
-      //    stretch: 0,
-      //    depth: 100,
-      //    modifier: 1,
-      //    slideShadows: true,
-      // },
-   });
-   console.log(swiper);
-   
-   function htmxTriggerAndShow(target, trigger) {
-      htmx.trigger(target, trigger);
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show();
-   }
-   
-</script>
+
 <script>
    
    var swiper = new Swiper('.swiper', {
@@ -281,16 +246,6 @@
          prevEl: '.custom-prev-btn',
       },
       slidesPerView: 'auto',
-      
-      // centeredSlides: true,
-      // effect: 'coverflow',
-      // coverflowEffect: {
-      //    rotate: 50,
-      //    stretch: 0,
-      //    depth: 100,
-      //    modifier: 1,
-      //    slideShadows: true,
-      // },
    });
    
    function htmxTriggerAndShow(target, trigger) {
@@ -305,28 +260,64 @@
 
    //called from base.html htmx:afterSettle which looks for data-modal-init="prepareSelect2CitationForm" inside the _citation_form swapped content
    //(ノಠ益ಠ)ノ彡┻━┻
-   function prepareSelect2CitationForm() {
+   async function prepareSelect2CitationForm() {
       $('#genericModalTitle').text('Create a citation');
-      $('#pending-toggle').toggleClass('unselectable');
+      
+      $('#pending-wrapper').remove();
+      $('#img-time-col').removeClass('col-xl-5');
+      $('#img-time-col').closest('.row').removeClass('gy-4');
       
       const $wordInput = $('#id_word');
       const $defSelect = $('#id_definition_select');
       const $defInput = $('#id_definition_input');
-
       
+      $wordInput.on('select2:select change', async function(e) {
+         // console.log('wordInput on change');
+         var wordId = parseInt($(this).val(), 10);
+         if (Number.isNaN(wordId)) {
+            // console.log('showdefinitionfield wordinput selec2:select change');
+            showDefinitionField(false);
+         } else {
+            await loadDefinitions(wordId);
+            $defInput.val('');
+            $('#wordEditUrl').attr('href', (i, href) => href.replace(/\/word\/\d+/, `/word/${wordId}`));
+         }
+         $('.definition-wrapper').removeClass('unselectable');
+         $('#id_example').closest('.row-wrapper').removeClass('unselectable');
+      });
+
+      $defSelect.on('change', function() {
+         // console.log('defSelect on change');
+         var isNewOption = $(this).val() == '-1'
+         if (isNewOption) {
+            $defInput.closest('.row-wrapper').removeClass('unselectable');
+            $defInput.prop('disabled', false);            
+         } else {
+            // console.log('showdefinitionfield def select on change');
+            showDefinitionField(true);
+         }
+         $('#wordEditUrl').toggleClass('unselectable', isNewOption);
+      });
+
+
       const $initialId = $wordInput.data('initialId');
       if ($initialId != "None") {
+         // console.log('word initial id');
          $wordInput.append(
             $('<option>', {
                value: $initialId,
-               text: $wordInput.data('initialWord')
+               text: $wordInput.data('initialWord'),
+               selected: true
             })
-         ).trigger('change');
+         );
          $('#wordEditUrl').attr('href', (i, href) => href.replace(/\/word\/\d+/, `/word/${$initialId}`));
-         if ($defSelect.data('initialId')){
-            loadDefinitions($initialId).then(() => {
-               $defSelect.val($defSelect.data('initialId')).trigger('change');
-            });
+         $('#id_example').closest('.row-wrapper').removeClass('unselectable');
+         $('.definition-wrapper').removeClass('unselectable');
+         await loadDefinitions($initialId);
+
+         if ($defSelect.val()) {
+            // console.log('initialId',$defSelect.val());
+            $defSelect.val($defSelect.val()).trigger('change');
          }
       } else {
          $wordInput.append($('<option></option>')) //select2.select not fire when use remote source and createTag  #5386
@@ -334,6 +325,8 @@
       
 
       function showDefinitionField(useSelect) {
+         // console.log('showdeffield defSelect disabled: ', !useSelect);
+         // console.log('showdeffield defInput disabled: ', useSelect);
          $defSelect.prop('disabled', !useSelect);
          $defInput.prop('disabled', useSelect);
          if (!useSelect) $defInput.val('');
@@ -342,6 +335,7 @@
       }
 
       async function loadDefinitions(wordId) {
+         // console.log('loading definitions');
          const url = `${defn_ajax_url}?word_id=${wordId}`;
          try {
             const response = await fetch(url);
@@ -357,43 +351,16 @@
                   }).appendTo($defSelect);
                });
                $('<option>', { value: -1, text: 'New definition'}).appendTo($defSelect);
+               // console.log('showdefinitionfield in results');
                showDefinitionField(true);
             } else {
+               // console.log('showdefinitionfield NO results');
                showDefinitionField(false);
             }
          } catch (err) {
             console.error('Fetch error:', err);
          }
       }
-
-
-      $wordInput.on('select2:select', async function(e) {
-         var wordId = parseInt($(this).val(), 10);
-
-         if (Number.isNaN(wordId)) {
-            showDefinitionField(false);
-         } else {
-            await loadDefinitions(wordId);
-            $defInput.val('');
-            $('#wordEditUrl').attr('href', (i, href) => href.replace(/\/word\/\d+/, `/word/${wordId}`));
-         }
-         
-         $('#id_example').closest('.row-wrapper').removeClass('unselectable');
-      });
-
-      $defSelect.on('change', function() {
-         if ($(this).val() == '-1') {
-            $defInput.closest('.row-wrapper').removeClass('unselectable');
-            $defInput.prop('disabled', false);
-            $('#wordEditUrl').toggleClass('unselectable', true);
-         } else {
-            showDefinitionField(true);
-            $('#wordEditUrl').toggleClass('unselectable', false);
-         }
-      });
-
-      $defSelect.prop('disabled', true);
-      $defInput.prop('disabled', true);
    }
 </script>
 {% endblock additionalScripts %}

@@ -5,7 +5,7 @@
 
 {% block additionalStyles %}
 <style>
-   #deck-grid, #quiz-grid {
+   #quiz-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
       column-gap: 20px;
@@ -13,16 +13,76 @@
       width: 100%;
    }
 
-   .deck-card, .quiz-card {
-      aspect-ratio: 1 / 1.1;
-      min-width: 215px;
-      min-height: 240px;
-      width: 100%;
+   .quiz-card, .deck-card {
+      position: relative
+   }
 
+   .quiz-card {
+      aspect-ratio: 1 / 1.1;
+      width: 100%;
       cursor: pointer;
       color: white;
-      
       border-radius: 0.5rem;
+   }
+
+   #deck-grid {
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      column-gap: 20px;
+      row-gap: 20px;
+      width: 100%;
+   }
+
+   .deck-card {
+      aspect-ratio: 1 / 0.8;
+      border-radius: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      /* cursor: pointer; */
+   }
+
+   .deck-card .img-wrapper {
+      max-width: 100%;
+      aspect-ratio: 16 / 9;
+      background: black;
+      
+      overflow: hidden;
+      display: flex; justify-content: center; align-items: center;
+   }
+
+   .img-wrapper img {
+      width: auto;
+      max-height: 100%;
+      max-width: 100%;
+      filter: brightness(80%);
+   }
+
+   .deck-card .name {
+      position: absolute;
+      padding: 2px 5px;
+      background: var(--bg-deep);
+      border-radius: 2px;
+      color: var(--accent-gold);
+      font-weight: bold;
+      font-size: 1.1rem;
+      bottom: 15px;
+      right: 15px;
+      max-width: 80%; 
+      max-height: 55px;
+      overflow-y: auto;
+      line-height: 1;
+      display: flex; 
+      align-items: center;
+      hyphens: auto;
+      text-align: justify;
+      text-transform: uppercase;
+   } 
+
+   .deck-card .description {
+      padding: 5px 10px;
+      flex: 1;
+      overflow-y: auto;
    }
 
    .quiz-card {
@@ -50,12 +110,50 @@
    .color-8  { background: #701a75; }
    .color-9  { background: #581c87; }
 
+   .time-row {
+      min-height: 40px;
+   }
 </style>
 {% endblock %}
 
 {% block innerbody %}
    <div class="container py-5">
       <h2 class="mb-3">Decks</h2>
+
+      <div id="deck-grid">
+         {% for deck in decks %}
+            <div class="deck-card" data-deck-id="{{deck.id}}">
+               <a class="stretched-link text-decoration-none text-white"
+                  hx-get="{% url 'deck_quiz_settings' lang_id=lang_id deck_id=deck.id %}"
+                  hx-trigger="click"
+                  hx-target="#genericModalBody"
+                  hx-target-error="#error-box"
+                  data-bs-toggle="modal"
+                  data-bs-target="#genericModal"
+                  >
+               </a>
+               <div class="img-wrapper position-relative">
+                  {% if deck.image %}
+                     <img src="{{deck.image.file.url}}"  alt="{{deck.image.file.url}}">
+                  {% endif %}
+                  <span class="name" lang="en">{{deck.name}}</span>
+               </div>
+               <div class="description color-{{forloop.counter0|modulo:10}}">
+                  {% if deck.description %}{{deck.description}}{% endif %}
+                  <a href="" hx-get="{% url 'generic_confirm_delete' %}"
+                     data-bs-toggle="modal" data-bs-target="#genericModal"
+                     hx-vals='{"type": "Deck", "name": "{{ deck.name }}", "delete_url":"{% url 'deck_delete' lang_id=lang_id deck_id=deck.id %}"}'
+                     hx-target="#genericModalBody"
+                     hx-trigger="click">
+                     <i class="fa-solid fa-trash fs-6 pe-2"></i>
+                  </a>
+               </div>
+            </div>
+         {% endfor %}
+      </div>
+
+
+
       
       <div class="d-flex mb-3 mt-5">
          <h2>Active quizzes</h2>
@@ -72,18 +170,18 @@
                hx-target-error="#error-box">
                Create a quiz
             </button>
-         </div>
-
-         
+         </div>   
       </div>
+
       <div id="quiz-grid">
          {% for quiz in active_quizzes %}
-            <div class="quiz-card color-{{forloop.counter0|modulo:10}} position-relative"
+            <div class="quiz-card color-{{forloop.counter0|modulo:10}}"
                href="{% url 'quiz_play' lang_id=lang_id quiz_uuid=quiz.uuid %}">
                <div class="header">
-                   <a class="stretched-link text-decoration-none text-white" 
+                  <a class="stretched-link text-decoration-none text-white" 
                   href="{% url 'quiz_play' lang_id=lang_id quiz_uuid=quiz.uuid %}"></a>
-                  {% if quiz.quiz_type == 'WW' %}Write the word{% elif quiz.quiz_type == 'MO' %}Multiple option{% endif %}               </div>
+                  {% if quiz.quiz_type == 'WW' %}Write the word{% elif quiz.quiz_type == 'MO' %}Multiple option{% endif %}
+               </div>
                <div class="body">
                   {% for key, value in quiz.used_settings.items %}
                   <div class="settings">
@@ -97,7 +195,6 @@
                   <a href="{% url 'remove_quiz' lang_id=lang_id quiz_uuid=quiz.uuid %}" class="position-relative z-2 text-white">
                      <i class="fa-solid fa-trash"></i>
                   </a>
-                  
                </span>
             </div>         
          {% endfor %}
@@ -106,4 +203,16 @@
 {% endblock%}
 
 {% block additionalScripts %}
+<script>
+   function initQuizSettingsForm() {
+      
+      const timerSwitch = document.getElementById('id_use_timer');
+
+      timerSwitch.addEventListener('change', (event) => {
+         const timeSection = document.getElementById('quiz-time-section');
+         timeSection.classList.toggle('d-none', !event.target.checked);
+         timeSection.querySelector('input')?.toggleAttribute('disabled', !event.target.checked);
+      });
+   }
+</script>
 {% endblock %}

@@ -1,4 +1,4 @@
-<form hx-post="{% url 'quiz_settings' lang_id=lang_id %}"
+<form hx-post="{% url 'deck_quiz_settings' lang_id=lang_id deck_id=deck_id %}"
    hx-target="#genericModalBody"
    hx-swap="innerHTML"
    hx-target-error="#genericModalBody"
@@ -11,32 +11,7 @@
       {{form.quiz_type}}
    </div>
 
-   <div class="mb-4">
-      <label class="form-label" for="{{form.source.id_for_label}}">{{form.source.label}}</label>
-      {{form.source}}
-      <div id="{{form.source.id_for_label}}-dropdownParent"></div>
-      {{form.source.errors}}
-   </div>
-
-   <div class="mb-4">
-      <label class="form-label" for="{{form.forgettingFrequency.id_for_label}}">{{form.forgettingFrequency.label}}</label>
-      {{form.forgettingFrequency}}
-      <div id="{{form.forgettingFrequency.id_for_label}}-dropdownParent"></div>
-      {{form.forgettingFrequency.errors}}
-   </div>
-
-   <div class="mb-4">
-      <label class="form-label" for="{{form.prioritize.id_for_label}}">{{form.prioritize.label}}</label>
-      {{form.prioritize}}
-      {{form.prioritize.errors}}
-   </div>
-
-   <div class="mb-4">
-      <label class="form-label" for="{{form.quantity.id_for_label}}">{{form.quantity.label}}</label>
-      {{form.quantity}}
-      {{form.quantity.errors}}
-   </div>
-
+   
    <div class="mb-4 d-flex gap-5 align-items-center time-row">
       <div>
          <div class="form-check form-switch">
@@ -53,8 +28,6 @@
          {{form.time_per_question.errors}}
       </div>
    </div>
-
-   
 
 
    {% if form.non_field_errors %}

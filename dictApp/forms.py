@@ -127,7 +127,7 @@ class WordForm(forms.ModelForm):
 class DefinitionForm(forms.ModelForm):
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control img-input',})
+      widget=forms.FileInput(attrs={'class': 'filepond',})
    )
 
    class Meta:
@@ -166,7 +166,8 @@ class DefinitionForm(forms.ModelForm):
    def save(self, commit=True):
       definition = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
-      
+      delete_image = self.data.get(f"{self.prefix}-image-DELETE")
+
       if image_file:
          old_img = definition.image
 
@@ -179,6 +180,14 @@ class DefinitionForm(forms.ModelForm):
          new_img = Image.objects.create(file=image_file)
          definition.image = new_img
 
+      elif delete_image and delete_image != 'false' and definition.pk and definition.image:
+         img_to_del = definition.image
+         storage = img_to_del.file.storage
+         if storage.exists(img_to_del.file.name):
+            storage.delete(img_to_del.file.name)
+         img_to_del.delete()
+         definition.image = None
+
       if commit:
          definition.save()
 
@@ -187,8 +196,13 @@ class DefinitionForm(forms.ModelForm):
    def __init__(self, *args, **kwargs):
       is_last = kwargs.pop('is_last', False)
       super().__init__(*args, **kwargs)
+      existing_img_path = self.instance.image.file.url if self.instance.image and self.instance.image.file else ''
       self.fields['topic_category'].widget.attrs.update({
-         'backend-rendered': 'false' if is_last else 'true'
+         'backend-rendered': 'false' if is_last else 'true',
+      })
+      self.fields['image_file'].widget.attrs.update({
+         'backend-rendered': 'false' if is_last else 'true',
+         'data-img-path': existing_img_path
       })
 
 class ExampleForm(forms.ModelForm):
@@ -501,8 +515,7 @@ class CitationForm(forms.Form):
       label="Spotted at:",
       widget=forms.TextInput(attrs={
          'placeholder': 'HH:MM:SS',
-         'class': 'form-control d-inline',
-         'style': 'width: auto'
+         'class': 'form-control',
       }),
       required=True
    )
@@ -560,7 +573,7 @@ class CitationForm(forms.Form):
 
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      widget=forms.FileInput(attrs={'class': 'filepond'}),
       label='Screenshot'
    )
 
@@ -575,11 +588,12 @@ class CitationForm(forms.Form):
    )
 
    def __init__(self, *args, **kwargs):
-      ajax_url = kwargs.pop('ajax_url', None)
-      initial_word_id = kwargs.pop('initial_word_id', None)
-      initial_word    = kwargs.pop('initial_word', None)
-      can_add_img     = kwargs.pop('can_add_img', None)
-      is_book = kwargs.pop('is_book', None)
+      ajax_url          = kwargs.pop('ajax_url', None)
+      initial_word_id   = kwargs.pop('initial_word_id', None)
+      initial_word      = kwargs.pop('initial_word', None)
+      can_add_img       = kwargs.pop('can_add_img', None)
+      is_book           = kwargs.pop('is_book', None)
+      existing_img_path = kwargs.pop('existing_img_path', None)
       super().__init__(*args, **kwargs)
 
       word_widget = self.fields['word'].widget
@@ -592,6 +606,11 @@ class CitationForm(forms.Form):
          self.fields['spotted_at'].required = False
       else:
          del self.fields['page']
+      
+      if existing_img_path:
+         self.fields['image_file'].widget.attrs.update({
+            'data-img-path': existing_img_path
+         })
       # # when validation fails the same word is selected
       # if self.is_bound and 'word' in self.data:
       #    submitted_id = self.data.get('word')
@@ -880,7 +899,7 @@ class QuizSettingsForm(forms.Form):
          "WW": "Write the Word",
          "MO": "Multiple Option",
       },
-      initial="WW",
+      initial="MO",
       widget=forms.Select(attrs={'class': 'form-control'})
    )
 
@@ -925,6 +944,22 @@ class QuizSettingsForm(forms.Form):
       widget=forms.NumberInput(attrs={'class': 'form-control'})
    )
 
+   use_timer = forms.BooleanField(
+      label='Timed quiz',
+      required=False,
+      initial=False,
+      widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'})
+   )
+
+   time_per_question = forms.IntegerField(
+      label='Time in seconds',
+      min_value=5,
+      max_value=59,
+      initial=20,
+      required=False,
+      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important'})
+   )
+
    def clean(self):
       cleaned_data = super().clean()
       source = cleaned_data.get('source')
@@ -940,3 +975,69 @@ class QuizSettingsForm(forms.Form):
 
       if lang_id and Language.objects.get(pk=lang_id):
          self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
+
+
+class DeckForm(forms.ModelForm):
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      label='Screenshot'
+   )
+
+   class Meta:
+      model = Deck
+      fields = ['name', 'description']
+      widgets = {
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+         'description': forms.TextInput(attrs={'class': 'form-control'}),
+      }
+   
+   def save(self, commit=True):
+      deck = super().save(commit=False)
+      image_file = self.cleaned_data.get('image_file')
+      if image_file:
+         print('has img')
+         old_img = deck.image
+
+         if deck.pk and old_img:
+            storage = old_img.file.storage
+            if storage.exists(old_img.file.name):
+               storage.delete(old_img.file.name)
+            old_img.delete()
+
+         new_img = Image.objects.create(file=image_file)
+         deck.image = new_img
+      else:
+         print('no img')
+      if commit:
+         deck.save()
+
+      return deck
+
+
+class DeckQuizSettingsForm(forms.Form):
+   quiz_type = forms.ChoiceField(
+      required=False,
+      choices={
+         "WW": "Write the Word",
+         "MO": "Multiple Option",
+      },
+      initial="MO",
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )
+
+   use_timer = forms.BooleanField(
+      label='Timed quiz',
+      required=False,
+      initial=False,
+      widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'})
+   )
+
+   time_per_question = forms.IntegerField(
+      label='Time in seconds',
+      min_value=5,
+      max_value=59,
+      initial=20,
+      required=False,
+      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important', 'disabled': True})
+   )

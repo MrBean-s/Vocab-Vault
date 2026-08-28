@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone as django_tz
 from dateutil.relativedelta import relativedelta, MO
 from django.views.decorators.http import require_POST
+from django.template.loader import render_to_string
 
 def start_screen(request):
    languages = Language.objects.select_related('image').filter(in_user_set=True).all()
@@ -81,7 +82,7 @@ def delete_language(request, lang_id):
          messages.success(request, "Language deleted.")
 
       return redirect('languages')
-   
+
 def add_lang_to_set(request):
    if request.method == 'POST':
       form = LanguageAddSetForm(request.POST)
@@ -157,7 +158,6 @@ def word(request, lang_id, word_id=None):
          instance=word,
          prefix='definitions',
       )
-   
       # Build example formsets from POST data
       example_formsets = []
       total_defs = int(request.POST.get('definitions-TOTAL_FORMS', 0))
@@ -455,7 +455,7 @@ def search(request, lang_id):
       
    if 'word' in filters:
       word_results = Word.objects.filter(
-      name__icontains=query, language_id=lang_id
+         name__icontains=query, language_id=lang_id
       ).values_list('id', 'name').order_by(order)[:limit]
 
       for wid, wname in word_results.iterator():
@@ -912,6 +912,7 @@ def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=N
    obj = episode or segment or source
    temp_src = getattr(obj, 'source', obj)
    qs = qs.filter(**{('source' if obj == source else obj.__class__.__name__.lower()): obj})
+   qs = qs.order_by('spotted_at', 'page')
 
    spreads = [] # for books only
 
@@ -1013,6 +1014,7 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          example.save()
 
          image_file = form.cleaned_data.get('image_file')
+         delete_image = form.data.get("citation-image-DELETE")
          spotted_at = form.cleaned_data['spotted_at']
 
          if not citation:
@@ -1025,12 +1027,20 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
             )
          else:
             citation.spotted_at=spotted_at
-            old_img = citation.image
-            if old_img and image_file:
-               storage = old_img.file.storage
-               if storage.exists(old_img.file.name):
-                  storage.delete(old_img.file.name)
-               old_img.delete()
+            if image_file:
+               old_img = citation.image
+               if old_img and image_file:
+                  storage = old_img.file.storage
+                  if storage.exists(old_img.file.name):
+                     storage.delete(old_img.file.name)
+                  old_img.delete()
+            elif delete_image and delete_image != 'false' and citation.image:
+               img_to_del = citation.image
+               storage = img_to_del.file.storage
+               if storage.exists(img_to_del.file.name):
+                  storage.delete(img_to_del.file.name)
+               img_to_del.delete()
+               citation.image = None
 
             # If theres any pending word in the citation edit panel, the definition input is the only one shown
             # This creates a new def every time so its necessary to delete the 'Pending' orphans
@@ -1043,10 +1053,10 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
 
             if pending_def:
                pending_def.delete()
-            
+
          if image_file:
             citation.image = Image.objects.create(file=image_file)
-         
+
          page = form.cleaned_data.get('page')
          citation.page = page
          citation.save()
@@ -1068,13 +1078,15 @@ def play_session_cite(request, lang_id, source_id=None, episode_id=None, segment
          
    else:      
       if citation:
+         ex = citation.example
          form = CitationForm(
             ajax_url=ajax_url,
             initial=initial_data,
-            initial_word_id=citation.example.definition.word_id,
-            initial_word=citation.example.definition.word.name,
+            initial_word_id=ex.definition.word_id,
+            initial_word=ex.definition.word.name,
             can_add_img=can_add_img,
             is_book=is_book,
+            existing_img_path=citation.image.file.url if citation.image and citation.image.file else ''
          )
       else:
          form = CitationForm(ajax_url=ajax_url, can_add_img=can_add_img, is_book=is_book)
@@ -1300,10 +1312,12 @@ def deck(request, lang_id):
       } for uuid, data in (request.session.get('quizzes') or {}).items()
    ]
 
+   decks = Deck.objects.prefetch_related('questions').all()
+
    return render(request, 'decks.html', {
       'lang_id': lang_id,
       'iso_code': language.iso_code,
-      'decks': None,
+      'decks': decks,
       'active_quizzes': active_quizzes
    })
 
@@ -1318,9 +1332,14 @@ def quiz_settings(request, lang_id):
       forgetting_frequency = form.cleaned_data.get('forgettingFrequency')
       prioritize = form.cleaned_data.get('prioritize', 'ANY')
       requested_quantity = form.cleaned_data.get('quantity', 10 if quiz_type == 'WW' else 5)
-      distractors_qty = 4
+      distractors_qty = 3
+      options_per_question = distractors_qty + 1
+      use_timer = form.cleaned_data.get('use_timer', False)
+      time_per_question = form.cleaned_data.get('time_per_question', 20)
       used_settings = { 'quantity': requested_quantity }
-
+      if use_timer:
+         used_settings.update({'Time/Question': str(time_per_question) + 's' })
+      
       definitions_qs = Definition.objects.filter(
          word__language_id=lang_id
       ).exclude(word__is_draft=True)
@@ -1338,7 +1357,7 @@ def quiz_settings(request, lang_id):
          used_settings['forgetting_frequency'] = forgetting_frequency
 
       total_available = definitions_qs.count()
-      needed = requested_quantity * distractors_qty if quiz_type == 'MO' else requested_quantity
+      needed = requested_quantity * options_per_question if quiz_type == 'MO' else requested_quantity
 
       if total_available < needed:
          form.add_error(
@@ -1377,12 +1396,13 @@ def quiz_settings(request, lang_id):
    
       questions = []
       answer_key = {}
+      definition_and_distractors = {}
       used_definitions = []
       if quiz_type == 'MO':
-         for question_idx, i in enumerate(range(0, len(selected), distractors_qty)):
-            group = selected[i:i + distractors_qty]
+         for question_idx, i in enumerate(range(0, len(selected), options_per_question)):
+            group = selected[i:i + options_per_question]
             correct_def = group[0]
-            used_definitions.append(correct_def)
+            definition_and_distractors[correct_def.id] =  [defn.id for defn in group[1:]]
             correct_word = correct_def.word
 
             option_words = [d.word.name for d in group]
@@ -1404,29 +1424,38 @@ def quiz_settings(request, lang_id):
                'title': defn.description,
             })
             answer_key[f'q{i}'] = { 'word_id': defn.word.id, 'word_name': defn.word.name, 'defn_id': defn.id }
-         used_definitions = selected
+         used_definitions = [d.id for d in selected]
       
+      quiz_uuid = str(uuid.uuid4())
       survey_json = {
          "pages": [{"name": f"page{i}", "elements": [question]} for i, question in enumerate(questions)],
          "progressBarLocation": "top",
          "showProgressBar": "top",
          "showQuestionNumbers": "on",
          "progressBarType": "questions",
-         "timeLimit": 300,
-         "timeLimitPerPage": 30,
+         "completedHtml": render_to_string('partial/_quiz_completed.html', {'quiz_uuid': quiz_uuid, 'lang_id': lang_id}, request)
+      }
+
+      time_settings = {
+         "timeLimit": len(questions) * time_per_question,
+         "timeLimitPerPage": time_per_question,
          "showTimerPanel": "bottom",
          "showTimerPanelMode": "page",
       }
 
-      quiz_uuid = str(uuid.uuid4())
+      if use_timer:
+         survey_json.update(time_settings)
+
+      
       quizzes = request.session.get('quizzes', {})
       quizzes[quiz_uuid] = {
          'creation_date': django_tz.now().isoformat(),
          'quiz_type': quiz_type,
          'survey_json': survey_json,
          'answer_key': answer_key,
-         'used_settings': used_settings
-         # 'definition_ids': [d.id for d in used_definitions],
+         'used_settings': used_settings,
+         'used_definitions_id_list': used_definitions,
+         'definition_distractor_map': definition_and_distractors
       }
       request.session['quizzes'] = quizzes
       
@@ -1453,11 +1482,14 @@ def quiz_play(request, quiz_uuid, lang_id):
 
    survey_json = quiz_data.get('survey_json')
    validation_url = reverse('validate_quiz_answer', kwargs={'lang_id': lang_id, 'quiz_uuid': quiz_uuid})
+   remove_quiz_url = reverse('remove_quiz', kwargs={'lang_id': lang_id, 'quiz_uuid': quiz_uuid})
 
    return render(request, 'quiz_play.html', {
       'lang_id': lang_id,
       'survey_json': survey_json,
-      'validation_url': validation_url
+      'validation_url': validation_url,
+      'remove_quiz_url': remove_quiz_url,
+      'redirect_on_completion': False
    })
 
 
@@ -1513,3 +1545,179 @@ def validate_quiz_answer_ajax(request, quiz_uuid, lang_id):
 
    return JsonResponse(correct_answer)
 
+
+def save_quiz_to_deck(request, quiz_uuid, lang_id):
+   quizzes = request.session.get('quizzes', {})
+   quiz_data = quizzes.get(str(quiz_uuid))
+   
+   if not quiz_data:
+      messages.error(request, "The quiz has expired.")
+      return redirect('decks', lang_id=lang_id)
+   
+   form = DeckForm(request.POST or None, request.FILES or None)
+   
+   if request.method == 'POST':
+      used_definitions = quiz_data.get('used_definitions_id_list')
+      defn_distract_map = quiz_data.get('definition_distractor_map')
+      
+      deck = form.save()
+      if used_definitions:
+         for defn_id in used_definitions:
+            definition = Definition.objects.filter(pk=defn_id).first()
+            if definition:
+               question = DeckQuestion.objects.create(
+                  deck=deck,
+                  definition=definition
+               )
+      elif defn_distract_map:
+         for correct_defn_id, distractor_ids in defn_distract_map.items():
+            definition = Definition.objects.filter(pk=correct_defn_id).first()
+            if definition:
+               question = DeckQuestion.objects.create(deck=deck, definition=definition)
+               distractor_objs = Definition.objects.filter(pk__in=distractor_ids)
+               question.distractors.add(*distractor_objs)
+
+      quizzes.pop(str(quiz_uuid), None)
+      request.session.modified = True
+      
+      if request.META.get('HTTP_HX_REQUEST'):
+         return HttpResponse(headers={'HX-Redirect': reverse('decks', kwargs={'lang_id': lang_id})})
+      return redirect('decks', lang_id=lang_id)
+   
+   return render(request, 'forms/_deck_form.html', {
+      'form': form,
+      'quiz_uuid': quiz_uuid,
+      'lang_id': lang_id
+   })
+
+@require_POST
+def deck_delete(request, lang_id, deck_id):
+   deck = get_object_or_404(Deck, pk=deck_id)
+
+   if request.method == 'POST':
+      img = deck.image
+
+      if img:
+         storage = img.file.storage
+         if storage.exists(img.file.name):
+            storage.delete(img.file.name)
+         img.delete()
+      
+      deck.delete()
+      messages.success(request, "Deck deleted.")
+
+      return redirect('decks', lang_id=lang_id)
+
+
+def deck_quiz_settings(request, lang_id, deck_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   language = get_object_or_404(Deck, pk=deck_id)
+   form = DeckQuizSettingsForm(request.POST or None)
+
+   if request.method == 'POST' and form.is_valid():
+      quiz_type = form.cleaned_data.get('quiz_type')
+      time_per_question = form.cleaned_data.get('time_per_question') or 0
+
+      base_url = reverse("deck_quiz_play", kwargs={'lang_id': lang_id, 'deck_id': deck_id})
+      redirect_url = f'{base_url}?quiz_type={quiz_type}&time_per_question={time_per_question}'
+
+      if request.META.get('HTTP_HX_REQUEST'):
+         return HttpResponse(headers={'HX-Redirect': redirect_url})
+      return redirect(redirect_url)
+
+   return render(request, 'forms/_deck_quiz_settings_form.html', {
+      'lang_id': lang_id,
+      'deck_id': deck_id,
+      'form': form
+   })
+
+
+def deck_quiz_play(request, lang_id, deck_id):
+   quiz_type = request.GET.get('quiz_type', 'WW')
+   time_per_question = int(request.GET.get('time_per_question', 0))
+
+   deck = get_object_or_404(
+      Deck.objects.prefetch_related('deck_questions__definition', 'deck_questions__distractors'),
+      pk=deck_id
+   )
+
+   pages = [
+      {
+         'name': f"page{idx}",
+         'elements': [
+            {
+               'type': 'radiogroup',
+               'name': f'q_{question.id}',
+               'title': question.definition.description,
+               'choices': sorted(
+                  [question.definition.word.name] + [d.word.name for d in question.distractors.all()],
+                  key=lambda x: random.random()
+               )
+            }
+         ]
+      } for idx, question in enumerate(deck.deck_questions.all())
+   ]
+
+   survey_json = {
+      "pages": pages,
+      "progressBarLocation": "top",
+      "showProgressBar": "top",
+      "showQuestionNumbers": "on",
+      "progressBarType": "questions",
+      "showCompletedPage": False,
+   }
+
+   if time_per_question and time_per_question > 0:
+      survey_json.update({
+         "timeLimit": len(pages) * time_per_question,
+         "timeLimitPerPage": time_per_question,
+         "showTimerPanel": "bottom",
+         "showTimerPanelMode": "page",
+      })
+      
+
+   return render(request, 'quiz_play.html', {
+      'lang_id': lang_id,
+      'survey_json': survey_json,
+      'validation_url': reverse('validate_deck_quiz_answer', kwargs={'lang_id': lang_id, 'deck_id': deck_id}),
+      'redirect_on_completion': True
+   })
+
+
+@require_POST
+def validate_deck_quiz_answer_ajax(request, lang_id, deck_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   deck = get_object_or_404(Deck, pk=deck_id)
+
+   data = json.loads(request.body)
+   question_name = data.get('question_name')
+   answer = data.get('answer')
+
+   if not question_name:
+      return JsonResponse({'error': 'Missing question name'}, status=400)
+
+   question_id = question_name[2:]
+   question = (
+      DeckQuestion.objects
+         .select_related('definition', 'definition__word', 'definition__image')
+         .prefetch_related('definition__examples')
+         .filter(pk=question_id, deck=deck)
+         .first()
+   )
+
+   if not question:
+      return JsonResponse({'error': 'Question not found in this deck'}, status=404)
+
+   correct_definition = question.definition
+   correct_word = correct_definition.word
+
+   correct_answer = {
+      'correct': (correct_word.name == answer),
+      'word_path': reverse('word_details', kwargs={'lang_id': lang_id, 'word_id': correct_word.id}),
+      'word_name': correct_word.name,
+      'definition': '',
+      'image_path': correct_definition.image.file.url if correct_definition and correct_definition.image else '',
+      'examples': [e.description for e in correct_definition.examples.all()] if correct_definition else []
+   }
+   
+   return JsonResponse(correct_answer)

@@ -113,12 +113,12 @@ class Definition(models.Model):
             for cty in self.country_tags.all()
          ],
          "all_countries": False,
-         "examples": [ex.to_json() for ex in self.examples.all()]
+         "examples": [ex.to_json() for ex in self.examples.all()],
+         'topic_category': self.get_topic_category_display() or "",
       }
       if all_lang_countries_ids is not None:
          selected_ids = {c["id"] for c in data["countries"]}
          data["all_countries"] = True if selected_ids == all_lang_countries_ids else False
-
       return data
 
    def get_selected_countries_ids(self):
@@ -309,10 +309,28 @@ class QuizAttempt(models.Model):
 
 class Deck(models.Model):
    name = models.CharField(max_length=50)
-   description = models.TextField()
+   description = models.TextField(null=True, blank=True)
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
 
-   questions = models.ManyToManyField(Definition)
+   questions = models.ManyToManyField( #only stores correct answers, use deck_questions instead
+      Definition,
+      through='DeckQuestion',
+      related_name='decks_as_question'
+   )
+
+
+class DeckQuestion(models.Model):
+   deck = models.ForeignKey(Deck, on_delete=models.CASCADE, related_name='deck_questions')
+   definition = models.ForeignKey(Definition, on_delete=models.CASCADE)  # correct answer
+
+   distractors = models.ManyToManyField(
+      Definition,
+      related_name='distractor_in_deck_questions',
+      blank=True
+   )
+
+   class Meta:
+      unique_together = ('deck', 'definition')
 
 
 class Image(models.Model):

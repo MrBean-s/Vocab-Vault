@@ -70,10 +70,19 @@ urlpatterns = [
    path("lang/<int:lang_id>/segment/<int:segment_id>/session/citation/<int:citation_id>/edit/", views.play_session_cite, name="session_segment_cite_edit"),
 
    path("lang/<int:lang_id>/decks/", views.deck, name="decks"),
+   path("lang/<int:lang_id>/deck/<int:deck_id>/delete/", views.deck_delete, name="deck_delete"),
+   path("lang/<int:lang_id>/deck/<int:deck_id>/quiz-settings/", views.deck_quiz_settings, name="deck_quiz_settings"),
+   path("lang/<int:lang_id>/deck/<int:deck_id>/play/", views.deck_quiz_play, name="deck_quiz_play"),
+   path("lang/<int:lang_id>/deck/<int:deck_id>/validate/", views.validate_deck_quiz_answer_ajax, name="validate_deck_quiz_answer"),
+
    path("lang/<int:lang_id>/quiz-settings/", views.quiz_settings, name="quiz_settings"),
    path("lang/<int:lang_id>/quiz/<uuid:quiz_uuid>/play/", views.quiz_play, name="quiz_play"),
 
    path("lang/<int:lang_id>/quizzes/clear/", views.clear_all_quizzes, name="clear_all_quizzes"),
    path("lang/<int:lang_id>/quiz/<uuid:quiz_uuid>/remove/", views.remove_quiz, name="remove_quiz"),
-   path("lang/<int:lang_id>/quiz/<uuid:quiz_uuid>/validate/", views.validate_quiz_answer_ajax, name="validate_quiz_answer")
+   path("lang/<int:lang_id>/quiz/<uuid:quiz_uuid>/validate/", views.validate_quiz_answer_ajax, name="validate_quiz_answer"),
+
+   path("lang/<int:lang_id>/quiz/<uuid:quiz_uuid>/save/", views.save_quiz_to_deck, name="save_quiz_to_deck"),
+
+   
 ]
