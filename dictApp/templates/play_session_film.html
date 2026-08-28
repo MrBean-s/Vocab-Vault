@@ -478,8 +478,9 @@
       $pendingCheck.trigger('change');
 
 
-      document.querySelectorAll('.filepond-wrapper').forEach((container) => {
-         initializeFilePond(container);  //defined on base.html
+      document.querySelectorAll('.filepond-wrapper').forEach((container) => { //just 1 btw
+         initializeFilePond(container);  //defined in base.html
+         setActiveContainer(container, imageInstances.get(container)); //defined in base.html
       });
    }
 </script>

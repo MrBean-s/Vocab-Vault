@@ -6,7 +6,7 @@
    {% csrf_token %}
    <div class="form-content" style="min-height: 350px">
       <div class="row gx-5 gy-4">
-         <div class="col-xl-7 col-12 d-flex flex-column justify-content-between">
+         <div class="col-xl col-12 d-flex flex-column justify-content-between">
             {% if form.page %}
                <div class="mb-4">
                   <label class="pe-4" for="{{form.page.id_for_label}}">{{form.page.label}}</label>
@@ -44,7 +44,7 @@
                      {{form.definition_input.errors}}
                   </div>
                </div>
-               <div class="position-absolute end-0 top-0">
+               <div class="position-absolute end-0 top-0" id="pending-wrapper">
                   <label class="form-label pe-2" for="{{form.pending_definition.id_for_label}}">Set definition as pending</label>
                   {{form.pending_definition}}
                </div>
@@ -56,7 +56,7 @@
                {{form.example.errors}}
             </div>
          </div>
-         <div class="col-xl-5 col-12 d-flex flex-column justify-content-between">
+         <div class="col-xl-5 col-12 d-flex flex-column justify-content-between" id="img-time-col">
             {% if form.image_file %}
             <div>
                <label class="form-label">{{form.image_file.label}}</label>

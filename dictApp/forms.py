@@ -899,7 +899,7 @@ class QuizSettingsForm(forms.Form):
          "WW": "Write the Word",
          "MO": "Multiple Option",
       },
-      initial="WW",
+      initial="MO",
       widget=forms.Select(attrs={'class': 'form-control'})
    )
 
@@ -944,6 +944,22 @@ class QuizSettingsForm(forms.Form):
       widget=forms.NumberInput(attrs={'class': 'form-control'})
    )
 
+   use_timer = forms.BooleanField(
+      label='Timed quiz',
+      required=False,
+      initial=False,
+      widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'})
+   )
+
+   time_per_question = forms.IntegerField(
+      label='Time in seconds',
+      min_value=5,
+      max_value=59,
+      initial=20,
+      required=False,
+      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important'})
+   )
+
    def clean(self):
       cleaned_data = super().clean()
       source = cleaned_data.get('source')
@@ -959,3 +975,69 @@ class QuizSettingsForm(forms.Form):
 
       if lang_id and Language.objects.get(pk=lang_id):
          self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
+
+
+class DeckForm(forms.ModelForm):
+   image_file = forms.ImageField(
+      required=False,
+      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      label='Screenshot'
+   )
+
+   class Meta:
+      model = Deck
+      fields = ['name', 'description']
+      widgets = {
+         'name': forms.TextInput(attrs={'class': 'form-control'}),
+         'description': forms.TextInput(attrs={'class': 'form-control'}),
+      }
+   
+   def save(self, commit=True):
+      deck = super().save(commit=False)
+      image_file = self.cleaned_data.get('image_file')
+      if image_file:
+         print('has img')
+         old_img = deck.image
+
+         if deck.pk and old_img:
+            storage = old_img.file.storage
+            if storage.exists(old_img.file.name):
+               storage.delete(old_img.file.name)
+            old_img.delete()
+
+         new_img = Image.objects.create(file=image_file)
+         deck.image = new_img
+      else:
+         print('no img')
+      if commit:
+         deck.save()
+
+      return deck
+
+
+class DeckQuizSettingsForm(forms.Form):
+   quiz_type = forms.ChoiceField(
+      required=False,
+      choices={
+         "WW": "Write the Word",
+         "MO": "Multiple Option",
+      },
+      initial="MO",
+      widget=forms.Select(attrs={'class': 'form-control'})
+   )
+
+   use_timer = forms.BooleanField(
+      label='Timed quiz',
+      required=False,
+      initial=False,
+      widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'})
+   )
+
+   time_per_question = forms.IntegerField(
+      label='Time in seconds',
+      min_value=5,
+      max_value=59,
+      initial=20,
+      required=False,
+      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important', 'disabled': True})
+   )

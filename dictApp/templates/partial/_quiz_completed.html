@@ -1,0 +1,67 @@
+<style>
+   .icon-badge {
+      width: 5rem;
+      height: 5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px !important;
+      margin: 0 auto 32px;
+   }
+   .icon-badge.purple { background: #0f1522; }
+   .fa-circle-check { color: #6366f1 !important; font-size: 2.5rem;}
+   .preview-card h3 {
+      font-weight: 700;
+      margin-bottom: 24px;
+   }
+
+   .preview-card p {
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      line-height: 1.6;
+      margin-bottom: 64px;
+   }
+
+   .button-group {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+   }
+
+   .save-btn {
+      color: var(--text-main) !important;
+      background: var(--sjs2-color-component-action-brand-tertiary-surface-default-bg) !important;
+   }
+
+   .preview-card { 
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      /* box-shadow: var(--shadow-card); */
+      border-radius: 0.5rem;
+      color: var(--text-main);
+   }
+</style>
+
+<div id="save-exit" class="preview-card screen-content p-5">
+   <div class="icon-badge purple">
+      <i class="fa-solid fa-circle-check"></i>
+   </div>
+   <h3>Quiz completed!</h3>
+   <p>The quiz will now be erased. Would you like to save it to a deck before this happens?</p>
+   <div class="button-group">
+      <button class="btn btn-primary save-btn"
+         data-bs-toggle="modal"
+         data-bs-target="#genericModal"
+         hx-get="{% url 'save_quiz_to_deck' lang_id=lang_id quiz_uuid=quiz_uuid %}"
+         hx-target="#genericModalBody"
+         hx-trigger="click"
+         hx-target-error="#error-box">
+            <i class="fa-solid fa-bookmark"></i> Save to Deck
+      </button>
+      <button class="btn btn-secondary" onclick="closeQuiz()">
+            <i class="fa-solid fa-right-from-bracket"></i> Exit
+      </button>
+   </div>
+</div>

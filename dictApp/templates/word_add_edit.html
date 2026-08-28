@@ -354,8 +354,8 @@ function addDefinition() {
    prepareSelect2(`id_definitions-${currentCount}-topic_category`);
    const imgInput = newRow.querySelector(`#id_definitions-${currentCount}-image_file`);
    const filepondWrapper = imgInput.closest('.filepond-wrapper');
-   initializeFilePond(filepondWrapper); //defined on base.html
-   setActiveContainer(filepondWrapper, imageInstances.get(filepondWrapper)); //defined on base.html
+   initializeFilePond(filepondWrapper); //defined in base.html
+   setActiveContainer(filepondWrapper, imageInstances.get(filepondWrapper)); //defined in base.html
 }
 
 function addExample(element) {
@@ -428,10 +428,10 @@ document.addEventListener('DOMContentLoaded', function() {
       addDefinition();
    {% endif %}
    document.querySelectorAll('select.select2[backend-rendered="true"]').forEach(el => {
-      prepareSelect2(el.id); //defined on base.html
+      prepareSelect2(el.id); //defined in base.html
    });
    document.querySelectorAll('.filepond-wrapper:has(.filepond[backend-rendered="true"])').forEach((container) => {
-      initializeFilePond(container);  //defined on base.html
+      initializeFilePond(container);  //defined in base.html
    })
 });
 </script>

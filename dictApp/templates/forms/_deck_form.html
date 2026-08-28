@@ -1,0 +1,41 @@
+<form 
+   hx-post="{% url 'save_quiz_to_deck' lang_id=lang_id quiz_uuid=quiz_uuid %}"
+   hx-target="#genericModalBody"
+   hx-swap="innerHTML"
+   enctype="multipart/form-data"
+>
+   {% csrf_token %}
+   <div class="mb-3">
+      <label class="form-label" for="{{form.name.id_for_label}}">{{form.name.label}}</label>
+      {{form.name}}
+      {{form.name.errors}}
+   </div>
+
+   <div class="mb-3">
+      <label class="form-label" for="{{form.description.id_for_label}}">{{form.description.label}}</label>
+      {{form.description}}
+      {{form.description.errors}}
+   </div>
+
+   <div class="mb-3">
+      <label class="form-label" for="{{form.image_file.id_for_label}}">{{form.image_file.label}}</label>
+      {{form.image_file}}
+      {{form.image_file.errors}}
+   </div>
+
+   {% if form.non_field_errors %}
+      {% for error in form.non_field_errors %}
+      <div class="text-danger">{{error}}</div>
+      {% endfor %}
+   {% endif %}
+   
+   <div class="d-flex justify-content-end">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="btn btn-primary ms-3">
+         Submit
+      </button>
+   </div>
+
+</form>
+
+<div data-modal-init="initDeckForm"></div>

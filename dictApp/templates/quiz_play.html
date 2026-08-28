@@ -143,7 +143,7 @@
   </div>
 </template>
 
-
+<div id="redirect-on-completion" data-redirect-on-completion="{{redirect_on_completion}}"></div>
 {% endblock %}
 
 {% block additionalScripts %}
@@ -154,10 +154,13 @@
    <!-- Outputs data safely into a <script type="application/json" id="quiz-data"> tag -->
    {{ survey_json|json_script:"quiz-data" }}
    {{ validation_url|json_script:"validation-url" }}
+   {{ remove_quiz_url|json_script:"remove-quiz-url" }}
+   
 
    <script>
       const quizData = JSON.parse(document.getElementById('quiz-data').textContent);
       const validationUrl = JSON.parse(document.getElementById('validation-url').textContent);
+      const removeQuizUrl = JSON.parse(document.getElementById('remove-quiz-url').textContent);
 
       const quiz = new Survey.Model(quizData);
 
@@ -178,7 +181,7 @@
             completeBtn?.classList.toggle('d-none', !(pageAnswered && sender.isLastPage));
          }
 
-         async function validateAnswer(qName, qValue) {
+         async function validateAnswer(qName, qValue='NA') {
             const payload = { 'question_name': qName, 'answer': qValue }
             const config = { 'method': 'POST', 'headers': {'Content-Type': 'application/json', "X-CSRFToken": '{{csrf_token}}'}, 'body': JSON.stringify(payload)}
             try {
@@ -190,11 +193,10 @@
                console.log('Error', error);
                return false;
             }
-            return correct;
+            return false;
          }
 
          async function applyAnswerFeedback(question) {
-            if (!question.value) return;
 
             const correctAnswerData = await validateAnswer(question.name, question.value);
             const isCorrect = correctAnswerData.correct;
@@ -269,6 +271,7 @@
             await applyAnswerFeedback(options.question);
 
             pageAnswered(sender);
+            quiz.stopTimer();
          });
          
          quiz.onCurrentPageChanged.add((sender, options) => {
@@ -284,11 +287,53 @@
                }
                pageAnswered(sender);
             }, 0);
+            quiz.startTimer();
          });
          quiz.onCurrentPageChanging.add((sender, options) => {
             document.querySelector('.answer-box')?.remove();
          });
+         
+         quiz.onTimerTick.add(async (sender, options) => {
+            const currentPage = sender.currentPage;
+            const timeRemaining = quiz.timeLimitPerPage - currentPage.timeSpent;
+            if (quiz.timeLimitPerPage && timeRemaining <= 1) {
+               quiz.stopTimer();
+               const question = currentPage.questions.at(0)
+               await applyAnswerFeedback(question);
+               question.isAnswered = true;
+               pageAnswered(sender);
+            }
+         });
+
+         quiz.onComplete.add((survey) => {
+            const redirect = document.getElementById('redirect-on-completion').dataset.redirectOnCompletion;
+            if (redirect === 'True') {
+               window.location.href = "{% url 'decks' lang_id=lang_id %}";
+            } else {
+               setTimeout(() => {
+                  const completionContainer = document.querySelector(".sd-completedpage");
+                  if (completionContainer) {
+                     htmx.process(completionContainer);
+                  }
+               }, 0);
+            }
+         });
       });
 
+      async function closeQuiz() {
+         try {
+            const response = await fetch(removeQuizUrl);
+            if (!response.ok) throw new Error('Failed to delete');
+            if (response.redirected) {
+               window.location.href = response.url;
+            }
+         } catch (error) {
+            console.log('Error', error);
+         }         
+      }
+
+      function initDeckForm() {
+         document.getElementById('genericModalTitle').textContent = 'Create a deck';
+      }
    </script>
 {% endblock %}
