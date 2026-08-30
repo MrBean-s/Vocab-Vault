@@ -1318,7 +1318,7 @@ def deck(request, lang_id):
       'lang_id': lang_id,
       'iso_code': language.iso_code,
       'decks': decks,
-      'active_quizzes': active_quizzes
+      'active_quizzes': active_quizzes,
    })
 
 
@@ -1721,3 +1721,12 @@ def validate_deck_quiz_answer_ajax(request, lang_id, deck_id):
    }
    
    return JsonResponse(correct_answer)
+
+
+def deck_quiz_questions(request, lang_id, deck_id=None):
+
+
+   return render(request, 'forms/_deck_quiz_questions.html', {
+      'lang_id': lang_id,
+      'deck_id': deck_id,
+   })

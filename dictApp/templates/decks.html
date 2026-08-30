@@ -113,12 +113,37 @@
    .time-row {
       min-height: 40px;
    }
+
+   .question {
+      background: #1e2a40;
+      padding: 10px 20px;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+   }
+
+   .add-question-header {
+      background-color: var(--bg-body);
+   }
 </style>
 {% endblock %}
 
 {% block innerbody %}
    <div class="container py-5">
-      <h2 class="mb-3">Decks</h2>
+      <div class="d-flex align-items-center mb-4">
+         <h2 class="mb-3">Decks</h2>
+         <button
+            class="btn btn-primary ms-auto"
+            hx-get="{% url 'deck_quiz_create' lang_id=lang_id %}"
+            hx-target="#genericModalBody"
+            hx-target-error="#error-box"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal"
+         >
+            Create deck
+         </button>
+      </div>
 
       <div id="deck-grid">
          {% for deck in decks %}
@@ -155,7 +180,7 @@
 
 
       
-      <div class="d-flex mb-3 mt-5">
+      <div class="d-flex mt-5 mb-4">
          <h2>Active quizzes</h2>
 
          <div class="d-flex gap-4 ms-auto align-items-center">
@@ -205,7 +230,8 @@
 {% block additionalScripts %}
 <script>
    function initQuizSettingsForm() {
-      
+      document.getElementById('genericModalTitle').textContent = 'Quiz settings';
+
       const timerSwitch = document.getElementById('id_use_timer');
 
       timerSwitch.addEventListener('change', (event) => {
@@ -213,6 +239,88 @@
          timeSection.classList.toggle('d-none', !event.target.checked);
          timeSection.querySelector('input')?.toggleAttribute('disabled', !event.target.checked);
       });
+   }
+
+   function initDeckQuizQuestionsForm() {
+      let insertedTemplates = 0;
+      document.getElementById('genericModalTitle').textContent = 'Deck questions';
+      document.getElementById('add-question-btn').addEventListener('click', (event) => {
+         addQuestion();
+      });
+
+      if (document.querySelectorAll('.question').length == 0) addQuestion();
+
+      function addQuestion() {
+         const container = document.getElementById('question-list');
+         const template = document.getElementById('question-template');
+         const questionNumber = document.querySelectorAll('.question').length + 1;
+
+         const html = template.innerHTML
+            .replaceAll('__count__', questionNumber)
+            .replaceAll('__id__', insertedTemplates);
+         
+         container.insertAdjacentHTML('beforeend', html);
+         
+         prepareSelect2(`question-${insertedTemplates}-word`);
+         prepareSelect2(`question-${insertedTemplates}-distractors`);
+
+         const question = container.lastElementChild;
+         question.querySelector('.remove-question').addEventListener('click', (event) => {
+            removeQuestion(event.target);
+         });
+         
+         const wordInput = document.getElementById(`question-${insertedTemplates}-word`);
+         $(wordInput).on('select2:select', (event) => { fillDefinitionInput(question); });
+
+         insertedTemplates += 1;
+      }
+      
+      function removeQuestion(element){
+         const question = element.closest('.question-wrapper');
+         question.querySelectorAll('.select2-hidden-accessible').forEach((el) => {
+            $(el).select2('destroy');
+         });
+         question.remove();
+         document.querySelectorAll('.question-indicator').forEach((element, idx) => {
+            element.innerHTML = 'Question ' + String(idx + 1);
+         });
+      }
+
+      async function fillDefinitionInput(question) {
+         const defnSelect = question.querySelector('.definition-select');
+         const definitions = await getWordDefinitions(question);
+         defnSelect.innerHTML = '';
+         
+         definitions?.forEach((item) => {
+            const description = item.text.length > 55 ? item.text.slice(0, 55) + '...' : item.text;
+            const newOption = new Option(description, item.id, false, false);
+            newOption.setAttribute('title', item.text);
+            defnSelect.appendChild(newOption);
+         });
+         defnSelect.toggleAttribute('disabled', !definitions.length > 0);
+      }
+
+      async function getWordDefinitions(question) {        
+         const wordId = question.querySelector('.word-select')?.value;
+         if (!wordId) { return; }
+
+         const defn_ajax_url = "{% url 'get_definitions' %}"
+         const url = `${defn_ajax_url}?word_id=${wordId}`;
+         try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+               return data.results;
+            } else {
+               showToastrMessage('warning', `This word has 0 definitons, select another one`);
+               return [];
+            }
+         } catch (err) {
+            console.error('Fetch error:', err);
+            return [];
+         }
+      }
    }
 </script>
 {% endblock %}

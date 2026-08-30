@@ -363,7 +363,7 @@ class LinkWordForm(forms.Form):
    word_2=forms.ModelChoiceField(
       label="Related word",
       widget=forms.Select(attrs={
-         'class': 'select2 select2-ajax',
+         'class': 'select2',
          'data-is-ajax': 'true',
          'data-width': "100%",
          'data-placeholder': "Search for a word",
@@ -523,7 +523,7 @@ class CitationForm(forms.Form):
    word = forms.CharField(
       label="Word",
       widget=forms.Select(attrs={
-         'class': 'select2 select2-ajax',
+         'class': 'select2',
          'data-is-ajax': 'true',
          'data-width': '100%',
          'data-placeholder': 'Word',
@@ -840,7 +840,7 @@ class WordListFilters(forms.Form):
    source = forms.IntegerField(
       required=False,
       widget=forms.Select(attrs={
-         'class': 'select2 select2-ajax',
+         'class': 'select2',
          'data-allow-clear': 'true',
          'data-is-ajax': 'true',
          'data-placeholder': 'Source',

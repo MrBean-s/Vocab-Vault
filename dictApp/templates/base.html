@@ -400,6 +400,7 @@
          params.dropdownParent = $(`#${$el.data('dropdownParent') || `${selector}-dropdownParent`}`);
          params.allowClear = $el.data('allowClear') === true;
          params.selectionCssClass = $el.data('selectionClass') || '';
+         params.maximumSelectionLength = $el.data('maximumSelectionLength') || Infinity;
 
          if ($el.data('removeSearch') === true) params.minimumResultsForSearch = Infinity;
          if ($el.data('customTemplateSelect') === true) {
@@ -638,18 +639,20 @@
             document.getElementById('genericModalImg').classList.remove('hidden');
          }
       });
+      
 
-      $(function(){
-         $('.message').each(function(){
-            var $this = $(this);
-            var msgText = $this.text()
-            var msgType = $this.data('msgType');
-            toastr.options = {
-               "closeButton": true, "progressBar": true, "positionClass": "toast-top-right", "onclick": null,
-               "showDuration": "300", "hideDuration": "1000", "timeOut": "5000", "extendedTimeOut": "1000",
-               "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
-            }
-            if (typeof toastr[msgType] === 'function') { toastr[msgType](msgText); }
+      function showToastrMessage(messageType, messageText) {
+         toastr.options = {
+            "closeButton": true, "progressBar": true, "positionClass": "toast-top-right", "onclick": null,
+            "showDuration": "300", "hideDuration": "1000", "timeOut": "5000", "extendedTimeOut": "1000",
+            "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+         }
+         if (typeof toastr[messageType] === 'function') { toastr[messageType](messageText); }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+         document.querySelectorAll('.message').forEach((el) => {
+            showToastrMessage(el.dataset.msgType, el.textContent.trim());
          });
       });
    </script>

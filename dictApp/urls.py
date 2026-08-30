@@ -74,6 +74,8 @@ urlpatterns = [
    path("lang/<int:lang_id>/deck/<int:deck_id>/quiz-settings/", views.deck_quiz_settings, name="deck_quiz_settings"),
    path("lang/<int:lang_id>/deck/<int:deck_id>/play/", views.deck_quiz_play, name="deck_quiz_play"),
    path("lang/<int:lang_id>/deck/<int:deck_id>/validate/", views.validate_deck_quiz_answer_ajax, name="validate_deck_quiz_answer"),
+   path("lang/<int:lang_id>/deck/create/", views.deck_quiz_questions, name="deck_quiz_create"),
+   path("lang/<int:lang_id>/deck/<int:deck_id>/edit/", views.deck_quiz_questions, name="deck_quiz_edit"),
 
    path("lang/<int:lang_id>/quiz-settings/", views.quiz_settings, name="quiz_settings"),
    path("lang/<int:lang_id>/quiz/<uuid:quiz_uuid>/play/", views.quiz_play, name="quiz_play"),

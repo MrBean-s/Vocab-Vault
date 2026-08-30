@@ -1,0 +1,86 @@
+<div class="add-question-header py-4 d-flex justify-content-between sticky-top">
+   <h5>Question List</h5>
+   <div>
+      <label for="add-question-btn" role="button" class="fs-5">Add question</label>
+      <button id="add-question-btn" class="add-question btn-transparent">
+         <i class="fa-solid fa-circle-plus fs-5"></i>
+      </button>
+   </div>
+</div>
+
+<div id="question-list">
+</div>
+
+<template id="question-template">
+   <div id="question-__id__" class="question-wrapper">
+      <div id="question-__id__-header" class="question-header d-flex justify-content-between mb-2">
+         <div class="question-indicator">Question __count__</div>
+         <div>
+            <label for="remove-question-btn-__id__" role="button">Remove question</label>
+            <button id="remove-question-btn-__id__" class="remove-question btn-transparent">
+               <i class="fa-solid fa-trash"></i>
+            </button>
+         </div>
+      </div>
+      <div id="quesiton-__id__-body" class="question mb-3">
+         <div class="my-2 row">
+            <div class="col-3">
+               <label for="question-__id__-word">Correct Answer</label>
+            </div>
+            <div class="col-9">
+               <select name="question-__id__-word" id="question-__id__-word" class="select2 word-select"
+                  data-is-ajax="true"
+                  data-ajax-url="{% url 'search_word' lang_id=lang_id %}"
+                  data-placeholder="Word"
+                  data-min-input-len="3"
+                  required>
+                  <option value=""></option>
+               </select>
+            </div>
+            <div id="question-__id__-word-dropdownParent"></div>
+         </div>
+         
+         <div class="my-2 row">
+            <div class="col-3">
+               <label for="question-__id__-definition">Definition</label>
+            </div>
+            <div class="col-9">
+               <div class="select-wrapper">
+                  <select name="question-__id__-definition" id="question-__id__-definition" class="form-select definition-select" disabled required>
+                  </select>
+               </div>
+            </div>
+         </div>
+
+         <div class="my-2 row">
+            <div class="col-3">
+               <label for="question-__id__-distractors">Distractors</label>
+            </div>
+            <div class="col-9">
+               <select name="question-__id__-distractors" id="question-__id__-distractors" class="select2"
+                  data-is-ajax="true"
+                  data-ajax-url="{% url 'search_word' lang_id=lang_id %}"
+                  data-placeholder="3 words at most"
+                  data-min-input-len="3"
+                  data-allow-clear=true
+                  multiple="multiple"
+                  data-maximum-selection-length="3">
+                  <option value=""></option>
+               </select>
+            </div>
+            <div id="question-__id__-distractors-dropdownParent"></div>
+         </div>
+      </div>
+   </div>
+</template>
+
+<div style="display: flex; flex: 1; flex-direction: column; justify-content: end">
+   <div class="d-flex justify-content-end mt-4">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="btn btn-primary ms-3">
+         Submit
+      </button>
+   </div>
+</div>
+
+<div data-modal-init="initDeckQuizQuestionsForm"></div>
