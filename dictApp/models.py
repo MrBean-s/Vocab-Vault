@@ -324,7 +324,7 @@ class DeckQuestion(models.Model):
    definition = models.ForeignKey(Definition, on_delete=models.CASCADE)  # correct answer
 
    distractors = models.ManyToManyField(
-      Definition,
+      Word,
       related_name='distractor_in_deck_questions',
       blank=True
    )

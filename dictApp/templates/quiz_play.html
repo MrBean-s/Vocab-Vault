@@ -172,7 +172,7 @@
          quiz.render(document.getElementById("surveyContainer"));
 
          const nextBtn = document.querySelector('.sd-navigation__next-btn');
-         nextBtn.classList.toggle('d-none', true);
+         nextBtn?.classList.toggle('d-none', true);
 
          function pageAnswered (sender) {
             const pageAnswered = quiz.currentPage.questions.every(q => q.isAnswered);

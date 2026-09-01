@@ -980,7 +980,7 @@ class QuizSettingsForm(forms.Form):
 class DeckForm(forms.ModelForm):
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      widget=forms.FileInput(attrs={'class': 'filepond'}),
       label='Screenshot'
    )
 
@@ -989,14 +989,27 @@ class DeckForm(forms.ModelForm):
       fields = ['name', 'description']
       widgets = {
          'name': forms.TextInput(attrs={'class': 'form-control'}),
-         'description': forms.TextInput(attrs={'class': 'form-control'}),
+         'description': forms.Textarea(
+            attrs={
+               'rows': 2, 
+               'cols': 50, 
+               'class': 'form-control resize-none field-description',
+               'manual-required': 'true',
+            }
+         )
       }
-   
+
+   def __init__(self, *args, **kwargs):
+      image_path = kwargs.pop('image_path', None)
+      super().__init__(*args, **kwargs)
+
+      if image_path:
+         self.fields['image_file'].widget.attrs['data-img-path'] = image_path
+
    def save(self, commit=True):
       deck = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
       if image_file:
-         print('has img')
          old_img = deck.image
 
          if deck.pk and old_img:
@@ -1007,8 +1020,7 @@ class DeckForm(forms.ModelForm):
 
          new_img = Image.objects.create(file=image_file)
          deck.image = new_img
-      else:
-         print('no img')
+
       if commit:
          deck.save()
 
@@ -1041,3 +1053,9 @@ class DeckQuizSettingsForm(forms.Form):
       required=False,
       widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important', 'disabled': True})
    )
+
+
+class DeckQuestionForm(forms.ModelForm):
+   class Meta:
+      model = DeckQuestion
+      fields = ['deck', 'definition', 'distractors']

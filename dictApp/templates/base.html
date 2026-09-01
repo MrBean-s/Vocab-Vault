@@ -323,6 +323,13 @@
             -webkit-mask: none !important;
             mask: none !important;
          }
+         .filepond-container { min-height: 185px; }
+
+         [fake-disabled] {
+            pointer-events: none;
+            cursor: not-allowed;
+            opacity: 0.6;
+         }
       </style>
    {% endblock styles %}
    {% block sidebarStyle %}
@@ -556,6 +563,8 @@
 
          container.addEventListener('focusin', () => setActiveContainer(container, pond));
          container.addEventListener('click', () => setActiveContainer(container, pond));
+         
+         return pond;
       }
 
       function setActiveContainer(container, pond) {

@@ -1402,7 +1402,7 @@ def quiz_settings(request, lang_id):
          for question_idx, i in enumerate(range(0, len(selected), options_per_question)):
             group = selected[i:i + options_per_question]
             correct_def = group[0]
-            definition_and_distractors[correct_def.id] =  [defn.id for defn in group[1:]]
+            definition_and_distractors[correct_def.id] =  [defn.word.id for defn in group[1:]]
             correct_word = correct_def.word
 
             option_words = [d.word.name for d in group]
@@ -1574,7 +1574,7 @@ def save_quiz_to_deck(request, quiz_uuid, lang_id):
             definition = Definition.objects.filter(pk=correct_defn_id).first()
             if definition:
                question = DeckQuestion.objects.create(deck=deck, definition=definition)
-               distractor_objs = Definition.objects.filter(pk__in=distractor_ids)
+               distractor_objs = Word.objects.filter(pk__in=distractor_ids)
                question.distractors.add(*distractor_objs)
 
       quizzes.pop(str(quiz_uuid), None)
@@ -1650,7 +1650,7 @@ def deck_quiz_play(request, lang_id, deck_id):
                'name': f'q_{question.id}',
                'title': question.definition.description,
                'choices': sorted(
-                  [question.definition.word.name] + [d.word.name for d in question.distractors.all()],
+                  [question.definition.word.name] + [word.name for word in question.distractors.all()],
                   key=lambda x: random.random()
                )
             }
@@ -1724,9 +1724,82 @@ def validate_deck_quiz_answer_ajax(request, lang_id, deck_id):
 
 
 def deck_quiz_questions(request, lang_id, deck_id=None):
+   deck = get_object_or_404(Deck, pk=deck_id) if deck_id else None
 
+   if request.method == 'POST':
+      try:
+         questions = json.loads(request.POST.get('questions', '[]'))
+      except json.JSONDecodeError as e:
+         print(f"Invalid JSON payload: {e}")
+         return JsonResponse({'error': 'Invalid JSON'}, status=400)
+      
+      try: 
+         with transaction.atomic():
+            deck_form = DeckForm(request.POST, request.FILES, instance=deck)
+            if not deck_form.is_valid():
+               return JsonResponse({'errors': deck_form.errors}, status=400)
+            
+            deck = deck_form.save()
+            processed_definition_ids = []
+            print(questions)
+            for q in questions:
+               q['deck'] = deck.id
+               defn_id = q.get('definition')
+               
+               instance = DeckQuestion.objects.filter(
+                  deck=deck,
+                  definition_id=defn_id
+               ).first()
+
+               question_form = DeckQuestionForm(data=q, instance=instance)
+
+               if question_form.is_valid():
+                  question_form.save()
+                  processed_definition_ids.append(defn_id)
+               else:
+                  return JsonResponse({'errors': question_form.errors}, status=400)
+               
+            DeckQuestion.objects.filter(deck=deck).exclude(
+               definition_id__in=processed_definition_ids
+            ).delete()
+
+            delete_image = request.POST.get("delete_image", '')
+
+            if delete_image and delete_image != 'false' and deck.image:
+               img_to_del = deck.image
+               storage = img_to_del.file.storage
+               if storage.exists(img_to_del.file.name):
+                  storage.delete(img_to_del.file.name)
+               img_to_del.delete()
+               deck.image = None
+
+      except Exception as e:
+         print(f"Unexpected error: {type(e).__name__} - {e}")
+         return JsonResponse({'error': 'Server error'}, status=500)
+
+      return JsonResponse({'success': True}, status=200)
+
+   initial_data = {
+      'name': deck.name if deck else '',
+      'description': deck.description if deck else '',
+      'questions': [
+         {
+            'word_text': q.definition.word.name,
+            'word_id': q.definition.word.id,
+            'definition_id': q.definition.id,
+            'distractors': [{'id': word.id, 'text': word.name} for word in q.distractors.all()],
+         }
+         for q in DeckQuestion.objects.prefetch_related('distractors', 'definition__word').filter(deck=deck)
+      ]
+   } if deck else None
+   
+   image_url = deck.image.file.url if (deck and getattr(deck, 'image', None) and deck.image.file) else None
+   deck_form = DeckForm(image_path=image_url)
 
    return render(request, 'forms/_deck_quiz_questions.html', {
       'lang_id': lang_id,
       'deck_id': deck_id,
+      'deck_name': deck.name if deck else "",
+      'deck_quiz_initial_data': initial_data,
+      'deck_form': deck_form
    })
