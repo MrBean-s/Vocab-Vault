@@ -8,17 +8,22 @@
 
       .sd-question {
          padding: 30px 50px;
+         border-radius: 0;
+         border: 0;
       }
-      .sv-string-viewer {
-         font-size: 1.5rem;
+      .sd-page, .sd-page__content, .sd-row, .sd-element { height: 100% }
+      .sd-element {
+         box-shadow: none !important;
+         border: 1px solid var(--border-color);
       }
+      .sv-string-viewer { font-size: 1.5rem; }
       .sd-item__control-label .sv-string-viewer, .sd-element__num  { font-size: 1.2rem !important;}
       .sd-item__control-label { line-height: 30px }
       .sd-selectbase__label { align-items: center}
       /* .sd-question__header { padding-bottom: 40px; } */
       .sd-progress__text { box-shadow: None;}
       .sd-body { padding-top: 15vh;}
-      .sd-page__content { padding: 0 !important}
+      .sd-page__content { padding: 0 !important;}
       .ans-correct {
          border: 2px solid #28a745 !important;
          background-color: rgba(40, 167, 69, 0.1) !important;
@@ -27,18 +32,12 @@
          border: 2px solid #dc3545 !important;
          background-color: rgba(220, 53, 69, 0.1) !important;
       }
-      .sd-question__container {
-         min-height: 415px;
-      }
-      .sd-question__header-and-content-container {
-         row-gap: 70px;
-      }
-      .sd-question__header {
-         min-height: 85px;
-      }
+      .sd-question__container { min-height: 415px; }
+      .sd-question__header-and-content-container { row-gap: 70px; }
+      .sd-question__header { min-height: 85px; }
+      .sv-title-actions__title { width: 100%;}
       .sd-question__content, .sd-selectbase {
          display: flex;
-         /* flex-direction: column; */
          width: 100%;
          justify-content: center;
       }
@@ -70,10 +69,7 @@
          font-weight: bold;
          text-shadow: 0px 0px 5px black;
       }
-
-      .sd-item__control-label .sv-string-viewer {
-         padding: 0px 10px;
-      }
+      .sd-item__control-label .sv-string-viewer { padding: 0px 10px; }
 
       .sd-radio__decorator { display: none}
 
@@ -82,12 +78,12 @@
          max-height: 500px;
          overflow-y: auto;
          overflow-x: hidden;
+         background: var(--bg-surface);
+         border: 1px solid var(--border-color);
       }
 
       .answer-content {
-         border-radius: 0.375rem;
-         /* border:  2px solid #b4bcc9 !important; */
-         /* background-color: rgba(187, 191, 219, 0.1) !important; */
+         padding: 1rem 1.5rem;
          display: flex;
          flex-direction: column;
          justify-content: space-around;
@@ -99,8 +95,12 @@
 
       .image-wrapper {
          aspect-ratio: 16 / 9;
-         min-width: 320px;
+         min-width: 150px;
          min-height: 180px;
+         max-width: 100%;
+         /* max-height: 250px;
+         margin-left: auto;
+         margin-right: auto; */
          background: black;
          display: flex; justify-content: center;
 
@@ -117,6 +117,27 @@
          font-style: italic;
          font-size: 1.15rem;
       }
+      .sd-action-bar {
+         display: grid !important;
+         grid-template-columns: 1fr 1fr;
+         align-items: center;
+         width: 100%;
+         padding: 0;
+      }
+
+      .sd-action-bar__item:has(.sd-navigation__prev-btn) {
+         grid-column: 1 !important;
+         justify-self: start !important;
+      }
+
+      .sd-action-bar__item:has(.sd-navigation__next-btn), .sd-action-bar__item:has(.sd-navigation__complete-btn) {
+         grid-column: 2 !important;
+         justify-self: end !important;
+      }
+      .sd-action-bar__item:not(:has(.sd-navigation__prev-btn)) { display: none; }
+      .sd-action-bar__item.is-visible { display: block !important; }
+
+      .survey-loading { visibility: hidden; }
    </style>
 {% endblock %}
 
@@ -169,16 +190,20 @@
       // quiz.widthMode = 'responsive';
 
       document.addEventListener("DOMContentLoaded", function() {
-         quiz.render(document.getElementById("surveyContainer"));
+         const surveyContainer = document.getElementById("surveyContainer");
+         quiz.render(surveyContainer);
 
-         const nextBtn = document.querySelector('.sd-navigation__next-btn');
-         nextBtn?.classList.toggle('d-none', true);
 
          function pageAnswered (sender) {
-            const pageAnswered = quiz.currentPage.questions.every(q => q.isAnswered);
-            nextBtn.classList.toggle('d-none', !pageAnswered);
-            const completeBtn = document.querySelector('.sd-navigation__complete-btn');
-            completeBtn?.classList.toggle('d-none', !(pageAnswered && sender.isLastPage));
+            const isAnswered = quiz.currentPage.questions.every(q => q.isAnswered);
+            const nextItem = surveyContainer.querySelector('.sd-navigation__next-btn')?.closest('.sd-action-bar__item');
+            
+            if (sender.isLastPage) {
+               const completeItem = surveyContainer.querySelector('.sd-navigation__complete-btn')?.closest('.sd-action-bar__item');
+               completeItem?.classList.toggle('is-visible', isAnswered);
+            }
+            
+            nextItem?.classList.toggle('is-visible', isAnswered && !sender.isLastPage);
          }
 
          async function validateAnswer(qName, qValue='NA') {
@@ -207,12 +232,12 @@
             // if (!isCorrect) { question.addError("Incorrect answer!"); }
 
             requestAnimationFrame(() => {
-               const el = document.querySelector(`[data-name="${question.name}"]`);
+               const el = surveyContainer.querySelector(`[data-name="${question.name}"]`);
                el?.classList.toggle("ans-wrong", !isCorrect);
                el?.classList.toggle("ans-correct", isCorrect);
             });
             
-            const parent = document.querySelector('.sd-body.sd-body--static');
+            const parent = surveyContainer.querySelector('.sd-body.sd-body--static');
             if (!parent) return;
 
             const questionBody = parent.querySelector('.sd-page.sd-body__page');
@@ -221,7 +246,7 @@
             let wrapper = parent.querySelector('.side-by-side-row');
             if (!wrapper) {
                wrapper = document.createElement('div');
-               wrapper.classList.add('row', 'w-100', 'side-by-side-row', 'g-0', 'gy-4', 'gap-5');
+               wrapper.classList.add('row', 'w-100', 'side-by-side-row', 'g-0', 'gy-4');
 
                const questionCol = document.createElement('div');
                questionCol.classList.add('col', 'question-col');
@@ -275,22 +300,28 @@
          });
          
          quiz.onCurrentPageChanged.add((sender, options) => {
-            nextBtn.classList.toggle('d-none', true);
-            document.querySelector('.sd-navigation__complete-btn')?.classList.toggle('d-none', true);
             setTimeout(async () => {
                for (const question of quiz.currentPage.questions) {
                   if (question.isAnswered) {
                      await applyAnswerFeedback(question);
                   } else {
-                     document.querySelector('.answer-box')?.classList.toggle('d-none', true);
+                     surveyContainer.querySelector('.answer-box')?.classList.toggle('d-none', true);
                   }
                }
                pageAnswered(sender);
+               document.querySelector('.side-by-side-row').classList.remove('survey-loading');
             }, 0);
             quiz.startTimer();
          });
+
          quiz.onCurrentPageChanging.add((sender, options) => {
-            document.querySelector('.answer-box')?.remove();
+            document.querySelector('.side-by-side-row').classList.add('survey-loading');
+            surveyContainer.querySelector('.answer-box')?.remove();
+            if (sender.isLastPage) {
+               surveyContainer.querySelector('.sd-navigation__complete-btn')
+                  ?.closest('.sd-action-bar__item')
+                  .classList.remove('is-visible');
+            }
          });
          
          quiz.onTimerTick.add(async (sender, options) => {

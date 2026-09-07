@@ -12,7 +12,8 @@
    <div class="d-flex align-items-center">
       <h2 class="m-0">{{source.name}}{% if source.released_year %} ({{source.released_year}}){% endif %}</h2>
       
-      <button class="btn btn-primary ms-auto"
+      <button type="button"
+         class="btn btn-primary ms-auto"
          hx-get="{% url 'episode_add' source_id=source.id%}"
          hx-target="#genericModalBody"
          hx-target-error="#error-box"

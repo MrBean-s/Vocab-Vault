@@ -323,12 +323,26 @@
             -webkit-mask: none !important;
             mask: none !important;
          }
-         .filepond-container { min-height: 185px; }
+         .filepond-wrapper, .filepond-container { min-height: 185px; }
 
          [fake-disabled] {
             pointer-events: none;
             cursor: not-allowed;
             opacity: 0.6;
+         }
+         .flash-border {
+            animation: flashBorderAnimation 1s ease-out;
+         }
+
+         @keyframes flashBorderAnimation {
+            0% {
+               border-color: var(--accent-gold);
+               box-shadow: 0 0 8px rgba(220, 197, 26, 0.9);
+            }
+            100% {
+               border-color: var(--border-color);
+               box-shadow: none;
+            }
          }
       </style>
    {% endblock styles %}
@@ -375,16 +389,20 @@
 
    <script>
       document.getElementById('genericModal').addEventListener('hidden.bs.modal', function () {
-         document.querySelector('.modal-dialog').classList.toggle('modal-xl', false);
-         document.getElementById('genericModalTitle').textContent = '';
-         document.getElementById('genericModalBody').innerHTML = ``;
-         document.getElementById('genericModal').classList.add('hidden');
-         const buttons = document.getElementById('genericModalButtons');
-         if (buttons) textContent = '';
+         const modal = this;
+
+         modal.querySelector('.modal-dialog').classList.remove('modal-xl');
+         modal.querySelector('.modal-title').textContent = '';
+         modal.querySelector('.modal-body').innerHTML = '';
+
+         modal.classList.add('hidden');
       });
+
       document.getElementById('genericModalImg').addEventListener('hidden.bs.modal', function () {
-         document.getElementById('genericModalImgContent').innerHTML = '';
-         document.getElementById('genericModalImg').classList.add('hidden');
+         const genericImgModal = this;
+
+         this.querySelector('#genericModalImgContent').innerHTML = '';
+         this.classList.add('hidden');
       });
    </script>
 
@@ -548,7 +566,7 @@
             allowBrowse: true,
             storeAsFile: true,
             imagePreviewMinHeight: 230,
-            labelIdle: 'Drag & Drop, click and Ctr + V here, or <span class="filepond--label-action browse-btn">Browse</span>',
+            labelIdle: 'Drag & Drop, click and Ctr + V, or <span class="filepond--label-action browse-btn">Browse</span>',
             files: files,
             server: {
                load: (source, load, error, progress, abort, headers) => {
@@ -598,7 +616,6 @@
       }
 
       document.body.addEventListener('htmx:beforeSwap', function(evt) {
-         console.log(document.getElementById('genericModal'));
          if (evt.detail.target.id === 'genericModalBody') {
             document.getElementById('genericModal').classList.add('hidden');
             document.getElementById('form-loader').classList.remove('hidden');
@@ -614,7 +631,8 @@
          if (evt.detail.target.id === 'genericModalBody') {
             requestAnimationFrame(function() {
                setTimeout(function() {
-                  var modalBody = document.getElementById('genericModalBody');
+                  const modal = document.getElementById('genericModal');
+                  const modalBody = evt.target;
                   
                   initSelect2InsideModals();
 
@@ -629,7 +647,9 @@
                   }
                   setTimeout(function() {
                      document.getElementById('form-loader').classList.add('hidden');
-                     document.getElementById('genericModal').classList.remove('hidden');
+                     modal.classList.remove('hidden');
+                     modalBody.scrollTop = 0;
+                     modal.scrollTop = 0;
                   }, 50);
                }, 10);
             });

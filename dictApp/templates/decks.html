@@ -160,14 +160,13 @@
    <div class="container py-5">
       <div class="d-flex align-items-center mb-4">
          <h2 class="mb-3">Decks</h2>
-         <button
+         <button type="button"
             class="btn btn-primary ms-auto"
             hx-get="{% url 'deck_quiz_create' lang_id=lang_id %}"
             hx-target="#genericModalBody"
             hx-target-error="#error-box"
             data-bs-toggle="modal"
-            data-bs-target="#genericModal"
-         >
+            data-bs-target="#genericModal">
             Create deck
          </button>
       </div>
@@ -238,7 +237,7 @@
 
          <div class="d-flex gap-4 ms-auto align-items-center">
             <a href="{% url 'clear_all_quizzes' lang_id=lang_id %}">Clear all quizzes</a>
-            <button 
+            <button type="button"
                class="btn btn-primary"
                data-bs-toggle="modal"
                data-bs-target="#genericModal"
@@ -303,7 +302,13 @@
       let insertedTemplates = 0;
       document.getElementById('genericModalTitle').textContent = 'Deck questions';
       document.getElementById('add-question-btn').addEventListener('click', (event) => {
-         addQuestion();
+         const question = addQuestion();
+         question.scrollIntoView({behavior: 'smooth'});
+         const questionBody = question.querySelector('.question');
+         questionBody.classList.add('flash-border');
+         questionBody.addEventListener('animationend', () => {
+            questionBody.classList.remove('flash-border');
+         }, { once: true });
       });
       
       FilePond.registerPlugin(FilePondPluginImagePreview);

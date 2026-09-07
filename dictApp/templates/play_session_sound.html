@@ -135,7 +135,8 @@
    <div class="d-flex align-items-center">
       <h2 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h2>
 
-      <button hx-get="{{target_url}}"
+      <button type="button"
+         hx-get="{{target_url}}"
          hx-trigger="click"
          hx-target="#genericModalBody"
          hx-target-error="#error-box"

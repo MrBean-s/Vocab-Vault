@@ -6,50 +6,62 @@
    hx-target-error="#genericModalBody"
    enctype="multipart/form-data">
    {% csrf_token %}
-   <div class="mb-3">
-      <div class="d-flex justify-content-between">
-         <label class="form-label" for="{{form.source.id_for_label}}">{{form.source.label}}</label>
-         <a class="anchor-not-href"
-            hx-get="{% url 'source_add' lang_id=lang_id %}"
-            hx-target="#genericModalBody"
-            hx-target-error="#error-box"
-            hx-trigger="click">
-            Create a new source
-         </a>
-      </div>
-      {{form.source}}
-      <div id="{{form.source.id_for_label}}-dropdownParent"></div>
-      {{form.source.errors}}
-   </div>
 
-   <div class="mb-3 section-hide" hidden>
-      <div class="d-flex justify-content-between">
-         <label class="form-label" for="{{form.episode.id_for_label}}">{{form.episode.label}}</label>
-         <a id="new-episode-a" class="anchor-not-href"
-            hx-get="{% url 'episode_add' source_id=999999 %}"
-            hx-target="#genericModalBody"
-            hx-target-error="#error-box"
-            hx-trigger="click">
-            Create a new episode
-         </a>
-      </div>
-      {{form.episode}}
-      <div id="{{form.episode.id_for_label}}-dropdownParent"></div>
-      {{form.episode.errors}}
-   </div>
+   <div id="source-segment-row" class="row gx-5 gy-4">
+      <div class="col-xl col-12 d-flex flex-column justify-content-between">
+         <div class="mb-4">
+            <div class="d-flex justify-content-between">
+               <label class="form-label" for="{{form.source.id_for_label}}">{{form.source.label}}</label>
+               <a class="anchor-not-href"
+                  hx-get="{% url 'source_add' lang_id=lang_id %}"
+                  hx-target="#genericModalBody"
+                  hx-target-error="#error-box"
+                  hx-trigger="click">
+                  Create a new source
+               </a>
+            </div>
+            {{form.source}}
+            <div id="{{form.source.id_for_label}}-dropdownParent"></div>
+            {{form.source.errors}}
+         </div>
 
-   <div class="d-flex gap-5 mb-3">
-      <div class="w-50">
-         <label class="form-label" for="form.spotted_at.id_for_label">{{form.spotted_at.label}}</label>
-         {{form.spotted_at}}
-         {{form.spotted_at.errors}}
+         <div class="episode-segment-section" hidden>
+            <div class="d-flex justify-content-between">
+               <label class="form-label" for="{{form.episode_or_segment.id_for_label}}">{{form.episode_or_segment.label}}</label>
+               <a id="new-item-tag" class="anchor-not-href"
+                  hx-target="#genericModalBody"
+                  hx-target-error="#error-box"
+                  hx-trigger="click">
+               </a>
+            </div>
+            {{form.episode_or_segment}}
+            <div id="{{form.episode_or_segment.id_for_label}}-dropdownParent"></div>
+            {{form.episode_or_segment.errors}}
+         </div>
+
+         <div id="spotted-section" class="mt-4">
+            <label class="form-label" for="form.spotted_at.id_for_label">{{form.spotted_at.label}}</label>
+            {{form.spotted_at}}
+            {{form.spotted_at.errors}}
+         </div>
+         {% if form.page %}
+            <div id="page-section" class="mt-4" hidden>
+               <label class="pe-4" for="{{form.page.id_for_label}}">{{form.page.label}}</label>
+               {{form.page}}
+               {{form.page.errors}}
+            </div>
+         {% endif %}
       </div>
-      <div class="w-50">
-         <label class="form-label" for="form.image_file.id_for_label">{{form.image_file.label}}</label>
-         {{form.image_file}}
-         {{form.image_file.errors}}
+      <div class="col-xl-5 col-12 d-flex flex-column justify-content-center align-items-end image-col">
+         <div class="filepond-wrapper" tabindex="0">
+            {{ form.image_file }}
+         </div>
+         {{ form.image_file.errors }}
       </div>
    </div>
+   
+
+   
    
    {% if form.non_field_errors %}
       {% for error in form.non_field_errros %}

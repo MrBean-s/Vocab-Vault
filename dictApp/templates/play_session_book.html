@@ -219,7 +219,8 @@
    <div class="d-flex align-items-center">
       <h2 class="">{{segment.get_segment_type_display}} {{segment.number}}</h2>
 
-      <button hx-get="{% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id %}"
+      <button type="button"
+         hx-get="{% url 'session_segment_cite' segment_id=segment.id lang_id=lang_id %}"
          hx-trigger="mouseup"
          hx-target="#genericModalBody"
          hx-target-error="#error-box"
@@ -319,10 +320,10 @@
 
 
 
-         <button id="prevBtn" onclick="changeSpread(-1)" class="btn-transparent">
+         <button type="button" id="prevBtn" onclick="changeSpread(-1)" class="btn-transparent">
             <i class="fa-solid fa-left-long fs-3"></i>
          </button>
-         <button id="nextBtn" onclick="changeSpread(1)" class="btn-transparent">
+         <button type="button" id="nextBtn" onclick="changeSpread(1)" class="btn-transparent">
             <i class="fa-solid fa-right-long fs-3"></i>
          </button>
       </div>

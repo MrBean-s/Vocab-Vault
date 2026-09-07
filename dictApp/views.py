@@ -16,7 +16,7 @@ from django.conf import settings
 from datetime import datetime, timedelta
 from django.utils import timezone as django_tz
 from dateutil.relativedelta import relativedelta, MO
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.template.loader import render_to_string
 
 def start_screen(request):
@@ -530,7 +530,9 @@ def word_details(request, lang_id, word_id):
       'lang_id': lang_id,
       'ngram_code': language.iso_code,
       'context': context,
-      'related_words': related_words
+      'related_words': related_words,
+      'category_map_json': Source.get_category_map(),
+      'source_to_cat_json': dict(Source.objects.filter(language_id=lang_id).values_list('id', 'source_category'))
    })
 
 def countries(request):
@@ -1123,33 +1125,19 @@ def get_definitions(request):
    return JsonResponse(results)
 
 def search_episodes_or_segments(request, source_id):
-   search_episodes = request.GET.get('search_episodes', '')
-
-   if search_episodes == '':
-      return HttpResponseBadRequest('The search episode option is missing')
+   search_episodes = json.loads(request.GET.get('search_episodes', 'false').lower())
    
    source = get_object_or_404(
       Source.objects.prefetch_related('episodes', 'segments'),
       pk=source_id
-   )
+   )   
 
    if search_episodes:
-      results = { 'results': [ { 'value': ep.id, 'text': str(ep) } for ep in source.episodes.all() ] }
+      results = { 'results': [ { 'value': ep.id, 'text': str(ep) } for ep in source.episodes.all().order_by('-season_number', '-episode_number') ] }
    else:
-      results = { 'results': [ { 'value': seg.id, 'text': str(seg) } for seg in source.segments.all() ] }
+      results = { 'results': [ { 'value': seg.id, 'text': str(seg) } for seg in source.segments.all().order_by('number') ] }
 
    return JsonResponse(results)
-
-
-def get_sources(request, lang_id):
-   language = get_object_or_404(Language, pk=lang_id)
-   data = { 
-      'results': [
-         {'value': src.id, 'text': str(src), 'category': src.source_category}
-         for src in Source.objects.filter(language_id=lang_id)
-      ]
-   }
-   return JsonResponse(data)
 
 
 def search_source(request, lang_id):
@@ -1175,34 +1163,59 @@ def example_cite(request, lang_id, example_id):
    example = get_object_or_404(Example, pk=example_id)
 
    if request.method == 'POST':
-      form = CitationFormDetailsPage(request.POST, request.FILES, prefix="src-ep", lang_id=lang_id)
+      form = CitationFormDetailsPage(request.POST, request.FILES, lang_id=lang_id)
       
       if form.is_valid():
          source = form.cleaned_data['source']
-         episode = form.cleaned_data.get('episode')
          spotted_at = form.cleaned_data['spotted_at']
+         episode_or_segment_id = form.cleaned_data.get('episode_or_segment')
+         
+         structure_type = source.get_structure_type()
 
-         citation = Citation.objects.create(
-            spotted_at=spotted_at,
-            example=example,
-            source=source if not episode else None,
-            episode=episode,
-         )
+         if structure_type in ('episodes', 'segments') and not episode_or_segment_id:
+            form.add_error('episode_or_segment', 'This field is required for the selected source.')
+            return render(request, 'forms/_citation_form_details_page.html', {
+               'form': form, 'lang_id': lang_id, 'example_id': example_id
+            })
+            
+         instance_id = int(episode_or_segment_id) if episode_or_segment_id else None
+
+         if structure_type == 'episodes':
+            episode = get_object_or_404(Episode, pk=instance_id)
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
+               example=example,
+               source=None,
+               episode=episode,
+            )
+            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode.id})
+         elif structure_type == 'segments':
+            segment = get_object_or_404(Segment, pk=instance_id)
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
+               example=example,
+               source=None,
+               segment=segment,
+            )
+            redirect_url = reverse('play_session_segment', kwargs={'lang_id': lang_id, 'segment_id': segment.id})
+         else:
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
+               example=example,
+               source=source
+            )
+            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source.id})     
 
          image_file = form.cleaned_data.get('image_file')
          if image_file:
             citation.image = Image.objects.create(file=image_file)
             citation.save()
 
-         if episode:
-            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode.id})
-         elif source:
-            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source.id})         
-
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': redirect_url})
+         return redirect(redirect_url)
    else:
-      form = CitationFormDetailsPage(prefix="src-ep", lang_id=lang_id)
+      form = CitationFormDetailsPage(lang_id=lang_id)
 
    return render(request, 'forms/_citation_form_details_page.html', {
       'form': form,
@@ -1641,23 +1654,32 @@ def deck_quiz_play(request, lang_id, deck_id):
       pk=deck_id
    )
 
+   is_mo = quiz_type == 'MO'
+
    pages = [
       {
          'name': f"page{idx}",
          'elements': [
             {
-               'type': 'radiogroup',
+               'type': 'radiogroup' if is_mo else 'text',
                'name': f'q_{question.id}',
                'title': question.definition.description,
-               'choices': sorted(
-                  [question.definition.word.name] + [word.name for word in question.distractors.all()],
-                  key=lambda x: random.random()
+               **(
+                  {
+                     'choices': sorted(
+                        [question.definition.word.name] + [w.name for w in question.distractors.all()],
+                        key=lambda _: random.random()
+                     )
+                  }
+                  if is_mo
+                  else {}
                )
             }
          ]
-      } for idx, question in enumerate(deck.deck_questions.all())
+      }
+      for idx, question in enumerate(deck.deck_questions.all())
    ]
-
+   
    survey_json = {
       "pages": pages,
       "progressBarLocation": "top",

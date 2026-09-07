@@ -607,7 +607,7 @@ class CitationForm(forms.Form):
       else:
          del self.fields['page']
       
-      if existing_img_path:
+      if existing_img_path and self.fields.get('image_file'):
          self.fields['image_file'].widget.attrs.update({
             'data-img-path': existing_img_path
          })
@@ -670,7 +670,7 @@ class CitationDelete(forms.Form):
 
 
 class CitationFormDetailsPage(forms.Form):
-   source=forms.ModelChoiceField(
+   source = forms.ModelChoiceField(
       widget=forms.Select(attrs={
          'placeholder': "Select a source...",
          'class': 'select2',
@@ -680,14 +680,13 @@ class CitationFormDetailsPage(forms.Form):
       required=True
    )
 
-   episode=forms.ModelChoiceField(
+   episode_or_segment = forms.ChoiceField(
+      choices=[],
       widget=forms.Select(attrs={
-         'placeholder': "Select an episode...",
+         'placeholder': "Select an episode/segment...",
          'class': 'select2',
          'required': 'true',
       }),
-      empty_label="Select an episode",
-      queryset=Episode.objects.none(),
       required=False
    )
 
@@ -701,27 +700,39 @@ class CitationFormDetailsPage(forms.Form):
       required=True
    )
 
+   page = forms.IntegerField(
+      label='Page',
+      required=False,
+      widget=forms.NumberInput(attrs={
+         'class': 'form-control d-inline',
+         'style': 'width: auto',
+         'placeholder': '#',
+      })
+   )
+
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      widget=forms.FileInput(attrs={'class': 'filepond'}),
       label='Screenshot'
    )
 
    def __init__(self, *args, **kwargs):
       lang_id = kwargs.pop('lang_id', None)
       super().__init__(*args, **kwargs)
-
-      source_id = None
-      if self.is_bound:
-         if lang_id:
-            self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
-         source_id = self.data.get(f'{self.prefix}-source')
-      elif 'source' in self.initial:
-         source_id = self.initial.get('source')
+      if lang_id:
+         self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
       
-      if source_id:
-         source = Source.objects.get(pk=source_id)
-         self.fields['episode'].queryset = source.episodes.all()
+      if self.is_bound:
+         if 'episode_or_segment' in self.data:
+            submitted_id = self.data.get('episode_or_segment')
+            if submitted_id:
+               self.fields['episode_or_segment'].choices = [(submitted_id, submitted_id)]
+            
+         source_id = self.data.get('source')
+         if source_id:
+            source = Source.objects.filter(pk=source_id).first()
+            if source and source.source_category == 'BOK':
+               self.fields['spotted_at'].required = False
 
 
 class SegmentForm(forms.ModelForm):
@@ -1041,7 +1052,7 @@ class DeckQuizSettingsForm(forms.Form):
    use_timer = forms.BooleanField(
       label='Timed quiz',
       required=False,
-      initial=False,
+      initial=True,
       widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'})
    )
 
@@ -1051,7 +1062,7 @@ class DeckQuizSettingsForm(forms.Form):
       max_value=59,
       initial=20,
       required=False,
-      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important', 'disabled': True})
+      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important', 'disabled': False})
    )
 
 

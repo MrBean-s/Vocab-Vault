@@ -201,6 +201,14 @@ class Source(models.Model):
       PODCAST = 'POD', 'Podcast'
       # OTHER = 'OTH', 'OTHER'
 
+      @classmethod
+      def get_structure_type(cls, category):
+         if category in {cls.TVSHOW}:
+            return 'episodes'
+         if category in {cls.ALBUM, cls.BOOK}:
+            return 'segments'
+         return 'none'
+
    source_category = models.CharField(
       max_length=3,
       choices = SourceCategory.choices,
@@ -231,6 +239,15 @@ class Source(models.Model):
          Q(segment__source=self)
       ).distinct().count()
 
+   @classmethod
+   def get_category_map(cls):
+      return {
+         code: cls.SourceCategory.get_structure_type(code)
+         for code, _ in cls.SourceCategory.choices
+      }
+
+   def get_structure_type(self):
+      return self.SourceCategory.get_structure_type(self.source_category)
 
    def __str__(self):
       year_str = f" ({self.released_year})" if self.released_year else ''
@@ -277,6 +294,8 @@ class Segment(models.Model):
    class Meta:
       unique_together = ('segment_type', 'name', 'number')
 
+   def __str__(self):
+      return f"{self.number}. {self.name}"
 
 class Citation(models.Model):
    added_at = models.DateTimeField(auto_now_add=True)

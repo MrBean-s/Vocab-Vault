@@ -95,7 +95,7 @@
    <div class="container">
       <div class="mb-3 pt-4">
          <label for="add-defn" class="ps-5 position-relative clickable" role="button">
-            <button id="add-defn" class="position-absolute add-definition-item text-decoration-none btn-transparent" style="left: 10px"
+            <button type="button" id="add-defn" class="position-absolute add-definition-item text-decoration-none btn-transparent" style="left: 10px"
                onclick="addDefinition(); return false;">
                <i class="fa-solid fa-circle-plus fs-5"></i>
             </button>
@@ -131,7 +131,8 @@
                         <span class="def-row-number" data-is-prototype="{{def_is_prototype}}">{{forloop.counter}}</span>
                      </label>
 
-                     <button id="definitions-{{def_index}}-remove"
+                     <button type="button"
+                        id="definitions-{{def_index}}-remove"
                         class="position-absolute remove-definition-item btn-transparent"
                         style="left: 15px"
                         href="#" data-def-index="{{ def_index }}" 
@@ -212,7 +213,8 @@
                         Examples
                      </label>
 
-                     <button id="definitions-{{def_index}}-example-add"
+                     <button type="button"
+                        id="definitions-{{def_index}}-example-add"
                         class="position-absolute add-example-item btn-transparent"
                         style="left: 15px"
                         href="#" data-def-index="{{ def_index }}" 

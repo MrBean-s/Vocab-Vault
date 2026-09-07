@@ -11,7 +11,6 @@ urlpatterns = [
    path("lang/add-to-set/", views.add_lang_to_set, name="lang_add_set"),
    path("lang/<int:lang_id>/add-to-set/", views.add_lang_to_set_with_id, name="lang_add_set_with_id"),
    path("lang/<int:lang_id>/remove-from-set/", views.remove_lang_from_set, name="lang_remove_set"),
-   path("lang/<int:lang_id>/get-sources/", views.get_sources, name="get_sources"),
    path("languages/", views.languages, name="languages"),
 
    path("generic/confirm-delete/", views.generic_confirm_delete, name="generic_confirm_delete"),
@@ -43,7 +42,6 @@ urlpatterns = [
    path("lang/<int:lang_id>/source/add/", views.sources_add_edit, name="source_add"),
    path("lang/<int:lang_id>/source/<int:source_id>/edit/", views.sources_add_edit, name="source_edit"), 
    path("lang/<int:lang_id>/source/<int:source_id>/delete/", views.source_delete, name="source_delete"),
-   # path("lang/<int:lang_id>/source/<int:source_id>/", views.sources_add_edit, name="source_add"), #???
 
    path("lang/<int:lang_id>/source/<int:source_id>/episodes/", views.episodes, name="episodes"),
    path("source/<int:source_id>/episode/add/", views.episode_add_edit, name="episode_add"),
