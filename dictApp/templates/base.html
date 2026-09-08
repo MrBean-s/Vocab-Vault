@@ -34,7 +34,7 @@
 
             --bg-success:      #289d55;
             --bg-important:    #edc448;
-            --bg-danger:       #d4423f;
+            --bg-danger:       #bd362f;
             --bg-primary:      #3155d0;
             --bg-secondary:    #223454;
 
@@ -344,6 +344,9 @@
                box-shadow: none;
             }
          }
+         .danger-tooltip, .success-tooltip { --bs-tooltip-color: var(--text-main); }
+         .danger-tooltip { --bs-tooltip-bg: var(--bg-danger); }
+         .success-tooltip { --bs-tooltip-bg: var(--bg-success); }
       </style>
    {% endblock styles %}
    {% block sidebarStyle %}

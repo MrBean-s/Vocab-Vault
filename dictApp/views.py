@@ -206,14 +206,6 @@ def word(request, lang_id, word_id=None):
          # Handle deleted definitions
          for idx, def_form in enumerate(def_formset.forms):
             if def_form.cleaned_data.get('DELETE', False) and def_form.instance.pk:
-               img_to_del = def_form.instance.image
-               if img_to_del:
-                  storage = img_to_del.file.storage
-                  if storage.exists(img_to_del.file.name):
-                     storage.delete(img_to_del.file.name)
-
-                  img_to_del.delete()
-
                def_form.instance.delete()
 
          if not word.definitions.all():
@@ -260,19 +252,21 @@ def word_delete(request, lang_id, word_id):
       language_id=lang_id
    )
 
-   for defn in word.definitions.all():
-      img = defn.image
-      if img:
-         storage = img.file.storage
-         if storage.exists(img.file.name):
-            storage.delete(img.file.name)
-
-         img.delete()
-
    word.delete()
    messages.success(request, "Word deleted")
 
    return redirect('word_list', lang_id=lang_id)
+
+
+@require_GET
+def verify_word_availability(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   query = request.GET.get('query', '')
+   if not query:
+      return JsonResponse({'error': 'Bad Request'},status=400)
+   exists = Word.objects.filter(name=query).exists()
+
+   return JsonResponse({'exists': exists}, status=200)
 
 
 def word_list(request, lang_id):
@@ -730,18 +724,11 @@ def source_delete(request, lang_id, source_id):
    source = get_object_or_404(Source, pk=source_id)
 
    if request.method == 'POST':
-      img = source.image
       try:
          source.delete()	
       except ProtectedError:
          messages.error(request, "Cannot delete Source cause it still has related data. Delete all episodes/content first.")
-      else:
-         if img:
-            storage = img.file.storage
-            if storage.exists(img.file.name):
-               storage.delete(img.file.name)
-            img.delete()
-         
+      else:         
          messages.success(request, "Source deleted.")
 
       return redirect('sources', lang_id=lang_id)
@@ -1608,14 +1595,6 @@ def deck_delete(request, lang_id, deck_id):
    deck = get_object_or_404(Deck, pk=deck_id)
 
    if request.method == 'POST':
-      img = deck.image
-
-      if img:
-         storage = img.file.storage
-         if storage.exists(img.file.name):
-            storage.delete(img.file.name)
-         img.delete()
-      
       deck.delete()
       messages.success(request, "Deck deleted.")
 

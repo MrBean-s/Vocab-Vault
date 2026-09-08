@@ -32,6 +32,11 @@ class Word(models.Model):
 
    class Meta:
       unique_together = ('name', 'language')
+   
+   def delete(self, *args, **kwargs):
+      for definition in self.definitions.all():
+         definition.delete() #to fire definition post_delete signals (chain: defintion > example > citation)
+      super().delete(*args, **kwargs)
 
    def __str__(self):
       return self.name
@@ -141,6 +146,12 @@ class Definition(models.Model):
       if len(txt) > 50:
          txt = txt[:50] + '...'
       return txt
+   
+   def delete(self, *args, **kwargs):
+      for example in self.examples.all():
+         example.delete()  #to fire example post_delete signals
+      
+      super().delete(*args, **kwargs)
 
 class Example(models.Model):
    description = models.TextField()
@@ -183,6 +194,12 @@ class Example(models.Model):
 
    def __str__(self):
       return self.description
+
+   def delete(self, *args, **kwargs):
+      if hasattr(self, 'citation') and self.citation:
+         self.citation.delete() #to fire citation post_delete signal
+         
+      super().delete(*args, **kwargs)
 
 class Source(models.Model):
    released_year = models.IntegerField(null=True, blank=True)
@@ -305,9 +322,9 @@ class Citation(models.Model):
    page = models.IntegerField(null=True, blank=True)
 
    example = models.OneToOneField(Example, on_delete=models.CASCADE, related_name="citation")
-   source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT)
-   episode = models.ForeignKey(Episode, null=True,  on_delete=models.PROTECT)
-   segment = models.ForeignKey(Segment, null=True,  on_delete=models.PROTECT)
+   source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT, related_name="citations")
+   episode = models.ForeignKey(Episode, null=True,  on_delete=models.PROTECT, related_name="citations")
+   segment = models.ForeignKey(Segment, null=True,  on_delete=models.PROTECT, related_name="citations")
 
    class Meta:
       constraints = [

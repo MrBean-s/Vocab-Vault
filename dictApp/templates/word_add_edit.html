@@ -48,7 +48,25 @@
          width: 99%;
          padding-top: 5px;
       }
-      
+      #availability-wrapper {
+         position: absolute;
+         right: -40px;
+         /* transform: translateY(-50%); */
+      }
+      .fa-check-success {
+         background: var(--bg-success);
+         border-radius: 50%;
+         padding: 5px;
+         width: 30px; 
+         height: 30px;
+      }
+      .fa-exclamation-danger {
+         background: var(--bg-danger);
+         border-radius: 50%;
+         padding: 5px;
+         width: 30px; 
+         height: 30px;
+      }
    </style>
 {% endblock additionalStyles %}
 
@@ -68,11 +86,21 @@
    {% csrf_token %}
    <div id="failing" class="sticky-top header-bar">
       <div class="container d-flex justify-content-between ">
-         <div class="wireframe d-flex gap-5 align-items-center w-35">
+         <div class="wireframe d-flex align-items-center w-35 position-relative">
             {{word_form.name}}
+            <div id="availability-wrapper">
+               <i id="available" class="fs-5 fa-solid fa-check fa-check-success d-none"
+                  data-bs-toggle="tooltip" data-bs-title="This name is available"
+                  data-bs-custom-class="success-tooltip" data-bs-placement="bottom">
+               </i>
+               <i id="not-available" class="fs-5 fa-solid fa-exclamation fa-exclamation-danger d-none"
+                  data-bs-toggle="tooltip" data-bs-title="This word already exists"
+                  data-bs-custom-class="danger-tooltip" data-bs-placement="bottom">
+               </i>
+            </div>
          </div>
          <div class="wireframe">
-            <div class="d-flex justify-content-end align-items-center gap-4 h-100">
+            <div class="d-flex justify-content-between align-items-center gap-4 h-100">
                {% if has_word %}
                   <a href="" class="remove-word pe-3 text-decoration-none text-main"
                      hx-get="{% url 'generic_confirm_delete' %}"
@@ -424,8 +452,73 @@ function setManualRequired(parent, requiredBool) {
    });
 }
 
+
+
 document.addEventListener('DOMContentLoaded', function() {
+   const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+   const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+   const form = document.getElementById('word-form');
+
    document.querySelectorAll('form').forEach(form => form.reset());
+
+   const nameInput = document.getElementById('id_name');
+   const availabilityWrapper = document.getElementById('availability-wrapper');
+   const availableIndicator = availabilityWrapper.querySelector('#available');
+   const repeatedIndicator = availabilityWrapper.querySelector('#not-available');
+   const initialValue = nameInput.value.trim() || '';
+
+   let activeController = null;
+
+   async function verifyWordAvailability(word_name, signal) {
+      const url = `{% url 'verify_word_availability' lang_id=lang_id %}?query=${encodeURIComponent(word_name)}`;
+      try {
+         const response = await fetch(url, {signal: signal});
+         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+         const data = await response.json();
+         return !data.exists;
+      } catch (error) {
+         console.log("Fetch error", error.message);
+      }
+   }
+
+   async function checkWordAvailability() {
+      const value = nameInput.value.trim();
+      if (!value || value.length <= 1 || value === initialValue) {
+         availableIndicator?.classList.add('d-none');
+         repeatedIndicator?.classList.add('d-none');
+         return true;
+      }
+
+      if (activeController) activeController.abort();
+      activeController = new AbortController();
+
+      try {
+         const is_available = await verifyWordAvailability(value, activeController.signal);
+
+         if (typeof is_available === "boolean") {
+
+            availableIndicator?.classList.toggle('d-none', !is_available);
+            repeatedIndicator?.classList.toggle('d-none', is_available);
+
+            return is_available;
+         }
+      } catch (err) {
+         if (err.name === 'AbortError') return false; 
+         console.error(err);
+      }
+      return false;
+   }
+
+   nameInput?.addEventListener('input', async function() {
+      await checkWordAvailability();
+   });
+
+   form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      if (await checkWordAvailability()) { form.submit(); }
+      else { showToastrMessage('error', 'This word already exists.'); }
+   })
+
    {% if not has_word %}
       addDefinition();
    {% endif %}

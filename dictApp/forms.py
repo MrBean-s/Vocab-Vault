@@ -453,6 +453,8 @@ class SourceForm(forms.ModelForm):
       return cleaned_data
    
    def save(self, commit=True):
+      old_category = self.initial.get('source_category') if self.instance.pk else None
+
       source = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
       
@@ -467,6 +469,22 @@ class SourceForm(forms.ModelForm):
 
          new_img = Image.objects.create(file=image_file)
          source.image = new_img
+
+      new_category = self.cleaned_data.get('source_category')
+
+      if 'source_category' in self.changed_data and old_category and old_category != new_category:
+         for episode in source.episodes.all():
+            for citation in episode.citations.all():
+               citation.delete()
+            episode.delete()
+
+         for segment in source.segments.all():
+            for citation in segment.citations.all():
+               citation.delete()
+            segment.delete()
+
+         for citation in source.citations.all():
+            citation.delete()
 
       if commit:
          source.save()
@@ -658,12 +676,6 @@ class CitationDelete(forms.Form):
       citation = Citation.objects.get(pk=self.citation_id)
       if delete_example:
          citation.example.delete()
-      if citation.image:
-         img = citation.image
-         storage = img.file.storage
-         if storage.exists(img.file.name):
-            storage.delete(img.file.name)
-         img.delete()
 
       citation.delete()
 

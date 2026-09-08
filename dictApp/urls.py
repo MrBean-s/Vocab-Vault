@@ -16,6 +16,7 @@ urlpatterns = [
    path("generic/confirm-delete/", views.generic_confirm_delete, name="generic_confirm_delete"),
 
    path("lang/<int:lang_id>/word/", views.word, name="add_word"),
+   path("lang/<int:lang_id>/verify_word_availability/", views.verify_word_availability, name="verify_word_availability"),
    path("lang/<int:lang_id>/word/<int:word_id>/edit/", views.word, name="word_edit"),
    path("lang/<int:lang_id>/word/later/", views.add_word_later, name="add_word_later"),
    path("lang/<int:lang_id>/word/<int:word_id>/", views.word_details, name="word_details"),
