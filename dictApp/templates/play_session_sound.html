@@ -74,10 +74,6 @@
       font-size: 1.35rem;
    }
 
-   .container-custom {
-      padding: 0 100px;
-   }
-
    .waveform {
       margin-top: 290px;
       display: flex;
@@ -130,7 +126,7 @@
 {% endif %}
 
 {% with item=segment|default:source %}
-<div class="container-fluid container-custom py-5" style="user-select: none;">
+<div class="container-lg py-5" style="user-select: none;">
 
    <div class="d-flex align-items-center">
       <h2 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h2>

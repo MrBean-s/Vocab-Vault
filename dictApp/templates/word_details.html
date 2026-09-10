@@ -65,18 +65,24 @@
    .desc-image { float: right; max-width: 300px; max-height: 200px; border-radius: 5px; cursor: pointer }
    #related-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px 10px;
    }
    #source-segment-row {
       min-height: 230px;
    }
    .filepond-wrapper { height: 230px; min-width: min(408px, 100%) }
+
+   @media (min-width: 992px) {
+      #related-grid {
+         grid-template-columns: repeat(4, 1fr);
+      }
+   }
 </style>
 {% endblock additionalStyles %}
 
 {% block innerbody %}
-   <div class="container">
+   <div class="container-lg">
       <div class="px-3">
          <div class="top-bar row py-4 py-xxl-5 mb-4">
             <div class="top-bar-left col-auto d-flex align-items-center gap-5">
@@ -131,7 +137,7 @@
          </div>
          <div class="def-container p-4 mb-5 custom-card" data-def-id="{{def.id}}">
             {% if def.image_path and def.image_id %}
-               <img class="desc-image ms-5" src="{{ def.image_path }}" alt="{{ lan.name }}"
+               <img class="desc-image ms-4 ms-lg-5" src="{{ def.image_path }}" alt="{{ lan.name }}"
                   hx-get="{% url 'show_image' img_id=def.image_id %}"
                   hx-trigger="click"
                   hx-target="#genericModalImgContent"
@@ -206,7 +212,7 @@
          {% endfor %}
 
          <div class="mb-3">Related words:</div>
-         <div id="related-grid" class="px-5">
+         <div id="related-grid" class="px-lg-5">
             {% for rel_word in related_words %}
             <div class="grid-item">
                <a href="{% url 'word_details' lang_id=lang_id word_id=rel_word.id%}">

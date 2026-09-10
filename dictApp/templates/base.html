@@ -628,6 +628,15 @@
          }
       });
 
+
+      function addBorderAnimation(domElement) {
+         domElement?.scrollIntoView({behavior: 'smooth'});
+         domElement?.classList.add('flash-border');
+         domElement?.addEventListener('animationend', () => {
+            domElement?.classList.remove('flash-border');
+         }, { once: true });
+      }
+
       // htmx event triggered after loading, and after the dom has loaded
       // runs after each hx-swap-oob as well
       document.body.addEventListener('htmx:afterSettle', async function(evt) {
