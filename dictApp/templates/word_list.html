@@ -4,21 +4,17 @@
 <style>
    .top-part { padding-top: 40px; padding-bottom: 40px;}
   
-   /*.table-row{
-      border: 1px solid rgba(166, 138, 58, 0.2);
-         transition: background 0.2s;
-   }*/
 /*   .table-row:hover{
       background: radial-gradient(ellipse at 50% 0%, rgba(180, 130, 40, 0.15), transparent 60%);
    }*/
-   .pseudo-header { border-bottom: 1px solid var(--accent-blue); background: var(--bg-dark)}
+   .pseudo-header { border-bottom: 1px solid var(--accent-blue); background: var(--bg-dark);}
    /*.table-row { border-top: 1px solid var(--color-border); }*/
    .row-even { background-color: #161b2a;}
    .row-odd { background-color: #1d263c;}
    .table-header-text { font-weight: bold; font-size: 1.4rem; color: var(--accent-gold); }
    .word-name { color: var(--text-info) }
    /*.table-row, .table-cell {border: 1px solid var(--color-border);}*/
-   .table-row { padding: 5px 10px; min-height: 50px;}
+   .table-row { padding: 10px 15px; min-height: 50px;}
    .table-separator { border: 1px solid var(--border-color); }
    .ex-number { color: var(--color-text-muted);}
    .word-name { font-size: 1.3rem; font-style: italic; font-weight: 600;}
@@ -65,158 +61,81 @@
    .custom-square-check { bottom: -3px; left: 60%; font-size: 0.8rem;}
    .tag-region { background-color: var(--bg-info) }
 
-   .go-page input, .go-page button {
-      font-family: 'Emulogic';
-   }
-
-   .pagination-wrapper, .go-page {
-      /*border: 6px double #1c1cdb;*/
-      /*background-color: black;*/
-      border-radius: 7px;
-   }
 
    .pagination-wrapper {
-      padding: 20px 25px 50px 25px;
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border-radius: 0.2rem;
+      display: flex; align-items: center;
    }
 
-
-   .pagination {
-      position: relative;
-      display: flex;
-      flex-direction: row;
-      --ddim: 12px;
-      --rd: 16px;
-      --rdim: calc(var(--rd)*2);
-      /*--pm: #ffff03;*/
-      --step: calc(var(--ddim) + 50px);
+   .pagination-wrapper > *:first-child {
+      border-top-left-radius: 5px;
+      border-bottom-left-radius: 5px;
    }
 
-   .page-indicator { 
-      position: absolute;
-      bottom: -40px;
-      left: -2px;
-      width: 100%;
-      /*text-align: center;*/
-      font-weight: bold;
-      font-size: 0.9rem;
-      color: #dedeff;
-      font-family: 'Emulogic';
+   .pagination-wrapper > *:last-child {
+      border-top-right-radius: 5px;
+      border-bottom-right-radius: 5px;
    }
 
-   .pacman-dot {
-      content: '';
-      margin: 0 25px;
-      height: var(--ddim);
-      width: var(--ddim);
-      /*background: #f7b997;*/
-      background: var(--accent-blue);
-      cursor: pointer;
-      border-radius: 40%;
-      padding-left: 10px;
+   .ellipsis, .page-indicator {
+      background: var(--bg-elevated);
+      color: inherit;
+      padding: 5px 10px;
+      /* border: 1px solid var(--border-color); */
    }
+   .ellipsis, .page-indicator { font-size: 1.2rem }
+   .page-indicator { text-decoration: none;}
+   
+   .page-indicator.active { background: var(--bg-purple); color: white; }
+   .page-indicator:hover { background: var(--bg-red); color: white; }
+   
+   #go-btn, #page-input { font-size: 1.1rem }
+   #page-input { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-left: 20px; padding-right: 20px; }
+   #go-btn { background: var(--bg-purple); color: white; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+   #go-btn:hover { background: var(--bg-red)}
 
-   .pacman-dot.elipsis { 
-      background: var(--bg-body);
-   }
-
-   .pacman-input {display: none;}
-
-   .pacman {
-      content: '';
-      position: absolute;
-      top: calc(-1 * (var(--rd) - (var(--ddim)/2) ) );
-      left: calc(-1 * (var(--ddim) - (var(--rd) / 2)) );
-      height: var(--rdim);
-      width: var(--rdim);
-      transition: transform 250ms linear;
-   }
-
-   .pacman:before,
-   .pacman:after {
-      content: '';
-      position: absolute;
-      height: var(--rd);
-      width: var(--rdim);
-      left: 0;
-      background: var(--accent-gold);
-      transition: inherit;
-   }
-
-   .pacman:before {
-      top: 0;
-      border-top-left-radius: var(--rdim);
-      border-top-right-radius: var(--rdim);
-      transform-origin: bottom center;
-      transform: rotate(-45deg);
-   }
-
-   .pacman:after {
-      bottom: 0;
-      border-bottom-left-radius: var(--rdim);
-      border-bottom-right-radius: var(--rdim);
-      transform-origin: top center;
-      transform: rotate(45deg);
-   }
-
-   @keyframes waka {
-      0% {}
-      50% {transform: rotate(0);}
-      100% {}
-   }
-
-   .pacman-input[type="radio"]:hover ~ .pacman:before,
-   .pacman-input[type="radio"]:hover ~ .pacman:after {
-      animation: waka 500ms infinite;
-   }
-
-   .pacman-input[id="dot-1"]:checked ~ .pacman {transform: translateX(0);}
-   .pacman-input[id="dot-2"]:checked ~ .pacman {transform: translateX(calc(1 * var(--step)));}
-   .pacman-input[id="dot-3"]:checked ~ .pacman {transform: translateX(calc(2 * var(--step)));}
-   .pacman-input[id="dot-4"]:checked ~ .pacman {transform: translateX(calc(3 * var(--step)));}
-   .pacman-input[id="dot-5"]:checked ~ .pacman {transform: translateX(calc(4 * var(--step)));}
-   .pacman-input[id="dot-6"]:checked ~ .pacman {transform: translateX(calc(5 * var(--step)));}
-   .pacman-input[id="dot-7"]:checked ~ .pacman {transform: translateX(calc(6 * var(--step)));}
-   .pacman-input[id="dot-8"]:checked ~ .pacman {transform: translateX(calc(7 * var(--step)));}
-   .pacman-input[id="dot-9"]:checked ~ .pacman {transform: translateX(calc(8 * var(--step)));}
-
-   .form-grid {
-      width: 85%;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      row-gap: 20px;
-   }
+   .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; row-gap: 20px; }
    .form-buttons {
-      width: 15%;
+      grid-column-end: -1;
+      margin-left: auto;
    }
+
+   #pagination-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap
+   }
+   
 </style>
 {% endblock %}
 
 {% block innerbody %}
-<div class="container" style="min-height: 100vh;">
-   <div class="top-part gap-2">
-      <form method="GET" action="" id="filters-form" class="d-flex">
-         <div class="form-grid">
-            <div class="d-flex gap-2">
-               {{form.timeUnitValue}}
-               {{form.timeUnitType}}
-               <div id="{{form.timeUnitType.id_for_label}}-dropdownParent"></div>
-            </div>
-            <div>
-               {{form.region}}
-               <div id="{{form.region.id_for_label}}-dropdownParent"></div>
-            </div>
-            <div>
-               {{form.source}}
-               <div id="{{form.source.id_for_label}}-dropdownParent"></div>
-            </div>
-            <div>
-               {{form.forgettingFrequency}}
-               <div id="{{form.forgettingFrequency.id_for_label}}-dropdownParent"></div>
-            </div>
+<div class="container-lg" style="min-height: 100vh;">
+   <div class="top-part">
+      <form method="GET" action="" id="filters-form" class="form-grid">
+         <div class="d-flex gap-2">
+            {{form.timeUnitValue}}
+            {{form.timeUnitType}}
+            <div id="{{form.timeUnitType.id_for_label}}-dropdownParent"></div>
          </div>
-         <div class="form-buttons d-flex gap-2 justify-content-end">
-            <button id="reset-button" type="button" class="btn btn-secondary my-auto">Clear</button>
+         <div>
+            {{form.region}}
+            <div id="{{form.region.id_for_label}}-dropdownParent"></div>
+         </div>
+         <div>
+            {{form.source}}
+            <div id="{{form.source.id_for_label}}-dropdownParent"></div>
+         </div>
+         <div>
+            {{form.forgettingFrequency}}
+            <div id="{{form.forgettingFrequency.id_for_label}}-dropdownParent"></div>
+         </div>
+         <div class="form-buttons">
+            <button id="reset-button" type="button" class="btn btn-secondary my-auto me-2">Clear</button>
             <button type="submit" class="btn btn-primary my-auto">Filter</button>
          </div>
       </form>
@@ -230,7 +149,7 @@
    {% endif %}
 
    <div class="pseudo-table" id="word-list-table">
-      <div class="pseudo-header row table-row sticky-top">
+      <div class="pseudo-header row table-row sticky-top gx-0">
          <div class="col-3 d-flex align-items-center"> 
             <div class="table-header-text">Word</div>
          </div>
@@ -244,28 +163,28 @@
                </i>
             </div>
             <div class="d-flex gap-2">
-               <button class="btn btn-transparent" onclick="toggleIndicator()">
+               <button type="button" class="btn btn-transparent" onclick="toggleIndicator()">
                   <span>Indicator</span>
                   <i class="fa-solid fa-eye"></i>
                </button>
-               <button class="btn btn-transparent" onclick="toggleCollapse()">
+               <button type="button" class="btn btn-transparent" onclick="toggleCollapse()">
                   <span>Collapse</span>
                   <i class="fa-solid fa-angles-down"></i>
                </button>
             </div>
          </div>
-         <div class="col-2 d-flex justify-content-center pe-4">
+         <div class="col-2 d-flex justify-content-end pe-3">
             <div class="table-header-text">Actions</div>
          </div>
       </div>
       {% for word in page_obj %}
-         <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%}"
+         <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%} gx-0"
             {%if forloop.last%}last-row{%endif%}>
-            <div class="word-column col-3 d-flex align-items-center gap-3" data-word-id="{{word.id}}">
+            <div class="word-column col-xl-3 d-flex align-items-center gap-3" data-word-id="{{word.id}}">
                <i class="fa-regular fa-clock text-muted"></i>
                <div class="word-name">{{word.name}}</div>
             </div>
-            <div class="col-7">
+            <div class="col-xl-7">
                <div class="def-column">
                   {% for def in word.definitions.all %}
                      <div class="def-row my-2 d-flex" data-def-id="{{def_id}}"
@@ -311,7 +230,7 @@
                </div>
             </div>
 
-            <div class="col-2 d-flex align-items-center justify-content-center">
+            <div class="col-xl-2 d-flex align-items-center justify-content-end">
                <div class="actions-column d-flex gap-4 pe-3">
                   <div class="check-icon">
                      <i class="fa-solid fa-clock position-relative text-muted fs-3">
@@ -327,35 +246,26 @@
          </div>
       {% endfor %}
    </div>
-   <div class="d-flex justify-content-center align-items-center mt-4">
-      <div class="w-25"></div>
-      <div class="pagination-wrapper position-relative">
-         <div class="pagination">
-               {% for p in pages %}
-                     <input id="dot-{{forloop.counter}}" class="pacman-input" type="radio" name="dots"
-                        {% if p == page_obj.number %}checked{% endif %}
-                        {% if p == page_obj.paginator.ELLIPSIS %}disabled{% endif %}
-                        data-page-id={{p}}>
-                     <label class="pacman-dot position-relative
-                        {% if p == page_obj.paginator.ELLIPSIS %}elipsis{% endif %}"
-                        for="dot-{{forloop.counter}}"
-                        {% if forloop.first %} style="margin-left: 0"{% endif %}
-                        {% if forloop.last %} style="margin-right: 0"{% endif %}>
-                        <div class="page-indicator w-100 text-center">
-                        {% if p is None %}...{% else %}{{p}}{% endif %}
-                        </div>
-                     </label>
-               {% endfor %}
-               <div class="pacman"></div>
-         </div>
+
+
+   <div id="pagination-row" class="mt-4">
+      <div class="pagination-wrapper">
+         {% for p in pages %}
+            {% if p == page_obj.paginator.ELLIPSIS %}
+               <div class="ellipsis">...</div>
+            {% else %}
+               <a href="?page={{p}}"
+                  class="page-indicator{% if p == page_obj.number %} active{% endif %}">
+                  {{p}}
+               </a>
+            {% endif %}
+         {% endfor %}
       </div>
-      <div class="w-25">
-         <form id="change-page" class="d-flex go-page ms-5 gap-2" style="width: 200px;">
-            <input type="number" name="page" class="form-control w-70" placeholder="Page"
-               min="1" max="{{page_obj.paginator.num_pages}}" required="">
-            <button type="submit" class="w-30 btn btn-primary">Go</button>
-         </form>
-      </div>
+      <form method="GET" url="{% url 'word_list' lang_id=lang_id %}" class="d-flex go-page">
+         <input type="number" name="page" class="form-control" id="page-input" placeholder="Page"
+            min="1" max="{{page_obj.paginator.num_pages}}" required="">
+         <button type="submit" id="go-btn" class="btn">Go</button>
+      </form>
    </div>
 
    <div style="min-height: 2rem;"></div>
@@ -410,27 +320,6 @@
             prepareSelect2(this.id);
          }
       });
-   });
-
-   function changePageUrl(pageNumber){
-      let currUrl = new URL(window.location.href);
-      currUrl.searchParams.set('page', pageNumber);
-      window.location.href = currUrl;
-   }
-
-   document.querySelectorAll('.pacman-input').forEach((el) => {
-      el.addEventListener('change', (event) => {
-         if (event.target.checked) changePageUrl(el.dataset.pageId);
-      });
-   });
-
-   const form = document.getElementById('change-page');
-   form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const pageNumberBtn = document.getElementById('page-number-btn');
-      const input = form.querySelector('input');
-      if (!input.value || !Number.isInteger(parseInt(input.value))) return;
-      changePageUrl(input.value);
    });
 
    const filtersForm = document.getElementById('filters-form');

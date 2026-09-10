@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
-
+{% load static %}
 {% block html_lang %}lang="{{iso_code}}"{% endblock %}
 {% load custom_filters %}
 
 {% block additionalStyles %}
+<link rel="stylesheet" href="{% static 'filepond/filepond-4.32.12.css' %}">
+<link rel="stylesheet" href="{% static 'filepond/filepond-plugin-image-preview-4.6.12.css' %}">
 <style>
    #quiz-grid {
       display: grid;
@@ -83,6 +85,7 @@
       padding: 5px 10px;
       flex: 1;
       overflow-y: auto;
+      cursor: pointer;
    }
 
    .quiz-card {
@@ -113,40 +116,114 @@
    .time-row {
       min-height: 40px;
    }
+
+   .question {
+      background: #1e2a40;
+      padding: 10px 20px;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+   }
+
+   .add-question-header {
+      background-color: var(--bg-body);
+   }
+
+   .deck-overlay {
+      cursor: pointer;
+      opacity: 0;
+      transition: .2s ease;
+      width: 100%; height: 100%;
+      position: absolute;
+      top: 0;
+      padding: 10px;
+      backdrop-filter: blur(12px); 
+      -webkit-backdrop-filter: blur(12px);
+      background-color: rgba(0, 0, 0, 0.85);
+  }
+  .deck-card:hover .deck-overlay { opacity: 1; }
+  .deck-card:hover .description { background: rgb(9, 9, 9) }
+
+   .play-icon {
+      font-size: 2.8rem;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+   }
 </style>
 {% endblock %}
 
 {% block innerbody %}
-   <div class="container py-5">
-      <h2 class="mb-3">Decks</h2>
+   <div class="container-lg py-5">
+      <div class="d-flex align-items-center mb-4">
+         <h2 class="mb-3">Decks</h2>
+         <button type="button"
+            class="btn btn-primary ms-auto"
+            hx-get="{% url 'deck_quiz_create' lang_id=lang_id %}"
+            hx-target="#genericModalBody"
+            hx-target-error="#error-box"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal">
+            Create deck
+         </button>
+      </div>
 
       <div id="deck-grid">
          {% for deck in decks %}
             <div class="deck-card" data-deck-id="{{deck.id}}">
-               <a class="stretched-link text-decoration-none text-white"
-                  hx-get="{% url 'deck_quiz_settings' lang_id=lang_id deck_id=deck.id %}"
-                  hx-trigger="click"
-                  hx-target="#genericModalBody"
-                  hx-target-error="#error-box"
-                  data-bs-toggle="modal"
-                  data-bs-target="#genericModal"
-                  >
-               </a>
                <div class="img-wrapper position-relative">
-                  {% if deck.image %}
+                  {% if deck.image and deck.image.file %}
                      <img src="{{deck.image.file.url}}"  alt="{{deck.image.file.url}}">
                   {% endif %}
                   <span class="name" lang="en">{{deck.name}}</span>
-               </div>
-               <div class="description color-{{forloop.counter0|modulo:10}}">
-                  {% if deck.description %}{{deck.description}}{% endif %}
-                  <a href="" hx-get="{% url 'generic_confirm_delete' %}"
-                     data-bs-toggle="modal" data-bs-target="#genericModal"
-                     hx-vals='{"type": "Deck", "name": "{{ deck.name }}", "delete_url":"{% url 'deck_delete' lang_id=lang_id deck_id=deck.id %}"}'
+                  
+                  <div class="deck-overlay">
+                     <a hx-get="{% url 'deck_quiz_settings' lang_id=lang_id deck_id=deck.id %}"
+                     hx-trigger="click"
                      hx-target="#genericModalBody"
-                     hx-trigger="click">
-                     <i class="fa-solid fa-trash fs-6 pe-2"></i>
-                  </a>
+                     hx-target-error="#error-box"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal"
+                     class="play-link stretched-link"></a>
+                     <div class="d-flex gap-3 justify-content-end">
+                        {% if deck.image and deck.image.file %}
+                           <a class="ps-2 position-relative z-2" style="cursor: pointer"
+                              onclick="event.stopPropagation();"
+                              hx-get="{% url 'show_image' img_id=deck.image_id %}"
+                              hx-trigger="click"
+                              hx-target="#genericModalImgContent"
+                              hx-target-error="#error-box"
+                              data-bs-toggle="modal"
+                              data-bs-target="#genericModalImg">
+                              <i class="fa-regular fa-eye icon-sm text-muted"></i>
+                           </a>
+                        {%endif%}
+                        <a class="position-relative z-2" style="cursor: pointer"
+                           onclick="event.stopPropagation();"
+                           hx-get="{% url 'deck_quiz_edit' lang_id=lang_id deck_id=deck.id %}"
+                           hx-trigger="click"
+                           hx-target="#genericModalBody"
+                           hx-target-error="#error-box"
+                           data-bs-toggle="modal"
+                           data-bs-target="#genericModal">
+                           <i class="fa-regular fa-pen-to-square icon-sm text-muted"></i>
+                        </a>
+                     </div>
+                     <i class="play-icon fa-solid fa-circle-play"></i>
+                  </div>
+               </div>
+               <div class="description color-{{forloop.counter0|modulo:10}} position-relative">
+                  {% if deck.description %}{{deck.description}}{% endif %}
+                  <a hx-get="{% url 'deck_quiz_settings' lang_id=lang_id deck_id=deck.id %}"
+                     hx-trigger="click"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal"
+                     class="play-link stretched-link"></a>
                </div>
             </div>
          {% endfor %}
@@ -155,12 +232,12 @@
 
 
       
-      <div class="d-flex mb-3 mt-5">
+      <div class="d-flex mt-5 mb-4">
          <h2>Active quizzes</h2>
 
          <div class="d-flex gap-4 ms-auto align-items-center">
             <a href="{% url 'clear_all_quizzes' lang_id=lang_id %}">Clear all quizzes</a>
-            <button 
+            <button type="button"
                class="btn btn-primary"
                data-bs-toggle="modal"
                data-bs-target="#genericModal"
@@ -203,9 +280,13 @@
 {% endblock%}
 
 {% block additionalScripts %}
+<script src="{% static 'filepond/filepond-4.32.12.js' %}"></script>
+<script src="{% static 'filepond/filepond-plugin-image-preview-4.6.12.js' %}"></script>
+
 <script>
    function initQuizSettingsForm() {
-      
+      document.getElementById('genericModalTitle').textContent = 'Quiz settings';
+
       const timerSwitch = document.getElementById('id_use_timer');
 
       timerSwitch.addEventListener('change', (event) => {
@@ -213,6 +294,216 @@
          timeSection.classList.toggle('d-none', !event.target.checked);
          timeSection.querySelector('input')?.toggleAttribute('disabled', !event.target.checked);
       });
+   }
+</script>
+
+<script>
+   function initDeckQuizQuestionsForm() {
+      let insertedTemplates = 0;
+      document.getElementById('genericModalTitle').textContent = 'Deck questions';
+      document.getElementById('add-question-btn').addEventListener('click', (event) => {
+         const question = addQuestion();
+         question.scrollIntoView({behavior: 'smooth'});
+         const questionBody = question.querySelector('.question');
+         questionBody.classList.add('flash-border');
+         questionBody.addEventListener('animationend', () => {
+            questionBody.classList.remove('flash-border');
+         }, { once: true });
+      });
+      
+      FilePond.registerPlugin(FilePondPluginImagePreview);
+      const filepondContainer = document.querySelector('.filepond-wrapper');
+      const imgPond = initializeFilePond(filepondContainer);
+      setActiveContainer(filepondContainer, imageInstances.get(filepondContainer));
+
+      loadInitialData();
+
+      function loadInitialData() {
+         let initialData = [];
+         const dataEl = document.getElementById('deck_quiz_initial_data');
+         if (!dataEl) return;
+
+         try {
+            initialData = JSON.parse(dataEl.textContent);
+         } catch (error) {
+            console.error("Data parsing failed:", error.message);
+            return;
+         }
+
+         document.getElementById('id_name').value = initialData?.name || '';
+         document.getElementById('id_description').value = initialData?.description || '';
+
+         const questions = initialData?.questions || [];
+         if (questions.length === 0) { addQuestion(); return; }
+         
+         questions.forEach((item) => {
+            const question = addQuestion();
+
+            const $wordSelect = $(question.querySelector('.word-select'));
+            const definitionSelect = question.querySelector('.definition-select');
+            const $distractorsSelect = $(question.querySelector('.distractors-select'));
+
+            $wordSelect.append(new Option(item.word_text, String(item.word_id), true, true)).trigger('change');
+
+            definitionSelect.value = String(item.definition_id);
+            
+            if (Array.isArray(item.distractors) && item.distractors.length > 0) {
+               item.distractors.forEach((distractor) => {
+                  $distractorsSelect.append(new Option(distractor.text, String(distractor.id), true, true));
+               });
+               $distractorsSelect.trigger('change');
+            }
+         })
+      }
+
+
+      function addQuestion() {
+         const container = document.getElementById('question-list');
+         const template = document.getElementById('question-template');
+         const questionNumber = container.children.length + 1;
+
+         const html = template.innerHTML
+            .replaceAll('__count__', questionNumber)
+            .replaceAll('__id__', insertedTemplates);
+         
+         container.insertAdjacentHTML('beforeend', html);
+
+         const question = container.lastElementChild;
+         question.querySelector('.remove-question').addEventListener('click', (event) => {
+            removeQuestion(event.currentTarget);
+         });
+
+         const wordSelect = question.querySelector('.word-select');
+         const distractorsSelect = question.querySelector('.distractors-select');
+         prepareSelect2(wordSelect.id);
+         prepareSelect2(distractorsSelect.id);
+
+         $(wordSelect).on('select2:select change', (event) => { fillDefinitionInput(question); });
+
+         insertedTemplates += 1;
+         return question
+      }
+      
+      function removeQuestion(element){
+         const question = element.closest('.question-wrapper');
+         question.querySelectorAll('.select2-hidden-accessible').forEach((el) => {
+            $(el).select2('destroy');
+         });
+         question.remove();
+         document.querySelectorAll('.question-indicator').forEach((element, idx) => {
+            element.innerHTML = 'Question ' + String(idx + 1);
+         });
+      }
+
+      async function fillDefinitionInput(question) {
+         const defnSelect = question.querySelector('.definition-select');
+         const wordId = question.querySelector('.word-select')?.value;
+         const definitions = await getWordDefinitions(wordId);
+         defnSelect.innerHTML = '';
+         
+         if (definitions.length === 0) {
+            showToastrMessage('warning', `This word has 0 definitons, select another one`);
+            defnSelect.toggleAttribute('fake-disabled', true);
+            return;
+         }
+
+         definitions.forEach((item) => {
+            const description = item.text.length > 55 ? item.text.slice(0, 55) + '...' : item.text;
+            const newOption = new Option(description, item.id, false, false);
+            newOption.setAttribute('title', item.text);
+            defnSelect.appendChild(newOption);
+         });
+         
+         defnSelect.toggleAttribute('fake-disabled', false);
+      }
+
+      async function getWordDefinitions(wordId) {
+         if (!wordId) { return; }
+
+         const defn_ajax_url = "{% url 'get_definitions' %}"
+         const url = `${defn_ajax_url}?word_id=${wordId}`;
+         try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+            const data = await response.json();
+            return data.results || [];
+         } catch (err) {
+            console.error('Fetch error:', err);
+            showToastrMessage('error', 'Failed to fetch definitions from server.');
+            return [];
+         }
+      }
+
+      document.getElementById('deck-form').addEventListener('submit', async (ev) => {
+         ev.preventDefault();
+         const form = ev.currentTarget;
+         const questions = getQuestionsFromForm(form);
+         const deckId = form.dataset.deckId;
+         await submitDeckData(form, questions, deckId);
+      });
+
+      function getQuestionsFromForm(form) {
+         const questions = []
+         const question = form.querySelectorAll('.question-wrapper');
+         question?.forEach((question) => {
+            const definitionId = question.querySelector('.definition-select')?.value;
+            const distractorsSelect = question.querySelector('.distractors-select');
+            const distractorIdList = [...distractorsSelect.selectedOptions].map(opt => parseInt(opt.value, 10));
+            if (definitionId) {
+               questions.push({
+                  definition: parseInt(definitionId, 10),
+                  distractors: distractorIdList
+               });
+            }
+         });
+
+         return questions
+      }
+
+      async function submitDeckData(form, question_list, deck_id=null) {
+         if (!question_list) return;
+         
+         const create_deck_url = "{% url 'deck_quiz_create' lang_id=lang_id %}";
+         let edit_deck_url = "{% url 'deck_quiz_edit' lang_id=lang_id deck_id=999999 %}";
+         let url;
+
+         url = (!deck_id) ? create_deck_url : edit_deck_url.replace('999999', deck_id);
+
+         const formData = new FormData();
+         formData.append('name', form.querySelector('#id_name').value);
+         formData.append('description', form.querySelector('#id_description').value);
+
+         const imageFile = imgPond.getFile();
+         if (imageFile) {
+            if (imageFile && imageFile.file instanceof File)
+               formData.append('image_file', imageFile.file);
+         } else {
+            formData.append('delete_image', 'true');
+         }
+
+         formData.append('questions', JSON.stringify(question_list));
+
+         try {
+            const response = await fetch(url, {
+               method: 'POST',
+               headers: {
+                  'X-CSRFToken': '{{csrf_token}}'
+               },
+               body: formData
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+               showToastrMessage('success', 'Quiz questions saved successfully!');
+               window.location.reload();
+            } else {
+               //show errors
+            }
+         } catch (err) {
+            console.error('Submission error', err);
+            showToastrMessage('error', 'A network error ocurred');
+         }
+      }
    }
 </script>
 {% endblock %}

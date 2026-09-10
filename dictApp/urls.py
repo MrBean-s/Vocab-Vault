@@ -11,12 +11,12 @@ urlpatterns = [
    path("lang/add-to-set/", views.add_lang_to_set, name="lang_add_set"),
    path("lang/<int:lang_id>/add-to-set/", views.add_lang_to_set_with_id, name="lang_add_set_with_id"),
    path("lang/<int:lang_id>/remove-from-set/", views.remove_lang_from_set, name="lang_remove_set"),
-   path("lang/<int:lang_id>/get-sources/", views.get_sources, name="get_sources"),
    path("languages/", views.languages, name="languages"),
 
    path("generic/confirm-delete/", views.generic_confirm_delete, name="generic_confirm_delete"),
 
    path("lang/<int:lang_id>/word/", views.word, name="add_word"),
+   path("lang/<int:lang_id>/verify_word_availability/", views.verify_word_availability, name="verify_word_availability"),
    path("lang/<int:lang_id>/word/<int:word_id>/edit/", views.word, name="word_edit"),
    path("lang/<int:lang_id>/word/later/", views.add_word_later, name="add_word_later"),
    path("lang/<int:lang_id>/word/<int:word_id>/", views.word_details, name="word_details"),
@@ -43,7 +43,6 @@ urlpatterns = [
    path("lang/<int:lang_id>/source/add/", views.sources_add_edit, name="source_add"),
    path("lang/<int:lang_id>/source/<int:source_id>/edit/", views.sources_add_edit, name="source_edit"), 
    path("lang/<int:lang_id>/source/<int:source_id>/delete/", views.source_delete, name="source_delete"),
-   # path("lang/<int:lang_id>/source/<int:source_id>/", views.sources_add_edit, name="source_add"), #???
 
    path("lang/<int:lang_id>/source/<int:source_id>/episodes/", views.episodes, name="episodes"),
    path("source/<int:source_id>/episode/add/", views.episode_add_edit, name="episode_add"),
@@ -74,6 +73,8 @@ urlpatterns = [
    path("lang/<int:lang_id>/deck/<int:deck_id>/quiz-settings/", views.deck_quiz_settings, name="deck_quiz_settings"),
    path("lang/<int:lang_id>/deck/<int:deck_id>/play/", views.deck_quiz_play, name="deck_quiz_play"),
    path("lang/<int:lang_id>/deck/<int:deck_id>/validate/", views.validate_deck_quiz_answer_ajax, name="validate_deck_quiz_answer"),
+   path("lang/<int:lang_id>/deck/create/", views.deck_quiz_questions, name="deck_quiz_create"),
+   path("lang/<int:lang_id>/deck/<int:deck_id>/edit/", views.deck_quiz_questions, name="deck_quiz_edit"),
 
    path("lang/<int:lang_id>/quiz-settings/", views.quiz_settings, name="quiz_settings"),
    path("lang/<int:lang_id>/quiz/<uuid:quiz_uuid>/play/", views.quiz_play, name="quiz_play"),

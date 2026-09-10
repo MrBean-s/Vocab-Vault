@@ -10,17 +10,76 @@
       .resize-none { 	resize: none; }
       .header-bar { background-color: var(--bg-dark); height: 100px;
          border-bottom: 1px solid var(--accent-blue) }
-      .header-bar .container {  padding-top: 30px; padding-bottom: 30px; }
+      .header-bar .bar {  padding-top: 30px; padding-bottom: 30px; }
       .d-hidden-only { visibility: hidden !important; }
       .banner-input { font-size: 2rem; padding: 0; padding-left: 15px;}
       .banner-input::placeholder { color: var(--text-main) !important }
       
+      .defn-img-row {
+         display: grid;
+         grid-template-columns: 1fr;
+      }
+
+      .right-col {
+         display: flex;
+         flex-direction: column;
+      }
+      .pos-wrapper {
+         width: 100%;
+      }
+      .pos-select {
+         width: 60%;
+      }
+
+      .ex-row-bottom {
+         display: flex;
+         flex-wrap: wrap;
+         row-gap: 16px;
+      }
+
+      .ex-row-bottom > .left, .ex-row-bottom > .right {
+         display: flex;
+         align-items: center;
+         gap: 1rem;
+      }
+
+      .ex-row-bottom > .left {
+         flex: 1 1 60%;
+         min-width: 500px;
+      }
+      .ex-row-bottom > .right {
+         flex: 1 1 40%;
+         min-width: 245px;
+         padding-right: 3rem;
+         padding-left: 3rem;
+         position: relative;
+      }
+
+      @media (min-width: 992px) {
+         .defn-img-row {
+            grid-template-columns: 60% 40%;
+         }
+         .filepond-wrapper {
+            padding-left: 1.5rem !important;
+         }
+         .pos-wrapper {
+            width: 60%;
+         }
+         .pos-select {
+            width: 30%;
+         }
+         .ex-row-bottom > .right {
+            padding-left: 1.5rem;
+         }
+         .explanation-arrow { position: absolute; bottom: 10px; left: -21px; }
+      }
+
       .form-control-plaintext { caret-color: transparent; }
       textarea[readonly]::placeholder,
       input[readonly]::placeholder {
           color: transparent !important;
       }
-      .explanation-arrow { position: absolute; bottom: 10px; left: -21px;}
+      /* .explanation-arrow { position: absolute; bottom: 10px; left: -21px;} */
       .explanation-arrow i { color: var(--accent-green); }
 
       .repr-image { max-height: 80%; }
@@ -45,10 +104,30 @@
       .field-quote { border-radius: var(--bs-border-radius) 0 var(--bs-border-radius) var(--bs-border-radius);}
 
       .filepond-wrapper { 
-         width: 99%;
          padding-top: 5px;
+         padding-left: 3rem;
+         padding-right: 3rem;
       }
-      
+
+      #availability-wrapper {
+         position: absolute;
+         right: -40px;
+         /* transform: translateY(-50%); */
+      }
+      .fa-check-success {
+         background: var(--bg-success);
+         border-radius: 50%;
+         padding: 5px;
+         width: 25px; 
+         height: 25px;
+      }
+      .fa-exclamation-danger {
+         background: var(--bg-danger);
+         border-radius: 50%;
+         padding: 5px;
+         width: 25px; 
+         height: 25px;
+      }
    </style>
 {% endblock additionalStyles %}
 
@@ -67,12 +146,22 @@
    class="">
    {% csrf_token %}
    <div id="failing" class="sticky-top header-bar">
-      <div class="container d-flex justify-content-between ">
-         <div class="wireframe d-flex gap-5 align-items-center w-35">
+      <div class="bar container-lg d-flex justify-content-between ">
+         <div class="wireframe d-flex align-items-center w-35 position-relative">
             {{word_form.name}}
+            <div id="availability-wrapper">
+               <i id="available" class="fs-6 fa-solid fa-check fa-check-success d-none"
+                  data-bs-toggle="tooltip" data-bs-title="This name is available"
+                  data-bs-custom-class="success-tooltip" data-bs-placement="bottom">
+               </i>
+               <i id="not-available" class="fs-6 fa-solid fa-exclamation fa-exclamation-danger d-none"
+                  data-bs-toggle="tooltip" data-bs-title="This word already exists"
+                  data-bs-custom-class="danger-tooltip" data-bs-placement="bottom">
+               </i>
+            </div>
          </div>
          <div class="wireframe">
-            <div class="d-flex justify-content-end align-items-center gap-4 h-100">
+            <div class="d-flex justify-content-between align-items-center gap-4 h-100">
                {% if has_word %}
                   <a href="" class="remove-word pe-3 text-decoration-none text-main"
                      hx-get="{% url 'generic_confirm_delete' %}"
@@ -92,10 +181,10 @@
          </div>
       </div>
    </div>
-   <div class="container">
+   <div class="container-lg">
       <div class="mb-3 pt-4">
          <label for="add-defn" class="ps-5 position-relative clickable" role="button">
-            <button id="add-defn" class="position-absolute add-definition-item text-decoration-none btn-transparent" style="left: 10px"
+            <button type="button" id="add-defn" class="position-absolute add-definition-item text-decoration-none btn-transparent" style="left: 10px"
                onclick="addDefinition(); return false;">
                <i class="fa-solid fa-circle-plus fs-5"></i>
             </button>
@@ -131,7 +220,8 @@
                         <span class="def-row-number" data-is-prototype="{{def_is_prototype}}">{{forloop.counter}}</span>
                      </label>
 
-                     <button id="definitions-{{def_index}}-remove"
+                     <button type="button"
+                        id="definitions-{{def_index}}-remove"
                         class="position-absolute remove-definition-item btn-transparent"
                         style="left: 15px"
                         href="#" data-def-index="{{ def_index }}" 
@@ -141,7 +231,7 @@
                      </button>
                   </div>
 
-                  <div class="defn-img-row d-grid pt-3" style="grid-template-columns: 60% 40%;">
+                  <div class="defn-img-row pt-3">
                      <div class="left-col px-5">
                         <div class="mb-3">
                            <div class="cty-topic-row d-flex gap-3">
@@ -197,7 +287,7 @@
                         </div>
                      </div>
                      <div class="right-col pb-3">
-                        <div class="filepond-wrapper ps-4 pe-5 ms-auto" tabindex="0">
+                        <div class="filepond-wrapper" tabindex="0">
                            <!-- <img class="repr-image position-absolute end-0" src="{% static 'images/img_placeholder2.png' %}" alt=""> -->
                            {{ def_form.image_file }}
                            <input type="hidden" name="definitions-{{def_index}}-image-DELETE" value="false" class="delete-img-flag">
@@ -212,7 +302,8 @@
                         Examples
                      </label>
 
-                     <button id="definitions-{{def_index}}-example-add"
+                     <button type="button"
+                        id="definitions-{{def_index}}-example-add"
                         class="position-absolute add-example-item btn-transparent"
                         style="left: 15px"
                         href="#" data-def-index="{{ def_index }}" 
@@ -246,35 +337,34 @@
                                  {% if forloop.last %}checked{% endif %} class="d-hidden">
 
                               <div class="mb-3">
-                                 <div class="w-60">
-                                    <div class="w-30 pe-5 ms-auto">
+                                 <div class="pos-wrapper">
+                                    <div class="pos-select pe-5 ms-auto">
                                        {{ ex_form.part_of_speech }}
                                     </div>                              
 
                                     <div id="id_def-{{def_index}}-examples-{{ex_index}}-part_of_speech-dropdownParent"></div>
                                  </div>
-                                 <div class="d-flex">
-                                    <div class="px-5 w-60">
-                                       <div class="d-flex align-items-center gap-3">
-                                          <a href="#" data-def-index="{{def_index}}"
-                                             data-ex-index="{{ forloop.counter0 }}" 
-                                             class="remove-example-item "
-                                             onclick="removeExample(this); return false;">
-                                             <i class="fa-solid fa-trash"></i>
-                                          </a>
-                                          {% if forloop.last %}
-                                             {{ ex_form.description }}
-                                          {% else %}
-                                             {% render_field ex_form.description required="required" %}
-                                          {% endif %}
-                                          {{ ex_form.description.errors }}
-                                       </div>
+                                 <div class="ex-row-bottom">
+                                    <div class="px-5 left">
+                                       <a href="#" data-def-index="{{def_index}}"
+                                          data-ex-index="{{ forloop.counter0 }}" 
+                                          class="remove-example-item "
+                                          onclick="removeExample(this); return false;">
+                                          <i class="fa-solid fa-trash"></i>
+                                       </a>
+                                       {% if forloop.last %}
+                                          {{ ex_form.description }}
+                                       {% else %}
+                                          {% render_field ex_form.description required="required" %}
+                                       {% endif %}
+                                       {{ ex_form.description.errors }}
                                     </div>
-                                    <div class="pe-5 w-40 ps-4 position-relative">
+                                    
+                                    <div class="right">
                                        <div class="explanation-arrow">
                                           <i class="fa-solid fa-angles-right"></i>
                                        </div>
-                                       <div class="d-flex w-100">
+                                       <div class="w-100">
                                           {{ ex_form.explanation }}
                                           {{ ex_form.explanation.errors }}
                                        </div>
@@ -356,6 +446,8 @@ function addDefinition() {
    const filepondWrapper = imgInput.closest('.filepond-wrapper');
    initializeFilePond(filepondWrapper); //defined in base.html
    setActiveContainer(filepondWrapper, imageInstances.get(filepondWrapper)); //defined in base.html
+
+   addBorderAnimation(newRow); //defined in base.html
 }
 
 function addExample(element) {
@@ -422,8 +514,73 @@ function setManualRequired(parent, requiredBool) {
    });
 }
 
+
+
 document.addEventListener('DOMContentLoaded', function() {
+   const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+   const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+   const form = document.getElementById('word-form');
+
    document.querySelectorAll('form').forEach(form => form.reset());
+
+   const nameInput = document.getElementById('id_name');
+   const availabilityWrapper = document.getElementById('availability-wrapper');
+   const availableIndicator = availabilityWrapper.querySelector('#available');
+   const repeatedIndicator = availabilityWrapper.querySelector('#not-available');
+   const initialValue = nameInput.value.trim() || '';
+
+   let activeController = null;
+
+   async function verifyWordAvailability(word_name, signal) {
+      const url = `{% url 'verify_word_availability' lang_id=lang_id %}?query=${encodeURIComponent(word_name)}`;
+      try {
+         const response = await fetch(url, {signal: signal});
+         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+         const data = await response.json();
+         return !data.exists;
+      } catch (error) {
+         console.log("Fetch error", error.message);
+      }
+   }
+
+   async function checkWordAvailability() {
+      const value = nameInput.value.trim();
+      if (!value || value.length <= 1 || value === initialValue) {
+         availableIndicator?.classList.add('d-none');
+         repeatedIndicator?.classList.add('d-none');
+         return true;
+      }
+
+      if (activeController) activeController.abort();
+      activeController = new AbortController();
+
+      try {
+         const is_available = await verifyWordAvailability(value, activeController.signal);
+
+         if (typeof is_available === "boolean") {
+
+            availableIndicator?.classList.toggle('d-none', !is_available);
+            repeatedIndicator?.classList.toggle('d-none', is_available);
+
+            return is_available;
+         }
+      } catch (err) {
+         if (err.name === 'AbortError') return false; 
+         console.error(err);
+      }
+      return false;
+   }
+
+   nameInput?.addEventListener('input', async function() {
+      await checkWordAvailability();
+   });
+
+   form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      if (await checkWordAvailability()) { form.submit(); }
+      else { showToastrMessage('error', 'This word already exists.'); }
+   })
+
    {% if not has_word %}
       addDefinition();
    {% endif %}

@@ -32,6 +32,11 @@ class Word(models.Model):
 
    class Meta:
       unique_together = ('name', 'language')
+   
+   def delete(self, *args, **kwargs):
+      for definition in self.definitions.all():
+         definition.delete() #to fire definition post_delete signals (chain: defintion > example > citation)
+      super().delete(*args, **kwargs)
 
    def __str__(self):
       return self.name
@@ -141,6 +146,12 @@ class Definition(models.Model):
       if len(txt) > 50:
          txt = txt[:50] + '...'
       return txt
+   
+   def delete(self, *args, **kwargs):
+      for example in self.examples.all():
+         example.delete()  #to fire example post_delete signals
+      
+      super().delete(*args, **kwargs)
 
 class Example(models.Model):
    description = models.TextField()
@@ -184,6 +195,12 @@ class Example(models.Model):
    def __str__(self):
       return self.description
 
+   def delete(self, *args, **kwargs):
+      if hasattr(self, 'citation') and self.citation:
+         self.citation.delete() #to fire citation post_delete signal
+         
+      super().delete(*args, **kwargs)
+
 class Source(models.Model):
    released_year = models.IntegerField(null=True, blank=True)
    name = models.TextField()
@@ -200,6 +217,14 @@ class Source(models.Model):
       ABOOK = 'ABK', 'Audio Book'
       PODCAST = 'POD', 'Podcast'
       # OTHER = 'OTH', 'OTHER'
+
+      @classmethod
+      def get_structure_type(cls, category):
+         if category in {cls.TVSHOW}:
+            return 'episodes'
+         if category in {cls.ALBUM, cls.BOOK}:
+            return 'segments'
+         return 'none'
 
    source_category = models.CharField(
       max_length=3,
@@ -231,6 +256,15 @@ class Source(models.Model):
          Q(segment__source=self)
       ).distinct().count()
 
+   @classmethod
+   def get_category_map(cls):
+      return {
+         code: cls.SourceCategory.get_structure_type(code)
+         for code, _ in cls.SourceCategory.choices
+      }
+
+   def get_structure_type(self):
+      return self.SourceCategory.get_structure_type(self.source_category)
 
    def __str__(self):
       year_str = f" ({self.released_year})" if self.released_year else ''
@@ -277,6 +311,8 @@ class Segment(models.Model):
    class Meta:
       unique_together = ('segment_type', 'name', 'number')
 
+   def __str__(self):
+      return f"{self.number}. {self.name}"
 
 class Citation(models.Model):
    added_at = models.DateTimeField(auto_now_add=True)
@@ -286,9 +322,9 @@ class Citation(models.Model):
    page = models.IntegerField(null=True, blank=True)
 
    example = models.OneToOneField(Example, on_delete=models.CASCADE, related_name="citation")
-   source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT)
-   episode = models.ForeignKey(Episode, null=True,  on_delete=models.PROTECT)
-   segment = models.ForeignKey(Segment, null=True,  on_delete=models.PROTECT)
+   source  = models.ForeignKey(Source,  null=True,  on_delete=models.PROTECT, related_name="citations")
+   episode = models.ForeignKey(Episode, null=True,  on_delete=models.PROTECT, related_name="citations")
+   segment = models.ForeignKey(Segment, null=True,  on_delete=models.PROTECT, related_name="citations")
 
    class Meta:
       constraints = [
@@ -324,7 +360,7 @@ class DeckQuestion(models.Model):
    definition = models.ForeignKey(Definition, on_delete=models.CASCADE)  # correct answer
 
    distractors = models.ManyToManyField(
-      Definition,
+      Word,
       related_name='distractor_in_deck_questions',
       blank=True
    )

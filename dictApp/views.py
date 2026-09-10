@@ -16,7 +16,7 @@ from django.conf import settings
 from datetime import datetime, timedelta
 from django.utils import timezone as django_tz
 from dateutil.relativedelta import relativedelta, MO
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.template.loader import render_to_string
 
 def start_screen(request):
@@ -206,14 +206,6 @@ def word(request, lang_id, word_id=None):
          # Handle deleted definitions
          for idx, def_form in enumerate(def_formset.forms):
             if def_form.cleaned_data.get('DELETE', False) and def_form.instance.pk:
-               img_to_del = def_form.instance.image
-               if img_to_del:
-                  storage = img_to_del.file.storage
-                  if storage.exists(img_to_del.file.name):
-                     storage.delete(img_to_del.file.name)
-
-                  img_to_del.delete()
-
                def_form.instance.delete()
 
          if not word.definitions.all():
@@ -260,19 +252,21 @@ def word_delete(request, lang_id, word_id):
       language_id=lang_id
    )
 
-   for defn in word.definitions.all():
-      img = defn.image
-      if img:
-         storage = img.file.storage
-         if storage.exists(img.file.name):
-            storage.delete(img.file.name)
-
-         img.delete()
-
    word.delete()
    messages.success(request, "Word deleted")
 
    return redirect('word_list', lang_id=lang_id)
+
+
+@require_GET
+def verify_word_availability(request, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   query = request.GET.get('query', '')
+   if not query:
+      return JsonResponse({'error': 'Bad Request'},status=400)
+   exists = Word.objects.filter(name=query).exists()
+
+   return JsonResponse({'exists': exists}, status=200)
 
 
 def word_list(request, lang_id):
@@ -530,7 +524,9 @@ def word_details(request, lang_id, word_id):
       'lang_id': lang_id,
       'ngram_code': language.iso_code,
       'context': context,
-      'related_words': related_words
+      'related_words': related_words,
+      'category_map_json': Source.get_category_map(),
+      'source_to_cat_json': dict(Source.objects.filter(language_id=lang_id).values_list('id', 'source_category'))
    })
 
 def countries(request):
@@ -728,18 +724,11 @@ def source_delete(request, lang_id, source_id):
    source = get_object_or_404(Source, pk=source_id)
 
    if request.method == 'POST':
-      img = source.image
       try:
          source.delete()	
       except ProtectedError:
          messages.error(request, "Cannot delete Source cause it still has related data. Delete all episodes/content first.")
-      else:
-         if img:
-            storage = img.file.storage
-            if storage.exists(img.file.name):
-               storage.delete(img.file.name)
-            img.delete()
-         
+      else:         
          messages.success(request, "Source deleted.")
 
       return redirect('sources', lang_id=lang_id)
@@ -1123,33 +1112,19 @@ def get_definitions(request):
    return JsonResponse(results)
 
 def search_episodes_or_segments(request, source_id):
-   search_episodes = request.GET.get('search_episodes', '')
-
-   if search_episodes == '':
-      return HttpResponseBadRequest('The search episode option is missing')
+   search_episodes = json.loads(request.GET.get('search_episodes', 'false').lower())
    
    source = get_object_or_404(
       Source.objects.prefetch_related('episodes', 'segments'),
       pk=source_id
-   )
+   )   
 
    if search_episodes:
-      results = { 'results': [ { 'value': ep.id, 'text': str(ep) } for ep in source.episodes.all() ] }
+      results = { 'results': [ { 'value': ep.id, 'text': str(ep) } for ep in source.episodes.all().order_by('-season_number', '-episode_number') ] }
    else:
-      results = { 'results': [ { 'value': seg.id, 'text': str(seg) } for seg in source.segments.all() ] }
+      results = { 'results': [ { 'value': seg.id, 'text': str(seg) } for seg in source.segments.all().order_by('number') ] }
 
    return JsonResponse(results)
-
-
-def get_sources(request, lang_id):
-   language = get_object_or_404(Language, pk=lang_id)
-   data = { 
-      'results': [
-         {'value': src.id, 'text': str(src), 'category': src.source_category}
-         for src in Source.objects.filter(language_id=lang_id)
-      ]
-   }
-   return JsonResponse(data)
 
 
 def search_source(request, lang_id):
@@ -1175,34 +1150,59 @@ def example_cite(request, lang_id, example_id):
    example = get_object_or_404(Example, pk=example_id)
 
    if request.method == 'POST':
-      form = CitationFormDetailsPage(request.POST, request.FILES, prefix="src-ep", lang_id=lang_id)
+      form = CitationFormDetailsPage(request.POST, request.FILES, lang_id=lang_id)
       
       if form.is_valid():
          source = form.cleaned_data['source']
-         episode = form.cleaned_data.get('episode')
          spotted_at = form.cleaned_data['spotted_at']
+         episode_or_segment_id = form.cleaned_data.get('episode_or_segment')
+         
+         structure_type = source.get_structure_type()
 
-         citation = Citation.objects.create(
-            spotted_at=spotted_at,
-            example=example,
-            source=source if not episode else None,
-            episode=episode,
-         )
+         if structure_type in ('episodes', 'segments') and not episode_or_segment_id:
+            form.add_error('episode_or_segment', 'This field is required for the selected source.')
+            return render(request, 'forms/_citation_form_details_page.html', {
+               'form': form, 'lang_id': lang_id, 'example_id': example_id
+            })
+            
+         instance_id = int(episode_or_segment_id) if episode_or_segment_id else None
+
+         if structure_type == 'episodes':
+            episode = get_object_or_404(Episode, pk=instance_id)
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
+               example=example,
+               source=None,
+               episode=episode,
+            )
+            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode.id})
+         elif structure_type == 'segments':
+            segment = get_object_or_404(Segment, pk=instance_id)
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
+               example=example,
+               source=None,
+               segment=segment,
+            )
+            redirect_url = reverse('play_session_segment', kwargs={'lang_id': lang_id, 'segment_id': segment.id})
+         else:
+            citation = Citation.objects.create(
+               spotted_at=spotted_at,
+               example=example,
+               source=source
+            )
+            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source.id})     
 
          image_file = form.cleaned_data.get('image_file')
          if image_file:
             citation.image = Image.objects.create(file=image_file)
             citation.save()
 
-         if episode:
-            redirect_url = reverse('play_session_episode', kwargs={'lang_id': lang_id, 'episode_id': episode.id})
-         elif source:
-            redirect_url = reverse('play_session_source', kwargs={'lang_id': lang_id, 'source_id': source.id})         
-
          if request.META.get('HTTP_HX_REQUEST'):
             return HttpResponse(headers={'HX-Redirect': redirect_url})
+         return redirect(redirect_url)
    else:
-      form = CitationFormDetailsPage(prefix="src-ep", lang_id=lang_id)
+      form = CitationFormDetailsPage(lang_id=lang_id)
 
    return render(request, 'forms/_citation_form_details_page.html', {
       'form': form,
@@ -1318,7 +1318,7 @@ def deck(request, lang_id):
       'lang_id': lang_id,
       'iso_code': language.iso_code,
       'decks': decks,
-      'active_quizzes': active_quizzes
+      'active_quizzes': active_quizzes,
    })
 
 
@@ -1402,7 +1402,7 @@ def quiz_settings(request, lang_id):
          for question_idx, i in enumerate(range(0, len(selected), options_per_question)):
             group = selected[i:i + options_per_question]
             correct_def = group[0]
-            definition_and_distractors[correct_def.id] =  [defn.id for defn in group[1:]]
+            definition_and_distractors[correct_def.id] =  [defn.word.id for defn in group[1:]]
             correct_word = correct_def.word
 
             option_words = [d.word.name for d in group]
@@ -1574,7 +1574,7 @@ def save_quiz_to_deck(request, quiz_uuid, lang_id):
             definition = Definition.objects.filter(pk=correct_defn_id).first()
             if definition:
                question = DeckQuestion.objects.create(deck=deck, definition=definition)
-               distractor_objs = Definition.objects.filter(pk__in=distractor_ids)
+               distractor_objs = Word.objects.filter(pk__in=distractor_ids)
                question.distractors.add(*distractor_objs)
 
       quizzes.pop(str(quiz_uuid), None)
@@ -1595,14 +1595,6 @@ def deck_delete(request, lang_id, deck_id):
    deck = get_object_or_404(Deck, pk=deck_id)
 
    if request.method == 'POST':
-      img = deck.image
-
-      if img:
-         storage = img.file.storage
-         if storage.exists(img.file.name):
-            storage.delete(img.file.name)
-         img.delete()
-      
       deck.delete()
       messages.success(request, "Deck deleted.")
 
@@ -1641,23 +1633,32 @@ def deck_quiz_play(request, lang_id, deck_id):
       pk=deck_id
    )
 
+   is_mo = quiz_type == 'MO'
+
    pages = [
       {
          'name': f"page{idx}",
          'elements': [
             {
-               'type': 'radiogroup',
+               'type': 'radiogroup' if is_mo else 'text',
                'name': f'q_{question.id}',
                'title': question.definition.description,
-               'choices': sorted(
-                  [question.definition.word.name] + [d.word.name for d in question.distractors.all()],
-                  key=lambda x: random.random()
+               **(
+                  {
+                     'choices': sorted(
+                        [question.definition.word.name] + [w.name for w in question.distractors.all()],
+                        key=lambda _: random.random()
+                     )
+                  }
+                  if is_mo
+                  else {}
                )
             }
          ]
-      } for idx, question in enumerate(deck.deck_questions.all())
+      }
+      for idx, question in enumerate(deck.deck_questions.all())
    ]
-
+   
    survey_json = {
       "pages": pages,
       "progressBarLocation": "top",
@@ -1721,3 +1722,85 @@ def validate_deck_quiz_answer_ajax(request, lang_id, deck_id):
    }
    
    return JsonResponse(correct_answer)
+
+
+def deck_quiz_questions(request, lang_id, deck_id=None):
+   deck = get_object_or_404(Deck, pk=deck_id) if deck_id else None
+
+   if request.method == 'POST':
+      try:
+         questions = json.loads(request.POST.get('questions', '[]'))
+      except json.JSONDecodeError as e:
+         print(f"Invalid JSON payload: {e}")
+         return JsonResponse({'error': 'Invalid JSON'}, status=400)
+      
+      try: 
+         with transaction.atomic():
+            deck_form = DeckForm(request.POST, request.FILES, instance=deck)
+            if not deck_form.is_valid():
+               return JsonResponse({'errors': deck_form.errors}, status=400)
+            
+            deck = deck_form.save()
+            processed_definition_ids = []
+            print(questions)
+            for q in questions:
+               q['deck'] = deck.id
+               defn_id = q.get('definition')
+               
+               instance = DeckQuestion.objects.filter(
+                  deck=deck,
+                  definition_id=defn_id
+               ).first()
+
+               question_form = DeckQuestionForm(data=q, instance=instance)
+
+               if question_form.is_valid():
+                  question_form.save()
+                  processed_definition_ids.append(defn_id)
+               else:
+                  return JsonResponse({'errors': question_form.errors}, status=400)
+               
+            DeckQuestion.objects.filter(deck=deck).exclude(
+               definition_id__in=processed_definition_ids
+            ).delete()
+
+            delete_image = request.POST.get("delete_image", '')
+
+            if delete_image and delete_image != 'false' and deck.image:
+               img_to_del = deck.image
+               storage = img_to_del.file.storage
+               if storage.exists(img_to_del.file.name):
+                  storage.delete(img_to_del.file.name)
+               img_to_del.delete()
+               deck.image = None
+
+      except Exception as e:
+         print(f"Unexpected error: {type(e).__name__} - {e}")
+         return JsonResponse({'error': 'Server error'}, status=500)
+
+      return JsonResponse({'success': True}, status=200)
+
+   initial_data = {
+      'name': deck.name if deck else '',
+      'description': deck.description if deck else '',
+      'questions': [
+         {
+            'word_text': q.definition.word.name,
+            'word_id': q.definition.word.id,
+            'definition_id': q.definition.id,
+            'distractors': [{'id': word.id, 'text': word.name} for word in q.distractors.all()],
+         }
+         for q in DeckQuestion.objects.prefetch_related('distractors', 'definition__word').filter(deck=deck)
+      ]
+   } if deck else None
+   
+   image_url = deck.image.file.url if (deck and getattr(deck, 'image', None) and deck.image.file) else None
+   deck_form = DeckForm(image_path=image_url)
+
+   return render(request, 'forms/_deck_quiz_questions.html', {
+      'lang_id': lang_id,
+      'deck_id': deck_id,
+      'deck_name': deck.name if deck else "",
+      'deck_quiz_initial_data': initial_data,
+      'deck_form': deck_form
+   })

@@ -128,10 +128,6 @@
       font-size: 1.35rem;
    }
 
-   .container-custom {
-      padding: 0 100px;
-   }
-
    .film-strip-additional{
       height: 432px;
       padding: 18px;
@@ -180,12 +176,13 @@
 {% endif %}
 
 {% with item=episode|default:segment|default:source %}
-<div class="container-fluid container-custom py-5" style="user-select: none;">
+<div class="container-lg py-5" style="user-select: none;">
 
    <div class="d-flex align-items-center">
       <h2 class="">S{{item.season_number|stringformat:"02d"}}E{{item.episode_number|stringformat:"02d"}} - {{item.name}}</h2>
 
-      <button hx-get="{{target_url}}"
+      <button type="button"
+         hx-get="{{target_url}}"
          hx-trigger="mouseup"
          hx-target="#genericModalBody"
          hx-target-error="#error-box"

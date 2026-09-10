@@ -363,7 +363,7 @@ class LinkWordForm(forms.Form):
    word_2=forms.ModelChoiceField(
       label="Related word",
       widget=forms.Select(attrs={
-         'class': 'select2 select2-ajax',
+         'class': 'select2',
          'data-is-ajax': 'true',
          'data-width': "100%",
          'data-placeholder': "Search for a word",
@@ -453,6 +453,8 @@ class SourceForm(forms.ModelForm):
       return cleaned_data
    
    def save(self, commit=True):
+      old_category = self.initial.get('source_category') if self.instance.pk else None
+
       source = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
       
@@ -467,6 +469,22 @@ class SourceForm(forms.ModelForm):
 
          new_img = Image.objects.create(file=image_file)
          source.image = new_img
+
+      new_category = self.cleaned_data.get('source_category')
+
+      if 'source_category' in self.changed_data and old_category and old_category != new_category:
+         for episode in source.episodes.all():
+            for citation in episode.citations.all():
+               citation.delete()
+            episode.delete()
+
+         for segment in source.segments.all():
+            for citation in segment.citations.all():
+               citation.delete()
+            segment.delete()
+
+         for citation in source.citations.all():
+            citation.delete()
 
       if commit:
          source.save()
@@ -523,7 +541,7 @@ class CitationForm(forms.Form):
    word = forms.CharField(
       label="Word",
       widget=forms.Select(attrs={
-         'class': 'select2 select2-ajax',
+         'class': 'select2',
          'data-is-ajax': 'true',
          'data-width': '100%',
          'data-placeholder': 'Word',
@@ -607,7 +625,7 @@ class CitationForm(forms.Form):
       else:
          del self.fields['page']
       
-      if existing_img_path:
+      if existing_img_path and self.fields.get('image_file'):
          self.fields['image_file'].widget.attrs.update({
             'data-img-path': existing_img_path
          })
@@ -658,19 +676,13 @@ class CitationDelete(forms.Form):
       citation = Citation.objects.get(pk=self.citation_id)
       if delete_example:
          citation.example.delete()
-      if citation.image:
-         img = citation.image
-         storage = img.file.storage
-         if storage.exists(img.file.name):
-            storage.delete(img.file.name)
-         img.delete()
 
       citation.delete()
 
 
 
 class CitationFormDetailsPage(forms.Form):
-   source=forms.ModelChoiceField(
+   source = forms.ModelChoiceField(
       widget=forms.Select(attrs={
          'placeholder': "Select a source...",
          'class': 'select2',
@@ -680,14 +692,13 @@ class CitationFormDetailsPage(forms.Form):
       required=True
    )
 
-   episode=forms.ModelChoiceField(
+   episode_or_segment = forms.ChoiceField(
+      choices=[],
       widget=forms.Select(attrs={
-         'placeholder': "Select an episode...",
+         'placeholder': "Select an episode/segment...",
          'class': 'select2',
          'required': 'true',
       }),
-      empty_label="Select an episode",
-      queryset=Episode.objects.none(),
       required=False
    )
 
@@ -701,27 +712,39 @@ class CitationFormDetailsPage(forms.Form):
       required=True
    )
 
+   page = forms.IntegerField(
+      label='Page',
+      required=False,
+      widget=forms.NumberInput(attrs={
+         'class': 'form-control d-inline',
+         'style': 'width: auto',
+         'placeholder': '#',
+      })
+   )
+
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      widget=forms.FileInput(attrs={'class': 'filepond'}),
       label='Screenshot'
    )
 
    def __init__(self, *args, **kwargs):
       lang_id = kwargs.pop('lang_id', None)
       super().__init__(*args, **kwargs)
-
-      source_id = None
-      if self.is_bound:
-         if lang_id:
-            self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
-         source_id = self.data.get(f'{self.prefix}-source')
-      elif 'source' in self.initial:
-         source_id = self.initial.get('source')
+      if lang_id:
+         self.fields['source'].queryset = Source.objects.filter(language_id=lang_id)
       
-      if source_id:
-         source = Source.objects.get(pk=source_id)
-         self.fields['episode'].queryset = source.episodes.all()
+      if self.is_bound:
+         if 'episode_or_segment' in self.data:
+            submitted_id = self.data.get('episode_or_segment')
+            if submitted_id:
+               self.fields['episode_or_segment'].choices = [(submitted_id, submitted_id)]
+            
+         source_id = self.data.get('source')
+         if source_id:
+            source = Source.objects.filter(pk=source_id).first()
+            if source and source.source_category == 'BOK':
+               self.fields['spotted_at'].required = False
 
 
 class SegmentForm(forms.ModelForm):
@@ -840,7 +863,7 @@ class WordListFilters(forms.Form):
    source = forms.IntegerField(
       required=False,
       widget=forms.Select(attrs={
-         'class': 'select2 select2-ajax',
+         'class': 'select2',
          'data-allow-clear': 'true',
          'data-is-ajax': 'true',
          'data-placeholder': 'Source',
@@ -980,7 +1003,7 @@ class QuizSettingsForm(forms.Form):
 class DeckForm(forms.ModelForm):
    image_file = forms.ImageField(
       required=False,
-      widget=forms.FileInput(attrs={'class': 'form-control'}),
+      widget=forms.FileInput(attrs={'class': 'filepond'}),
       label='Screenshot'
    )
 
@@ -989,14 +1012,27 @@ class DeckForm(forms.ModelForm):
       fields = ['name', 'description']
       widgets = {
          'name': forms.TextInput(attrs={'class': 'form-control'}),
-         'description': forms.TextInput(attrs={'class': 'form-control'}),
+         'description': forms.Textarea(
+            attrs={
+               'rows': 2, 
+               'cols': 50, 
+               'class': 'form-control resize-none field-description',
+               'manual-required': 'true',
+            }
+         )
       }
-   
+
+   def __init__(self, *args, **kwargs):
+      image_path = kwargs.pop('image_path', None)
+      super().__init__(*args, **kwargs)
+
+      if image_path:
+         self.fields['image_file'].widget.attrs['data-img-path'] = image_path
+
    def save(self, commit=True):
       deck = super().save(commit=False)
       image_file = self.cleaned_data.get('image_file')
       if image_file:
-         print('has img')
          old_img = deck.image
 
          if deck.pk and old_img:
@@ -1007,8 +1043,7 @@ class DeckForm(forms.ModelForm):
 
          new_img = Image.objects.create(file=image_file)
          deck.image = new_img
-      else:
-         print('no img')
+
       if commit:
          deck.save()
 
@@ -1029,7 +1064,7 @@ class DeckQuizSettingsForm(forms.Form):
    use_timer = forms.BooleanField(
       label='Timed quiz',
       required=False,
-      initial=False,
+      initial=True,
       widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'})
    )
 
@@ -1039,5 +1074,11 @@ class DeckQuizSettingsForm(forms.Form):
       max_value=59,
       initial=20,
       required=False,
-      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important', 'disabled': True})
+      widget=forms.NumberInput(attrs={'class': 'd-inline form-control ms-4', 'style': 'width: auto !important', 'disabled': False})
    )
+
+
+class DeckQuestionForm(forms.ModelForm):
+   class Meta:
+      model = DeckQuestion
+      fields = ['deck', 'definition', 'distractors']

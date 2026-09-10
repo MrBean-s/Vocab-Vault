@@ -51,7 +51,8 @@
    <h3>Quiz completed!</h3>
    <p>The quiz will now be erased. Would you like to save it to a deck before this happens?</p>
    <div class="button-group">
-      <button class="btn btn-primary save-btn"
+      <button type="button"
+         class="btn btn-primary save-btn"
          data-bs-toggle="modal"
          data-bs-target="#genericModal"
          hx-get="{% url 'save_quiz_to_deck' lang_id=lang_id quiz_uuid=quiz_uuid %}"
@@ -60,7 +61,7 @@
          hx-target-error="#error-box">
             <i class="fa-solid fa-bookmark"></i> Save to Deck
       </button>
-      <button class="btn btn-secondary" onclick="closeQuiz()">
+      <button type="button" class="btn btn-secondary" onclick="closeQuiz()">
             <i class="fa-solid fa-right-from-bracket"></i> Exit
       </button>
    </div>

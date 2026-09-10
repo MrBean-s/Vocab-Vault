@@ -1,8 +1,11 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
+{% load static %}
 {% block title%}Details{% endblock %}
 
 {% block additionalStyles %}
+<link rel="stylesheet" href="{% static 'filepond/filepond-4.32.12.css' %}">
+<link rel="stylesheet" href="{% static 'filepond/filepond-plugin-image-preview-4.6.12.css' %}">
 <style>
    .def-description { font-size: 1.4rem }
    .def-origin { font-size: 1.25rem; color: var(--text-muted) }
@@ -62,15 +65,24 @@
    .desc-image { float: right; max-width: 300px; max-height: 200px; border-radius: 5px; cursor: pointer }
    #related-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px 10px;
    }
+   #source-segment-row {
+      min-height: 230px;
+   }
+   .filepond-wrapper { height: 230px; min-width: min(408px, 100%) }
 
+   @media (min-width: 992px) {
+      #related-grid {
+         grid-template-columns: repeat(4, 1fr);
+      }
+   }
 </style>
 {% endblock additionalStyles %}
 
 {% block innerbody %}
-   <div class="container">
+   <div class="container-lg">
       <div class="px-3">
          <div class="top-bar row py-4 py-xxl-5 mb-4">
             <div class="top-bar-left col-auto d-flex align-items-center gap-5">
@@ -125,7 +137,7 @@
          </div>
          <div class="def-container p-4 mb-5 custom-card" data-def-id="{{def.id}}">
             {% if def.image_path and def.image_id %}
-               <img class="desc-image ms-5" src="{{ def.image_path }}" alt="{{ lan.name }}"
+               <img class="desc-image ms-4 ms-lg-5" src="{{ def.image_path }}" alt="{{ lan.name }}"
                   hx-get="{% url 'show_image' img_id=def.image_id %}"
                   hx-trigger="click"
                   hx-target="#genericModalImgContent"
@@ -200,7 +212,7 @@
          {% endfor %}
 
          <div class="mb-3">Related words:</div>
-         <div id="related-grid" class="px-5">
+         <div id="related-grid" class="px-lg-5">
             {% for rel_word in related_words %}
             <div class="grid-item">
                <a href="{% url 'word_details' lang_id=lang_id word_id=rel_word.id%}">
@@ -240,89 +252,123 @@
 {% endblock innerbody %}
 
 {% block additionalScripts %}
+<script src="{% static 'filepond/filepond-4.32.12.js' %}"></script>
+<script src="{% static 'filepond/filepond-plugin-image-preview-4.6.12.js' %}"></script>
+
+{{ category_map_json|json_script:"category-map-data" }}
+{{ source_to_cat_json|json_script:"source-to-cat-data" }}
+
 <script>
+   
+FilePond.registerPlugin(FilePondPluginImagePreview);
+
 const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+
+const CATEGORY_MAP = JSON.parse(document.getElementById('category-map-data').textContent);
+const SOURCE_TO_CAT = JSON.parse(document.getElementById('source-to-cat-data').textContent);
 
 function initLinkWordForm() {
    document.getElementById('genericModalTitle').textContent = 'Link the word to a related item';
 }
 
 function prepareCitationFormWizard() {
+   document.querySelector('.modal-dialog').classList.toggle('modal-xl', true);
    document.getElementById('genericModalTitle').textContent = 'Create a citation for this example';
+   const form = document.getElementById('citationFormDetailsPage');
+   const sourceSelect = form.querySelector('#id_source');
+   const episodeOrSegmentSection = form.querySelector('.episode-segment-section');
+   const episodeOrSegmentSelect = form.querySelector('#id_episode_or_segment');
 
-   const $sourceSelect = $('#id_src-ep-source');
-   const $episodeSelect = $('#id_src-ep-episode');
-   const $episodeSection = $episodeSelect.closest('.section-hide');
-   const sourceDataMap = {};
+   const imgInput = form.querySelector('#id_image_file');
+   const filepondWrapper = imgInput.closest('.filepond-wrapper');
+   const pond = initializeFilePond(filepondWrapper); //defined in base.html
+   setActiveContainer(filepondWrapper, imageInstances.get(filepondWrapper)); //defined in base.html
 
-   fetch("{% url 'get_sources' lang_id=lang_id %}")
-      .then(response => response.json())
-      .then(data => {
-         data.results.forEach(item => { sourceDataMap[item.value] = item; });
+   $(sourceSelect).on('select2:select', async function() {
+      const sourceId = this.value;
+      $(episodeOrSegmentSelect).empty().trigger('change');
 
-         $sourceSelect.empty();
-         data.results.forEach(item => {
-            $sourceSelect.append(new Option(item.text, item.value));
-         });
+      const category = SOURCE_TO_CAT[sourceId];
+      const structureType = CATEGORY_MAP[category] || 'none';
+      const hideSection = (structureType === 'none');
 
-         $sourceSelect.trigger('change.select2');
-         $sourceSelect.val(null).trigger('change');
-      })
-      .catch(err => console.error('Failed to load sources:', err));
+      if (!hideSection) await prepareEpisodeOrSegmentSection(sourceId, (structureType === 'episodes'), structureType);
 
-   $sourceSelect.on('select2:select', async function () {
-      const sourceId = $sourceSelect.val();
-      const source = sourceDataMap[sourceId];
-   
-      if (source.category === 'MOV' || source.category === 'SON') {
-         $episodeSection.prop('hidden', true);
-         $episodeSelect.prop('required', false);
-         clearEpisodeSelect();
-      } else {
-         await loadEpisodesOrSegments(sourceId);
-         $episodeSection.prop('hidden', false);
-         $episodeSelect.prop('required', true);
-         var $el = $('#new-episode-a');
-         var newEpUrl = $el.attr('hx-get').replace(/\d+/g, sourceId);
-         $el.attr('hx-get', newEpUrl);
-         htmx.process($el[0]);
+      const newItemTag = form.querySelector('#new-item-tag');
+      const newEpisodeUrl = "{% url 'episode_add' source_id=999999 %}";
+      const newSegmentUrl = "{% url 'segment_add' source_id=999999 %}";
+      const url = (structureType == 'segments') ? newSegmentUrl.replace(/\d+/g, sourceId)
+         : (structureType == 'episodes') ? newEpisodeUrl.replace(/\d+/g, sourceId)
+         : '';
+      
+      if (url && newItemTag) {
+         newItemTag.textContent = 'Create a new ' + structureType.slice(0, structureType.length - 1);
+         newItemTag.setAttribute('hx-get', url);
+         htmx.process(newItemTag);
       }
+
+      const spottedSection = form.querySelector('#spotted-section');
+      const isBook = category == 'BOK';
+      spottedSection.querySelector('#id_spotted_at').toggleAttribute('disabled', isBook);
+      spottedSection.toggleAttribute('hidden', isBook);
+      form.querySelector('#page-section').toggleAttribute('hidden', !isBook);
+
+      episodeOrSegmentSection.toggleAttribute('hidden', hideSection);
+      episodeOrSegmentSelect.toggleAttribute('disabled', hideSection);
+      const hide = structureType === 'segments' || structureType === 'none' && category != 'MOV';
+      toggleImageColumn(form.querySelector('.image-col'), hide);
+      document.querySelector('.modal-dialog').classList.toggle('modal-xl', !hide);
    });
 
-   function clearEpisodeSelect() {
-      $episodeSelect.empty();
-      $episodeSelect.trigger('change.select2');
-   }
+   async function prepareEpisodeOrSegmentSection(sourceId, isEpisode) {
+      const results = await loadEpisodesOrSegments(sourceId, isEpisode);
+      if (!results || !results.length) return;
 
-   async function loadEpisodesOrSegments(sourceId, isEpisode = true) {
+      const options = results.map(item => new Option(item.text, item.value));
+      $(episodeOrSegmentSelect).append(options).trigger('change');
+   }
+  
+   async function loadEpisodesOrSegments(sourceId, isEpisode) {
       let url = `{% url 'search_episodes_or_segments' source_id=999999 %}`.replace('999999', sourceId);
       url += isEpisode ? '?search_episodes=true' : '?search_episodes=false';
-
-      if (!sourceId) { clearEpisodeSelect(); return; }
 
       try {
          const response = await fetch(url);
          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
          const data = await response.json();
 
-         $episodeSelect.empty();
-         if (data.results.length > 0) {
-            data.results.forEach(item => {
-               $episodeSelect.append(new Option(item.text, item.value));
-            });
-         }
-         $episodeSelect.trigger('change.select2');
-      } catch (err) { console.error('Fetch error:', err); }
+         return data.results || [];
+      } catch (err) {
+         console.error('Episodes/Segments fetch error:', err);
+         return [];
+      }
+   }
+
+   function toggleImageColumn(column, hide) {
+      column?.classList.toggle('d-none', hide);
+      const pondInput = column?.querySelector('input[type="file"]');
+      if (pond) { pond.removeFiles(); } else { pondInput.value = ''; }
    }
 }
 
 function initSourceForm() {
    document.getElementById('genericModalTitle').textContent = 'Create/Edit a source';
+   document.querySelector('.modal-dialog').classList.toggle('modal-xl', false);
 }
 
 function initEpisodeForm() {
    document.getElementById('genericModalTitle').textContent = 'Add/Edit an episode';
+   document.querySelector('.modal-dialog').classList.toggle('modal-xl', false);
+}
+
+function prepareSegmentForm() {
+   document.getElementById('genericModalTitle').textContent = 'Add/Edit a segment';
+   $('#id_segment_type').on('select2:select change', function() {
+      var seg_type = $(this).val();
+      $('#numberSection').prop('hidden', (seg_type == 'PRL' || seg_type == 'EPL'));
+   }).trigger('change');
 }
 
 </script>

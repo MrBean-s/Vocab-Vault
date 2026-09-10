@@ -1,5 +1,7 @@
-from .models import Country, Language, PartOfSpeech, Image, CountryLanguage
+from .models import Country, Language, PartOfSpeech, Image, CountryLanguage, Source, Definition, Citation, Deck
 from django.conf import settings
+from django.dispatch import receiver
+from django.db.models.signals import post_delete
 import os
 
 def seed_countries(sender, **kwargs):
@@ -397,3 +399,34 @@ def seed_lang_and_parts_of_speech(sender, **kwargs):
 
       language.iso_code = data["iso_code"]
       language.save()
+
+
+@receiver(post_delete, sender=Image)
+def cleanup_file_from_disk(sender, instance, **kwargs):
+   print(f'cleaning file from disk')
+   if instance.file:
+      storage = instance.file.storage
+      if storage.exists(instance.file.name):
+         storage.delete(instance.file.name)
+         print(f'file deleted')
+
+
+@receiver(post_delete, sender=Language)
+@receiver(post_delete, sender=Definition)
+@receiver(post_delete, sender=Source)
+@receiver(post_delete, sender=Citation)
+@receiver(post_delete, sender=Deck)
+def cleanup_img_on_delete(sender, instance, **kwargs):
+   print(f'post_delete signal on: {instance}')
+   image = getattr(instance, 'image', None)
+   if image:
+      print('has an img')
+      if image.file:
+         storage = image.file.storage
+         if storage.exists(image.file.name):
+            storage.delete(image.file.name)
+
+      image.delete()
+   
+   else:
+      print('has no img')

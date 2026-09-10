@@ -7,11 +7,11 @@
 {% endblock %}
 
 {% block innerbody %}
-<div class="container py-5">
+<div class="container-lg py-5">
    <div class="d-flex align-items-center">
       <h2 class="m-0 d-inline">{{source.name}}</h2>
       
-      <button 
+      <button type="button" 
          hx-get="{% url 'segment_add' source_id=source_id%}"
          hx-target="#genericModalBody"
          hx-target-error="#error-box"

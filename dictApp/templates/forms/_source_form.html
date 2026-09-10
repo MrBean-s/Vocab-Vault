@@ -11,10 +11,19 @@
       enctype="multipart/form-data">
       {% csrf_token %}
 
-   <div class="mb-4 mx-auto w-75 d-flex gap-4 align-items-center">
+   <div class="w-100 mb-4 d-flex gap-4 align-items-center">
       <label class="form-label mb-0" for="{{form.source_category.id_for_label}}">{{form.source_category.label}}</label>
       {{form.source_category}}
+      <i class="fa-solid fa-skull-crossbones fs-4 text-danger"
+         data-bs-toggle="tooltip"
+         data-bs-placement="bottom"
+         data-bs-html="true"
+         data-bs-title='<i class="fa-solid fa-skull-crossbones"></i> Changig the category once the source is created will result in episodes/segments/citations loss <i class="fa-solid fa-skull-crossbones"></i>'
+         data-bs-custom-class="danger-tooltip">
+      </i>
    </div>
+
+   
 
    <div class="mb-4">
       <label class="form-label" for="{{form.name.id_for_label}}">{{form.name.label}}</label>
