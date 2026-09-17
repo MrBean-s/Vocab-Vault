@@ -1,123 +1,57 @@
 {% load static %}
-<div id="sidebar" class="position-fixed h-100 top-0 start-0 d-flex flex-column flex-shrink-0"
-   style="width: 15vw; padding: 1.5vw;">
-   <div class="banner">
-      <div class="d-flex gap-2">
-         <!-- <a href="https://www.flaticon.com/free-icons/book" title="book icons">Book icons created by Smashicons - Flaticon</a> -->
-         <div class="d-flex align-items-center w-30" style="padding-left: 0.335vw;">
-            <img src="{% static 'images/book.png' %}" style="width: 2.35vw; height: 2.35vw;" />
-         </div>
-         <div class="d-flex align-items-center w-70">
-            <div style="font-size: 1.2vw;" class="fw-bolder">Vocab Vault</div>
-         </div>
+<nav id="navbar" class="{% if request.COOKIES.sidebar_collapsed == 'true' %}collapsed{% endif %}">
+   <div class="title-pill">
+      <div class="logo-wrapper">
+         <img src="{% static 'images/book.png' %}" class="logo collapse-toggle"/>
+         <span class="app-title">Vocab vault</span>
       </div>
+      <button type="button" class="btn-transparent burger-btn" id="burger-toggle" aria-label="Toggle navigation">
+         <i class="fa-solid fa-bars"></i>
+      </button>
+      <i class="fa-regular fa-square-minus collapse-toggle"></i>
    </div>
-      
-   <div class="mid-section">
-      <div class="nav-item gap-2" data-url="{% url 'add_word' lang_id %}">
-         <div class="w-30">
-            <div class="nav-pill nav-pill-top">
-               <div class="sidebar-item">
-                  <i class="fa-solid fa-plus nav-icon"></i>
-               </div>
-            </div>
-         </div>
-         <div class="d-flex align-items-center w-70 nav-label label-active">
-            <div>Add word</div>
-         </div>
-      </div>
-      <div class="nav-item gap-2" data-bs-toggle="modal" data-bs-target="#genericModal"
-         hx-get="{% url 'search' lang_id=lang_id %}" hx-target="#genericModalBody"
-         hx-trigger="click" hx-target-error="#error-box">
-         <div class="w-30 nav-pill-wrapper">
-         <div class="nav-pill">
-            <div class="sidebar-item">
-               <i class="fa-solid fa-magnifying-glass nav-icon"></i>
-            </div>
-         </div>
-         </div>
-         <div class="w-70 nav-label">
-         Search
-         </div>
-      </div>
-      <div class="nav-item gap-2" data-url="{% url 'word_list' lang_id %}">
-         <div class="w-30 nav-pill-wrapper">
-         <div class="nav-pill">
-            <div class="sidebar-item">
-               <i class="fa-solid fa-list nav-icon"></i>
-            </div>
-         </div>
-         </div>
-         <div class="w-70 nav-label">
-         All words
-         </div>
-      </div>
-      <div class="nav-item gap-2" data-url="{% url 'word_list_pending' lang_id %}">
-         <div class="w-30 nav-pill-wrapper">
-         <div class="nav-pill nav-pill-bottom">
-            <div class="sidebar-item">
-               <i class="fa-solid fa-umbrella-beach nav-icon"></i>
-            </div>
-         </div>
-         </div>
-         <div class="w-70 nav-label nav-label-bottom">
-         Pending List
-         </div>
-      </div>
 
-
-      <div class="d-flex gap-3 mb-auto mt-5">
-         <div class="w-100">
-            <div class="nav-item gap-2">
-               <div class="w-30 nav-pill-wrapper">
-               <div class="nav-pill nav-pill-top">
-                  <div class="sidebar-item">
-                     <i class="fa-solid fa-house nav-icon"></i>
-                  </div>
-               </div>
-               </div>
-               <div class="w-70 nav-label">
-               Dashboard
-               </div>
-            </div>
-            <div class="nav-item gap-2" data-url="{% url 'decks' lang_id %}">
-               <div class="w-30 nav-pill-wrapper">
-               <div class="nav-pill">
-                  <div class="sidebar-item">
-                     <i class="fa-solid fa-book nav-icon"></i>
-                  </div>
-               </div>
-               </div>
-               <div class="w-70 nav-label">
-                  Study
-               </div>
-            </div>
-            <div class="nav-item gap-2" data-url="{% url 'sources' lang_id %}">
-               <div class="w-30 nav-pill-wrapper">
-               <div class="nav-pill nav-pill-bottom">
-                  <div class="sidebar-item">
-                     <i class="fa-solid fa-clapperboard nav-icon"></i>
-                  </div>
-               </div>
-               </div>
-               <div class="w-70 nav-label nav-label-bottom">
-               My sources
-               </div>
-            </div>
-         </div>
-      </div>
-   </div>
-   
-   <div class="lower-section">
-      <a class="d-flex gap-2 text-decoration-none"  href="{% url 'start_screen' %}">
-         <div class="w-30 d-flex align-items-center justify-content-center">
-            <div class="nav-pill nav-circle">
-               <i class="fa-solid fa-arrow-right-from-bracket nav-icon"></i>
-            </div>
-         </div>
-         <div class="w-70 nav-label nav-label-bottom d-flex align-items-center">
-            Leave
-         </div>
-      </a>
-   </div>
-</div>
+   <ul class="nav-menu">
+      <li class="nav-item" data-url="{% url 'add_word' lang_id=lang_id%}">
+         <a href="{% url 'add_word' lang_id=lang_id %}" class="stretched-link"></a>
+         <i class="fa-regular fa-square-plus nav-item-icon"></i>
+         <span class="nav-item-text">Add a word</span>
+      </li>
+      <li class="nav-item" data-url="{% url 'word_list' lang_id=lang_id%}">
+         <a href="{% url 'word_list' lang_id=lang_id %}" class="stretched-link"></a>
+         <i class="fa-solid fa-list nav-item-icon"></i>
+         <span class="nav-item-text">Word List</span>
+      </li>
+      <li class="nav-item">
+         <a class="stretched-link anchor-not-href"
+            hx-trigger="click"
+            hx-get="{% url 'search' lang_id=lang_id %}"
+            hx-target="#genericModalBody"
+            data-bs-toggle="modal"
+            data-bs-target="#genericModal"
+            ></a>
+         <i class="fa-solid fa-magnifying-glass nav-item-icon"></i>
+         <span class="nav-item-text">Seach</span>
+      </li>
+      <li class="nav-item" data-url="{% url 'word_list_pending' lang_id=lang_id%}">
+         <a href="{% url 'word_list_pending' lang_id=lang_id %}" class="stretched-link"></a>
+         <i class="fa-solid fa-clock nav-item-icon"></i>
+         <span class="nav-item-text">Pending List</span>
+      </li>
+      <li class="nav-item" data-url="{% url 'sources' lang_id=lang_id%}">
+         <a href="{% url 'sources' lang_id=lang_id %}" class="stretched-link"></a>
+         <i class="fa-solid fa-clapperboard nav-item-icon"></i>
+         <span class="nav-item-text">My Sources</span>
+      </li>
+      <li class="nav-item" data-url="{% url 'decks' lang_id=lang_id%}">
+         <a href="{% url 'decks' lang_id=lang_id %}" class="stretched-link"></a>
+         <i class="fa-solid fa-book nav-item-icon"></i>
+         <span class="nav-item-text">Study</span>
+      </li>
+      <li class="nav-item" data-url="{% url 'start_screen' %}">
+         <a href="{% url 'start_screen' %}" class="stretched-link"></a>
+         <i class="fa-solid fa-earth-americas nav-item-icon"></i>
+         <span class="nav-item-text">Languages</span>
+      </li>
+   </ul>
+</nav>

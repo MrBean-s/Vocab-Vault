@@ -425,7 +425,7 @@ def search(request, lang_id):
    language = get_object_or_404(Language, pk=lang_id)
    
    if not request.META.get('HTTP_HX_REQUEST'):
-      return redirect('dashboard', lang_id=lang_id)
+      return redirect('word_list', lang_id=lang_id)
 
    form = ModalSearchForm(request.GET or None, initial={'filter': ['word']})
    filters = []

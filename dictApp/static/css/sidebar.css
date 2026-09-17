@@ -1,42 +1,128 @@
-#sidebar { 
+#navbar {
+   box-sizing: border-box;
    background-color: var(--bg-sidebar);
-   border-right: 1px solid var(--border-color)
-}
-.banner { height: 15vh }
-.mid-section { height: 75vh; overflow: auto }
-.lower-section { height: 10vh; }
-
-.sidebar-active .sidebar-item{ 
-        background-color: var(--accent-blue) !important;
-        border-radius: 50%; 
-        width: 2.35vw; height: 2.35vw;
-        position: absolute; top: 0.335vw; left: 0.335vw;
-        display: flex; align-items: center; justify-content: center; 
+   border-right: 1px solid var(--border-color);
+   padding: 1rem 2rem;
+   position: relative;
+   min-height: 80px;
+   max-height: 100vh;
+   border-bottom: 1px solid var(--border-color);
 }
 
-.nav-pill { 
-        background-color: var(--bg-sidebar-pill); 
-        width: 3vw; height: 3vw; 
-        position: relative; 
-        display: flex; align-items: center; justify-content: center; 
-}
-.nav-pill:not(.nav-pill-bottom):not(.nav-circle) { 
-        box-shadow: 0 0.9rem 0 0 var(--bg-sidebar-pill); 
-        margin-bottom: 0.8rem 
-}
-.nav-pill-top { border-radius: 50% 50% 0 0;}
-.nav-pill-bottom { border-radius: 0 0 50% 50%;}
-.nav-icon { font-size: 1vw}
-.nav-pill-label { width: 100%; height: 60px; display: flex; align-items: center;}
-.nav-pill-left { border-radius: 50% 0 0 50% ;}
-.nav-pill-right { border-radius: 0 50% 50% 0 ;}
-.nav-circle {  background-color: var(--bg-sidebar-pill); border-radius: 50%; width: 3vw; height: 3vw;}
 
-.nav-item { display: flex; justify-content: center; align-items: center;}
-.label-active { font-weight: bold; color: var(--text-primary);}
-.nav-label { cursor: pointer; font-size: 1vw; }
-.nav-label:not(.nav-label-bottom) { margin-bottom: 0.8rem }
+.logo-wrapper {
+   width: 100%;
+}
 
-.right-side { width: 85vw; margin-left: 15vw; }
-.modal { padding-left: 15vw; }
-.modal-backdrop { margin-left: 15vw; }
+.title-pill {
+   overflow: hidden;
+   white-space: nowrap;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+}
+
+.app-title {
+   font-size: 1.2rem;
+   font-weight: bold;
+   padding-left: 1rem;
+}
+
+.logo {
+   width: 3rem;
+   height: auto;
+   display: inline-block;
+   pointer-events: none;
+}
+
+.burger-btn { font-size: 1.5rem; }
+.fa-square-minus { font-size: 1.5rem; display: none }
+
+.nav-menu.is-open {
+   position: absolute;
+   top: 100%;
+   left: 0;
+   width: 100%;
+   height: auto;
+   z-index: 9999;
+   padding: 1rem 2rem;
+   background: var(--bg-dark);
+   border-bottom: 1px solid var(--accent-blue);
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+   grid-auto-rows: 4rem;
+}
+
+.nav-menu { 
+   display: none;
+   padding: 0;
+   padding-top: 4rem;
+   list-style-type: none;
+   margin: 0;
+   overflow-x: hidden;
+   overflow-y: auto;
+   height: 100%;
+}
+
+.nav-item {
+   padding: 0.8rem 1rem;
+   border-radius: 0.5rem;
+   white-space: nowrap;
+   margin-bottom: 1rem;
+   user-select: none;
+   position: relative;
+}
+.nav-item-icon { font-size: 1.5rem; }
+.nav-item-text { padding-left: 1rem; font-size: 1.1rem; }
+
+.nav-item:last-child { margin-top: auto; }
+
+.nav-item:hover {
+   box-shadow: inset 0 0 0 1px var(--border-color);
+   background: rgba(255,255,255, 0.1);
+}
+
+.nav-item.active {
+   background: var(--bg-purple);
+}
+
+.nav-item.active .nav-item-text {
+   color: white
+}
+
+.collapsed {
+   width: 6rem !important;
+   padding: 4rem 1rem !important;
+}
+
+.collapsed .logo {
+   display: block;
+   margin-inline: auto;
+}
+
+.collapsed .app-title { display: none; }
+.collapsed li { padding: 0.8rem 1rem; }
+.collapsed .fa-square-minus { display: none }
+
+@media (min-width: 75rem) {
+   #navbar {
+      padding: 4rem 1.5rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      width: 18rem;
+      border-bottom: 0;
+   }
+   .nav-menu {
+      display: flex;
+      flex-direction: column;
+   }
+   .burger-btn {
+      display: none;
+   }
+   .fa-square-minus { display: block }
+   .logo {
+      pointer-events: auto;
+   }
+}
+
