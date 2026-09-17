@@ -92,7 +92,7 @@
    .page-indicator:hover { background: var(--bg-red); color: white; }
    
    #go-btn, #page-input { font-size: 1.1rem }
-   #page-input { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-left: 20px; padding-right: 20px; }
+   #page-input { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-right: 40px; }
    #go-btn { background: var(--bg-purple); color: white; border-top-left-radius: 0; border-bottom-left-radius: 0; }
    #go-btn:hover { background: var(--bg-red)}
 
@@ -255,6 +255,7 @@
                <div class="ellipsis">...</div>
             {% else %}
                <a href="?page={{p}}"
+                  data-page-number="{{p}}"
                   class="page-indicator{% if p == page_obj.number %} active{% endif %}">
                   {{p}}
                </a>
@@ -331,5 +332,17 @@
    $('#id_timeUnitType').on('select2:clear', function (){
       $('#id_timeUnitValue').val('').trigger('change');
    });
+
+
+   const pageBtns = document.querySelectorAll('.page-indicator');
+   for (const a of pageBtns) {
+      a.addEventListener('click', (e) => {
+         e.preventDefault();
+         const url = new URL(window.location.href);
+         url.searchParams.set('page', e.target.dataset.pageNumber);
+         window.location.href = url;
+      });
+   }
+
 </script>
 {% endblock %}

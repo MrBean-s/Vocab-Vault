@@ -425,7 +425,7 @@ def search(request, lang_id):
    language = get_object_or_404(Language, pk=lang_id)
    
    if not request.META.get('HTTP_HX_REQUEST'):
-      return redirect('dashboard', lang_id=lang_id)
+      return redirect('word_list', lang_id=lang_id)
 
    form = ModalSearchForm(request.GET or None, initial={'filter': ['word']})
    filters = []
@@ -1312,7 +1312,7 @@ def deck(request, lang_id):
       } for uuid, data in (request.session.get('quizzes') or {}).items()
    ]
 
-   decks = Deck.objects.prefetch_related('questions').all()
+   decks = Deck.objects.prefetch_related('questions').filter(language=language).all()
 
    return render(request, 'decks.html', {
       'lang_id': lang_id,

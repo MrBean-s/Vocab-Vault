@@ -15,6 +15,29 @@
       <link rel="stylesheet" href="{% static 'css/additionalBootrapClasses.css' %}">
       <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
       <style>
+         body {
+            display: grid;
+            grid-template-areas: 
+               "navbar navbar"
+               "main main";
+            grid-template-rows: auto 1fr;
+         }
+
+         #navbar { grid-area: navbar; }
+         #main-content { grid-area: main; position: relative; min-width: 0}
+
+         @media (min-width: 75rem) {
+            body {
+               grid-template-areas: "navbar main";
+               grid-template-rows: 1fr;
+               grid-template-columns: auto 1fr;
+            }
+         }
+
+         /* Check out sidebar.css */
+         /* Modal left margin is calculated via sidebar.js;
+            however, the base widths for these calculations are hardcoded for 1200px <= width <= 1500px. */
+
          :root {
             --bg-body:         #101827;
             --bg-sidebar:      #0f1522;
@@ -375,12 +398,12 @@
       <script src="{% static 'toastr/toastr.min.js' %}"></script>
    {% endblock scripts %}
 
-   {# right-side is defined in sidebar.css #}
-   <div class="wireframe right-side"> 
+
+   <div id="main-content"> 
       {% block innerbody %}
       {% endblock innerbody %}
    </div>
-
+         
    {% include 'modals/generic_modal.html' %}
    {% include 'modals/generic_modal_img.html' %}
 
@@ -398,14 +421,16 @@
          modal.querySelector('.modal-title').textContent = '';
          modal.querySelector('.modal-body').innerHTML = '';
 
+         modal.removeAttribute('style');
          modal.classList.add('hidden');
       });
 
       document.getElementById('genericModalImg').addEventListener('hidden.bs.modal', function () {
          const genericImgModal = this;
 
-         this.querySelector('#genericModalImgContent').innerHTML = '';
-         this.classList.add('hidden');
+         genericImgModal.querySelector('#genericModalImgContent').innerHTML = '';
+         genericImgModal.removeAttribute('style');
+         genericImgModal.classList.add('hidden');
       });
    </script>
 
@@ -618,12 +643,32 @@
          });
       }
 
+      function calcModalMargin(modal) {
+         if (!modal) return;
+         const navBarWidth = document.getElementById('navbar')?.getBoundingClientRect()?.width;
+         if (!navBarWidth) return;
+         if (window.innerWidth >= 1200) {
+            modal.style.marginLeft = `${navBarWidth}px`;
+            modal.style.width = `calc(100vw - ${navBarWidth}px)`;
+         } else {
+            modal.style.marginLeft = '0px';
+            modal.style.width = '100vw';
+         }
+      }
+
       document.body.addEventListener('htmx:beforeSwap', function(evt) {
+         
+         const navMenu = document.querySelector('#navbar .nav-menu');
+         navMenu?.classList?.remove('is-open');
          if (evt.detail.target.id === 'genericModalBody') {
-            document.getElementById('genericModal').classList.add('hidden');
+            const genericModal = document.getElementById('genericModal');
+            calcModalMargin(genericModal);
+            genericModal.classList.add('hidden');
             document.getElementById('form-loader').classList.remove('hidden');
          } else if (evt.detail.target.id === 'genericModalImgContent') {
-            document.getElementById('genericModalImg').classList.add('hidden');
+            const genericModalImg = document.getElementById('genericModalImg');
+            genericModalImg.classList.add('hidden');
+            calcModalMargin(genericModalImg);
             document.getElementById('form-loader').classList.remove('hidden');
          }
       });
