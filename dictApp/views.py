@@ -1312,7 +1312,7 @@ def deck(request, lang_id):
       } for uuid, data in (request.session.get('quizzes') or {}).items()
    ]
 
-   decks = Deck.objects.prefetch_related('questions').all()
+   decks = Deck.objects.prefetch_related('questions').filter(language=language).all()
 
    return render(request, 'decks.html', {
       'lang_id': lang_id,

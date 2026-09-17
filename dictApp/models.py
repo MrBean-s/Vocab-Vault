@@ -347,6 +347,7 @@ class Deck(models.Model):
    name = models.CharField(max_length=50)
    description = models.TextField(null=True, blank=True)
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True)
+   language = models.ForeignKey(Language, on_delete=models.PROTECT)
 
    questions = models.ManyToManyField( #only stores correct answers, use deck_questions instead
       Definition,
