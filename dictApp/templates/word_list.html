@@ -42,9 +42,9 @@
       content: " ";
    }
 
-   details.details-success.custom-marker summary::before { color: var(--color-success); }
-   details.details-important.custom-marker summary::before { color: var(--color-important); }
-   details.details-danger.custom-marker summary::before { color: var(--color-accent); }
+   details.details-success.custom-marker summary::before { color: var(--accent-green) !important; }
+   details.details-important.custom-marker summary::before { color: var(--accent-gold) !important; }
+   details.details-danger.custom-marker summary::before { color: var(--accent-red) !important; }
 
 
    .circle-marker { font-size: 0.7rem;}
@@ -53,6 +53,8 @@
    .circle-marker.danger { color: var(--color-danger); }
 
    .custom-tooltip { --bs-tooltip-bg: var(--color-bg-body); --bs-tooltip-color: white; }
+
+   .clock-check-icon { cursor: pointer; }
    .custom-square-check::before { 
       background-color: var(--bg-primary); 
       border-radius: 3px; 
@@ -109,7 +111,25 @@
       gap: 16px;
       flex-wrap: wrap
    }
-   
+
+   .mark-reviewed-text {
+      font-size: 1.1rem;
+   }
+
+   .mark-reviewed-btn i {
+      color: var(--bg-primary);
+      font-size: 1.3em;
+   }
+   .mark-reviewed-btn i:hover, .mark-reviewed-btn.reviewed i {
+      color: var(--bg-success)
+   }
+
+   .mark-reviewed-word {
+      color: var(--accent-blue);
+      font-size: 1.2rem;
+      font-weight: bold;
+      font-style: italic;
+   }
 </style>
 {% endblock %}
 
@@ -157,6 +177,7 @@
             <div class="d-flex gap-3 align-items-center">
                <div class="table-header-text">Definition</div>
                <i class="fa-regular fa-circle-question text-muted pt-1" style="font-size: 0.9rem;"
+                  data-bs-placement="bottom"
                   data-bs-toggle="tooltip" data-bs-html="true"
                   data-bs-title="Color shows forgetting frequency from quizzes.
                      <br><br>Click rows with triangles for more info.">
@@ -181,7 +202,12 @@
          <div class="row table-row row-{%if forloop.counter|divisibleby:2%}odd{%else%}even{%endif%} gx-0"
             {%if forloop.last%}last-row{%endif%}>
             <div class="word-column col-xl-3 d-flex align-items-center gap-3" data-word-id="{{word.id}}">
-               <i class="fa-regular fa-clock text-muted"></i>
+               <i class="fa-regular fa-clock text-muted clock-icon"
+                  data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-custom-class="purple-tooltip"
+                  data-bs-html="true"
+                  data-bs-title="<b>Reviewed at:</b><br>{% for date in word.get_definitions_reviewed_at %}Defn {{forloop.counter}}: {% if date %}{{date}}{% else %}Never{% endif %}<br>{% empty %}Never{% endfor %}">
+               </i>
                <div class="word-name">{{word.name}}</div>
             </div>
             <div class="col-xl-7">
@@ -232,13 +258,19 @@
 
             <div class="col-xl-2 d-flex align-items-center justify-content-end">
                <div class="actions-column d-flex gap-4 pe-3">
-                  <div class="check-icon">
+                  <div class="clock-check-icon" title="Mark as reviewed"
+                     hx-get="{% url 'show_definitions_to_review' lang_id=lang_id word_id=word.id %}"
+                     hx-trigger="click"
+                     hx-target="#genericModalBody"
+                     hx-target-error="#error-box"
+                     data-bs-toggle="modal"
+                     data-bs-target="#genericModal">
                      <i class="fa-solid fa-clock position-relative text-muted fs-3">
                         <i class="custom-square-check fa-solid fa-check position-absolute text-main">
                         </i>
                      </i>
                   </div>
-                  <a href="{% url 'word_details' lang_id=lang_id word_id=word.id %}">
+                  <a href="{% url 'word_details' lang_id=lang_id word_id=word.id %}" title="Go to word">
                      <i class="fa-solid fa-arrow-right-to-bracket fs-3 text-accent-blue"></i>
                   </a>
                </div>
@@ -275,13 +307,33 @@
 
 {% block additionalScripts %}
 <script>
+document.addEventListener("DOMContentLoaded", function() {
    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
    let globalCollapse = false;
    let globalIndicator = false;
-
    let toggledDescription = null;
-   document.getElementById('word-list-table').addEventListener('click', (e) => {
+
+   const filtersForm = document.getElementById('filters-form');
+   const wordListTable = document.getElementById('word-list-table');
+
+   filtersForm.querySelectorAll("select.select2:not(.custom-select2)").forEach(function(el) {
+      if (!$(el).data('select2')) {
+         prepareSelect2(el.id);
+      }
+   });
+
+   filtersForm.querySelector('#reset-button').addEventListener('click', () => {
+      var inputs = $(filtersForm).find('input, select, textarea').val('').trigger('change');
+      filtersForm.submit();
+   });
+
+   $('#id_timeUnitType').on('select2:clear', function (){
+      $('#id_timeUnitValue').val('').trigger('change');
+   });
+
+
+   wordListTable.addEventListener('click', (e) => {
       const detailsItem = e.target.closest('details');
       if (detailsItem) {
       if (toggledDescription && toggledDescription != detailsItem) {
@@ -291,20 +343,20 @@
       }
    });
 
-   const toggleCollapse = function() {
-      document.getElementById('word-list-table').querySelectorAll('details')
+   window.toggleCollapse = function() {
+      wordListTable.querySelectorAll('details')
          .forEach((el) => {el.open = !globalCollapse;});
 
       globalCollapse = !globalCollapse;
    };
 
-   const toggleIndicator = function() {
-      document.getElementById('word-list-table').querySelectorAll('details')
+   window.toggleIndicator = function() {
+      wordListTable.querySelectorAll('details')
          .forEach((el) => {
             if (!globalIndicator) el.classList.add('detail-marker-hidden');
             else el.classList.remove('detail-marker-hidden');
          });
-      document.getElementById('word-list-table').querySelectorAll('.circle-marker')
+      wordListTable.querySelectorAll('.circle-marker')
          .forEach((el) => {
             if (!globalIndicator) el.textContent = " ";
             else el.textContent = "●";
@@ -312,27 +364,8 @@
       globalIndicator = !globalIndicator;
    };
 
-   toggleCollapse();
-   toggleIndicator();
-
-   $(document).ready(function() {
-      $(".top-part").find('select.select2:not(.custom-select2)').each(function() {
-         if (!$(this).data('select2')) {
-            prepareSelect2(this.id);
-         }
-      });
-   });
-
-   const filtersForm = document.getElementById('filters-form');
-   document.getElementById('reset-button').addEventListener('click', () => {
-      var inputs = $(filtersForm).find('input, select, textarea').val('').trigger('change');
-      filtersForm.submit();
-   });
-
-   $('#id_timeUnitType').on('select2:clear', function (){
-      $('#id_timeUnitValue').val('').trigger('change');
-   });
-
+   // toggleCollapse();
+   // toggleIndicator();
 
    const pageBtns = document.querySelectorAll('.page-indicator');
    for (const a of pageBtns) {
@@ -343,6 +376,50 @@
          window.location.href = url;
       });
    }
+});
+
+function initReviewModal () {
+   const modal = document.getElementById('genericModal');
+   modal.querySelector('#genericModalTitle').textContent = 'Mark definitions as reviewed';
+
+   for (const btn of modal.querySelectorAll('.mark-reviewed-btn')) {
+      btn.addEventListener('click', async (el) => {
+         if (btn.classList.contains('reviewed')) return;
+         const defnId = btn.dataset.definitionId;
+         const wordId = btn.dataset.wordId;
+         const url = "{% url 'mark_defn_as_reviewed' lang_id=lang_id defn_id=999999 %}".replace('999999', defnId);
+         try {
+            const response = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', "X-CSRFToken": '{{csrf_token}}'}});
+            if (!response.ok) throw new Error(`Failed to mark as reviewed, defnId: ${defnId}`);
+            btn.classList.add('reviewed');
+            await updateReviewedAtTooltip(wordId);
+            showToastrMessage('success', 'The definition reviewed date was updated');
+         } catch (e) {
+            console.log('Error', e);
+         }
+      });
+   }
+}
+
+async function updateReviewedAtTooltip(wordId) {
+   try {
+      const url = "{% url 'get_reviewed_at_dates' lang_id=lang_id word_id=999999 %}".replace('999999', wordId);
+      const response = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', "X-CSRFToken": '{{csrf_token}}'}});
+      if (!response.ok) throw new Error(`Failed to get reviewed dates, wordId: ${wordId}`);
+      const data = await response.json();
+      let tooltipContent = `<b>Reviewed at:</b> <br>`;
+      for (const [index, reviewDate] of data.dates?.entries()) {
+         const text = reviewDate ? reviewDate : 'Never';
+         tooltipContent += `Defn ${index+1}: ${text}<br>`;
+      }
+      const clockIcon = document.querySelector(`.word-column[data-word-id="${wordId}"] .clock-icon`);
+      clockIcon.setAttribute('data-bs-title', tooltipContent);
+      bootstrap.Tooltip.getInstance(clockIcon)?.dispose();
+      new bootstrap.Tooltip(clockIcon);
+   } catch (e) {
+      console.log('Error', e);
+   }
+}
 
 </script>
 {% endblock %}

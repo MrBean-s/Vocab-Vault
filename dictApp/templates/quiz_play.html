@@ -273,7 +273,19 @@
 
             if (correctAnswerData.image_path) {
                const imageWrapper = Object.assign(document.createElement('div'), { className: 'image-wrapper'});
-               imageWrapper.append(Object.assign(document.createElement('img'), { src: correctAnswerData.image_path }));
+               const img = document.createElement('img');
+               const showImgPath = "{% url 'show_image' img_id=999999 %}";
+
+               Object.entries({
+                  'hx-get': showImgPath.replace('999999', correctAnswerData.image_id),
+                  'hx-trigger': 'click',
+                  'hx-target': '#genericModalImgContent',
+                  'hx-target-error': '#error-box',
+                  'data-bs-toggle': 'modal',
+                  'data-bs-target': '#genericModalImg'
+               }).forEach(([key, val]) => img.setAttribute(key, val));
+               imageWrapper.append(Object.assign(img, { src: correctAnswerData.image_path }));
+               htmx.process(img);
 
                answerBox.querySelector('.answer-content .image-slot').append(imageWrapper);
             }
