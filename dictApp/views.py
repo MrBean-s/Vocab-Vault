@@ -13,12 +13,15 @@ from collections import defaultdict, Counter
 from django.urls import reverse
 from itertools import groupby
 from django.conf import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from django.utils import timezone as django_tz
+from django.utils.formats import date_format
 from dateutil.relativedelta import relativedelta, MO
 from django.views.decorators.http import require_POST, require_GET
 from django.template.loader import render_to_string
+from django.views.decorators.cache import never_cache
 
+@never_cache
 def start_screen(request):
    languages = Language.objects.select_related('image').filter(in_user_set=True).all()
 
@@ -58,6 +61,7 @@ def language_form(request, lang_id=None):
          'can_edit_img': can_edit_img
       })
 
+@never_cache
 def languages(request):
    languages = Language.objects.select_related('image').all()
    in_home_screen = Language.objects.filter(in_user_set=True).values_list('id', 'name')
@@ -126,7 +130,7 @@ def generic_confirm_delete(request):
 def dashboard(request, lang_id):
    return HttpResponse("<h1>Hello, World!</h1>", content_type="text/html")
 
-
+@never_cache
 def word(request, lang_id, word_id=None):
    language = get_object_or_404(
       Language.objects.prefetch_related('countries', 'parts_of_speech'),
@@ -268,7 +272,7 @@ def verify_word_availability(request, lang_id):
 
    return JsonResponse({'exists': exists}, status=200)
 
-
+@never_cache
 def word_list(request, lang_id):
    lang = get_object_or_404(Language, pk=lang_id)
    words_qs = lang.word_set.filter(is_draft=False)
@@ -492,7 +496,7 @@ def search(request, lang_id):
       'has_results': len(results) > 0 
    })
    
-   
+@never_cache
 def word_details(request, lang_id, word_id):
    language = get_object_or_404(
       Language.objects.prefetch_related('countries', 'parts_of_speech'),
@@ -529,6 +533,7 @@ def word_details(request, lang_id, word_id):
       'source_to_cat_json': dict(Source.objects.filter(language_id=lang_id).values_list('id', 'source_category'))
    })
 
+@never_cache
 def countries(request):
    if request.method == "POST":
       form = CountryForm(request.POST)
@@ -661,6 +666,7 @@ def unlink_word(request, lang_id, word_id, rel_word_id):
    })
 
 
+@never_cache
 def sources(request, lang_id):
 
    section_sources = Source.objects.filter(
@@ -734,6 +740,7 @@ def source_delete(request, lang_id, source_id):
       return redirect('sources', lang_id=lang_id)
 
 
+@never_cache
 def episodes(request, lang_id, source_id):
    source = get_object_or_404(Source, pk=source_id)
    episodes = Episode.objects.filter(source_id=source_id).order_by('season_number')
@@ -790,6 +797,7 @@ def episode_delete(request, source_id, episode_id):
    return redirect('episodes', lang_id=source.language_id, source_id=source_id)
 
 
+@never_cache
 def segments(request, lang_id, source_id):
    source = get_object_or_404(
       Source.objects.prefetch_related('segments'),
@@ -870,7 +878,7 @@ def citation_delete(request, lang_id, citation_id):
       'form': form
    })
 
-
+@never_cache
 def play_session(request, lang_id, source_id=None, episode_id=None, segment_id=None):
    source = get_object_or_404(Source, pk=source_id) if source_id else None
    episode = get_object_or_404(Episode, pk=episode_id) if episode_id else None
@@ -1145,6 +1153,7 @@ def search_source(request, lang_id):
 
    return JsonResponse({"results": results})
 
+
 def example_cite(request, lang_id, example_id):
 
    example = get_object_or_404(Example, pk=example_id)
@@ -1211,6 +1220,7 @@ def example_cite(request, lang_id, example_id):
    })
 
 
+@never_cache
 def word_list_pending(request, lang_id):
    language = get_object_or_404(Language, pk=lang_id)
 
@@ -1300,6 +1310,7 @@ def add_word_later(request, lang_id):
    return render(request, 'forms/_search_later_form.html', { 'lang_id': lang_id, 'form': form } )
 
 
+@never_cache
 def deck(request, lang_id):
    language = get_object_or_404(Language, pk=lang_id)
 
@@ -1435,15 +1446,14 @@ def quiz_settings(request, lang_id):
          "progressBarType": "questions",
          "completedHtml": render_to_string('partial/_quiz_completed.html', {'quiz_uuid': quiz_uuid, 'lang_id': lang_id}, request)
       }
-
-      time_settings = {
-         "timeLimit": len(questions) * time_per_question,
-         "timeLimitPerPage": time_per_question,
-         "showTimerPanel": "bottom",
-         "showTimerPanelMode": "page",
-      }
-
       if use_timer:
+         time_settings = {
+            "timeLimit": len(questions) * time_per_question,
+            "timeLimitPerPage": time_per_question,
+            "showTimerPanel": "bottom",
+            "showTimerPanelMode": "page",
+         }
+
          survey_json.update(time_settings)
 
       
@@ -1470,6 +1480,7 @@ def quiz_settings(request, lang_id):
    })
 
 
+@never_cache
 def quiz_play(request, quiz_uuid, lang_id):
    language = get_object_or_404(Language, pk=lang_id)
 
@@ -1533,20 +1544,29 @@ def validate_quiz_answer_ajax(request, quiz_uuid, lang_id):
    correct_word_id, correct_word_name, defn_id = answer_key.get(question_name).values()
    
    defn = Definition.objects.filter(pk=defn_id).first()
-      
+   img = defn.image if defn else None 
+
+   is_correct = (answer == correct_word_name)
+   QuizAttempt.objects.create(correct=is_correct, deck=None, definition=defn)
+   defn.update_forgetting_frequency()
+   defn.reviewed_at = datetime.now(UTC)
+   defn.save(update_fields=['reviewed_at'])
+
    correct_answer = {
-      'correct': (answer == correct_word_name),
+      'correct': is_correct,
       'word_path': reverse('word_details', kwargs={'lang_id': lang_id, 'word_id': correct_word_id}),
       'word_name': correct_word_name,
       'definition': defn.description if defn else '',
-      'image_path': defn.image.file.url if defn and defn.image else '',
+      'image_path': defn.image.file.url if img and img.file else '',
+      'image_id': img.id if img else '',
       'examples': [e.description for e in defn.examples.all()] if defn else []
    }
-
+   
    return JsonResponse(correct_answer)
 
 
 def save_quiz_to_deck(request, quiz_uuid, lang_id):
+   language = get_object_or_404(Language, pk=lang_id)
    quizzes = request.session.get('quizzes', {})
    quiz_data = quizzes.get(str(quiz_uuid))
    
@@ -1554,7 +1574,7 @@ def save_quiz_to_deck(request, quiz_uuid, lang_id):
       messages.error(request, "The quiz has expired.")
       return redirect('decks', lang_id=lang_id)
    
-   form = DeckForm(request.POST or None, request.FILES or None)
+   form = DeckForm(request.POST or None, request.FILES or None, lang_id=lang_id)
    
    if request.method == 'POST':
       used_definitions = quiz_data.get('used_definitions_id_list')
@@ -1624,6 +1644,7 @@ def deck_quiz_settings(request, lang_id, deck_id):
    })
 
 
+@never_cache
 def deck_quiz_play(request, lang_id, deck_id):
    quiz_type = request.GET.get('quiz_type', 'WW')
    time_per_question = int(request.GET.get('time_per_question', 0))
@@ -1711,13 +1732,22 @@ def validate_deck_quiz_answer_ajax(request, lang_id, deck_id):
 
    correct_definition = question.definition
    correct_word = correct_definition.word
+   image = correct_definition.image if correct_definition else None
 
+   is_correct = (correct_word.name == answer)
+
+   QuizAttempt.objects.create(correct=is_correct, deck=deck, definition=correct_definition)
+   correct_definition.update_forgetting_frequency()
+   correct_definition.reviewed_at = datetime.now(UTC)
+   correct_definition.save(update_fields=['reviewed_at'])
+   
    correct_answer = {
-      'correct': (correct_word.name == answer),
+      'correct': is_correct,
       'word_path': reverse('word_details', kwargs={'lang_id': lang_id, 'word_id': correct_word.id}),
       'word_name': correct_word.name,
       'definition': '',
-      'image_path': correct_definition.image.file.url if correct_definition and correct_definition.image else '',
+      'image_path': image.file.url if image and image.file else '',
+      'image_id': image.id if image and image.file else '',
       'examples': [e.description for e in correct_definition.examples.all()] if correct_definition else []
    }
    
@@ -1726,6 +1756,7 @@ def validate_deck_quiz_answer_ajax(request, lang_id, deck_id):
 
 def deck_quiz_questions(request, lang_id, deck_id=None):
    deck = get_object_or_404(Deck, pk=deck_id) if deck_id else None
+   language = get_object_or_404(Language, pk=lang_id)
 
    if request.method == 'POST':
       try:
@@ -1736,13 +1767,12 @@ def deck_quiz_questions(request, lang_id, deck_id=None):
       
       try: 
          with transaction.atomic():
-            deck_form = DeckForm(request.POST, request.FILES, instance=deck)
+            deck_form = DeckForm(request.POST, request.FILES, instance=deck, lang_id=lang_id)
             if not deck_form.is_valid():
                return JsonResponse({'errors': deck_form.errors}, status=400)
             
             deck = deck_form.save()
             processed_definition_ids = []
-            print(questions)
             for q in questions:
                q['deck'] = deck.id
                defn_id = q.get('definition')
@@ -1795,7 +1825,7 @@ def deck_quiz_questions(request, lang_id, deck_id=None):
    } if deck else None
    
    image_url = deck.image.file.url if (deck and getattr(deck, 'image', None) and deck.image.file) else None
-   deck_form = DeckForm(image_path=image_url)
+   deck_form = DeckForm(image_path=image_url, lang_id=lang_id)
 
    return render(request, 'forms/_deck_quiz_questions.html', {
       'lang_id': lang_id,
@@ -1804,3 +1834,41 @@ def deck_quiz_questions(request, lang_id, deck_id=None):
       'deck_quiz_initial_data': initial_data,
       'deck_form': deck_form
    })
+
+
+@require_POST
+def mark_defn_as_reviewed(request, lang_id, defn_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   definition = get_object_or_404(Definition, pk=defn_id)
+   # tooltip_content = '<b>Reviewed at:</b><br>'
+
+   definition.reviewed_at = datetime.now(UTC)
+   definition.save(update_fields=['reviewed_at'])
+   # formatted = date_format(django_tz.localtime(definition.reviewed_at), "DATETIME_FORMAT") if definition.reviewed_at else 'Never'
+   # tooltip_content += f"Defn {idx+1}: {formatted}<br>"
+
+   return JsonResponse({'success': True}, status=200)
+
+
+def show_definitions_to_review(request, lang_id, word_id):
+   word = get_object_or_404(
+      Word.objects.prefetch_related('definitions'),
+      pk=word_id
+   )
+
+   return render(request, 'partial/_mark_reviewed_modal.html', {'word': word})
+
+
+def get_reviewed_at_dates(request, lang_id, word_id):
+   language = get_object_or_404(Language, pk=lang_id)
+   word = get_object_or_404(
+      Word.objects.prefetch_related(
+         Prefetch('definitions', queryset=Definition.objects.order_by('pk'))
+      ),
+      pk=word_id
+   )
+   dates = [
+      date_format(django_tz.localtime(date), "DATETIME_FORMAT") if date else None
+      for date in word.get_definitions_reviewed_at()
+   ]
+   return JsonResponse({'success': True, 'dates': dates}, status=200)

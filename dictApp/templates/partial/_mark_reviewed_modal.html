@@ -1,0 +1,14 @@
+<span class="mark-reviewed-word mb-4">{{word.name}}</span>
+
+{% for defn in word.definitions.all %}
+   <div class="mb-3 d-flex justify-content-between flex-wrap align-items-center">
+      <span class="mark-reviewed-text"><b>Definition {{forloop.counter}}:</b> {{ defn.description|truncatechars:50 }}</span>
+      <button type="button" data-definition-id="{{defn.id}}" data-word-id="{{word.id}}" class="btn btn-transparent ms-auto mark-reviewed-btn" title="Mark as reviewed">
+         <i class="fa-solid fa-circle-check"></i>
+      </button>
+   </div>
+{% endfor %}
+
+<button type="button" class="ms-auto btn btn-secondary mt-auto" data-bs-dismiss="modal">Close</button>
+
+<div data-modal-init="initReviewModal"></div>

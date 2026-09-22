@@ -24,8 +24,12 @@ urlpatterns = [
    path("lang/<int:lang_id>/word/<int:word_id>/delete/", views.word_delete, name="word_delete"),
    path("lang/<int:lang_id>/word/<int:word_id>/link-edit/<int:rel_word_id>", views.link_word_edit, name="link_word_edit"),
    path("lang/<int:lang_id>/word/<int:word_id>/relation/<int:rel_word_id>/unlink/", views.unlink_word, name="unlink_word"),
+   path("lang/<int:lang_id>/word/<int:word_id>/show-definitions-to-review/", views.show_definitions_to_review, name="show_definitions_to_review"),
+   path("lang/<int:lang_id>/word/<int:word_id>/get-reviewed-at-dates/", views.get_reviewed_at_dates, name="get_reviewed_at_dates"),
    path("lang/<int:lang_id>/words/", views.word_list, name="word_list"),
    path("lang/<int:lang_id>/words/pending/", views.word_list_pending, name="word_list_pending"),
+
+   path("lang/<int:lang_id>/definition/<int:defn_id>/mark_reviewed/", views.mark_defn_as_reviewed, name="mark_defn_as_reviewed"),
    
    path("lang/<int:lang_id>/import/", views.import_words_from_old_json, name="import"),
    path("lang/<int:lang_id>/search/", views.search, name="search"),

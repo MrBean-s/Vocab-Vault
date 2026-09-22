@@ -1023,6 +1023,7 @@ class DeckForm(forms.ModelForm):
       }
 
    def __init__(self, *args, **kwargs):
+      self.lang_id = kwargs.pop('lang_id')
       image_path = kwargs.pop('image_path', None)
       super().__init__(*args, **kwargs)
 
@@ -1031,6 +1032,7 @@ class DeckForm(forms.ModelForm):
 
    def save(self, commit=True):
       deck = super().save(commit=False)
+      deck.language_id = self.lang_id
       image_file = self.cleaned_data.get('image_file')
       if image_file:
          old_img = deck.image

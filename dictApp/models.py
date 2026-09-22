@@ -41,11 +41,16 @@ class Word(models.Model):
    def __str__(self):
       return self.name
 
+   def get_definitions_reviewed_at(self):
+      return [ defn.reviewed_at for defn in self.definitions.order_by('pk')]
+
+
 
 
 class Definition(models.Model):
    description = models.TextField(null=True, blank=True, db_index=True)
    origin = models.TextField(default = '', null=True, blank=True)
+   reviewed_at = models.DateTimeField(null=True, blank=True)
 
    word = models.ForeignKey(Word, related_name="definitions", on_delete=models.CASCADE, null=False)
    image = models.OneToOneField('Image', on_delete=models.SET_NULL, null=True, blank=True)
@@ -152,6 +157,21 @@ class Definition(models.Model):
          example.delete()  #to fire example post_delete signals
       
       super().delete(*args, **kwargs)
+
+   def update_forgetting_frequency(self):
+      attempts = list(self.quizattempt_set.order_by('-attempted_at')[:3])
+      total = len(attempts)
+      wrong = sum(1 for a in attempts if not a.correct)
+      ratio = wrong /total
+      if ratio >= 0.6:
+         self.forgetting_frequency = self.ForgettingFrequency.FREQUENT
+      elif ratio >= 0.2:
+         self.forgetting_frequency = self.ForgettingFrequency.RARE
+      else:
+         self.forgetting_frequency = self.ForgettingFrequency.NEVER
+      
+      self.save(update_fields=['forgetting_frequency'])
+
 
 class Example(models.Model):
    description = models.TextField()
